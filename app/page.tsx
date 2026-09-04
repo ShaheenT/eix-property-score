@@ -37,7 +37,7 @@ export default function Home() {
       <nav className="relative z-50 flex items-center justify-between px-6 py-5 sm:px-10">
         <div className="flex items-center gap-2.5">
           <img
-            src="/eixproplogo.png"
+            src="/eixpropscorelogo.png"
             alt="EiX Property Score"
             className="h-12 w-auto object-contain sm:h-14"
           />
@@ -46,7 +46,7 @@ export default function Home() {
           <a href="#how" className="text-sm text-white/60 transition-colors hover:text-white">How it works</a>
           <a href="#score" className="text-sm text-white/60 transition-colors hover:text-white">AI Score</a>
           <a href="#pricing" className="text-sm text-white/60 transition-colors hover:text-white">Pricing</a>
-          <a href="/dashboard" className="text-sm text-white/60 transition-colors hover:text-white">Dashboard</a>
+          <a href="/admin/login" title="Admin" aria-label="Admin" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-teal-400" ><ShieldAlert className="h-4 w-4" /></a>
         </div>
         <span className="hidden rounded-full bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-400 ring-1 ring-teal-500/20 sm:inline-flex">
           Beta
@@ -196,7 +196,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-3">
             <img
-              src="/eixproplogo.png"
+              src="/eixpropscorelogo.png"
               alt="EiX Property Score"
               className="h-10 w-auto object-contain"
             />
