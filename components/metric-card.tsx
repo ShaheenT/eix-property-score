@@ -41,23 +41,23 @@ export function MetricCard({
   return (
     <div
       ref={ref}
-      className={`group glass relative overflow-hidden rounded-2xl p-5 transition-all duration-500 hover:border-emerald-500/30 hover:bg-white/[0.05] ${
+      className={`group glass relative overflow-hidden rounded-2xl p-5 transition-all duration-500 hover:border-teal-500/30 hover:bg-white/[0.05] ${
         visible
           ? 'opacity-100 translate-y-0'
           : 'opacity-0 translate-y-6'
       }`}
     >
-      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/5 blur-2xl transition-opacity duration-500 group-hover:bg-emerald-500/10" />
+      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-teal-500/5 blur-2xl transition-opacity duration-500 group-hover:bg-teal-500/10" />
 
       <div className="relative flex items-start justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-teal-400 ring-1 ring-teal-500/20">
           {icon}
         </div>
         {trend && (
           <div
             className={`flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
               trendUp
-                ? 'bg-emerald-500/10 text-emerald-400'
+                ? 'bg-teal-500/10 text-teal-400'
                 : 'bg-red-500/10 text-red-400'
             }`}
           >

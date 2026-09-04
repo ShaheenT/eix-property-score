@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, Sparkles, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -13,14 +12,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { PropertySourceDetector } from '@/components/property-source-detector';
+import { SupportedPlatforms } from '@/components/supported-platforms';
+import { ConfidenceMeter } from '@/components/confidence-meter';
+import type { PropertySource } from '@/lib/property-source';
 
 type Goal = 'Buy to Live' | 'Rental' | 'Flip';
 
 export function LeadForm() {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -28,6 +29,7 @@ export function LeadForm() {
     listing_url: '',
     goal: '' as Goal | '',
   });
+  const [detectedSource, setDetectedSource] = useState<PropertySource | null>(null);
 
   const handleChange = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -47,27 +49,31 @@ export function LeadForm() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('property_score_leads').insert({
-        name: form.name,
-        email: form.email,
-        whatsapp: form.whatsapp || null,
-        listing_url: form.listing_url,
-        goal: form.goal,
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          whatsapp: form.whatsapp || undefined,
+          listing_url: form.listing_url,
+          goal: form.goal,
+          product: 'standard_report',
+        }),
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Checkout failed');
+      }
 
-      setSubmitted(true);
-      toast({
-        title: 'Your Property Score request is in!',
-        description:
-          'Our AI is analyzing the listing. Check your email and WhatsApp for results within 24 hours.',
-      });
+      const data = await res.json();
+      window.location.href = data.checkout_url;
     } catch (err) {
       toast({
         title: 'Something went wrong',
         description:
-          'We could not submit your request. Please try again in a moment.',
+          err instanceof Error ? err.message : 'We could not start checkout. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -75,55 +81,18 @@ export function LeadForm() {
     }
   };
 
-  if (submitted) {
-    return (
-      <div className="glass-strong flex flex-col items-center justify-center rounded-2xl p-8 text-center animate-scale-in">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 ring-1 ring-emerald-500/30">
-          <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-        </div>
-        <h3 className="mt-5 text-xl font-semibold text-white">
-          Request Received
-        </h3>
-        <p className="mt-2 max-w-sm text-sm text-white/60">
-          Your AI Property Score report is being generated. We will send your
-          Investment Score, Rental Yield Estimate, BondMatch scenario, and Risk
-          Assessment to your email and WhatsApp within 24 hours.
-        </p>
-        <Button
-          variant="outline"
-          className="mt-6 border-white/10 bg-white/5 text-white hover:bg-white/10"
-          onClick={() => {
-            setSubmitted(false);
-            setForm({
-              name: '',
-              email: '',
-              whatsapp: '',
-              listing_url: '',
-              goal: '',
-            });
-          }}
-        >
-          Analyze Another Property
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="glass-strong rounded-2xl p-6 sm:p-7"
-    >
+    <form onSubmit={handleSubmit} className="glass-strong rounded-2xl p-6 sm:p-7">
       <div className="mb-5 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20">
-          <Sparkles className="h-4 w-4 text-emerald-400" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 ring-1 ring-teal-500/20">
+          <Sparkles className="h-4 w-4 text-teal-400" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white">
-            Get Your Free Property Score
+            Get Your Property Score — R149
           </h3>
           <p className="text-xs text-white/50">
-            No credit card required. Results in 24 hours.
+            Founding Beta price · Delivered within 24 hours
           </p>
         </div>
       </div>
@@ -131,7 +100,7 @@ export function LeadForm() {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label className="text-white/70">
-            Full Name <span className="text-emerald-400">*</span>
+            Full Name <span className="text-teal-400">*</span>
           </Label>
           <Input
             value={form.name}
@@ -144,7 +113,7 @@ export function LeadForm() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label className="text-white/70">
-              Email <span className="text-emerald-400">*</span>
+              Email <span className="text-teal-400">*</span>
             </Label>
             <Input
               type="email"
@@ -154,7 +123,6 @@ export function LeadForm() {
               className="border-white/10 bg-white/5 text-white"
             />
           </div>
-
           <div className="space-y-2">
             <Label className="text-white/70">WhatsApp Number</Label>
             <Input
@@ -168,27 +136,23 @@ export function LeadForm() {
 
         <div className="space-y-2">
           <Label className="text-white/70">
-            Property Listing URL <span className="text-emerald-400">*</span>
+            Property Listing URL or Address <span className="text-teal-400">*</span>
           </Label>
-          <Input
+          <PropertySourceDetector
             value={form.listing_url}
-            onChange={(e) => handleChange('listing_url', e.target.value)}
-            placeholder="https://www.property24.com/for-sale/..."
-            className="border-white/10 bg-white/5 text-white"
+            onChange={(v) => handleChange('listing_url', v)}
+            onSourceDetected={setDetectedSource}
           />
-          <p className="text-[11px] text-white/40">
-            Paste a Property24 or Private Property listing link
-          </p>
+          <div className="pt-1">
+            <SupportedPlatforms />
+          </div>
         </div>
 
         <div className="space-y-2">
           <Label className="text-white/70">
-            Your Goal <span className="text-emerald-400">*</span>
+            Your Goal <span className="text-teal-400">*</span>
           </Label>
-          <Select
-            value={form.goal}
-            onValueChange={(v) => handleChange('goal', v)}
-          >
+          <Select value={form.goal} onValueChange={(v) => handleChange('goal', v)}>
             <SelectTrigger className="border-white/10 bg-white/5 text-white">
               <SelectValue placeholder="Select your investment goal" />
             </SelectTrigger>
@@ -200,27 +164,47 @@ export function LeadForm() {
           </Select>
         </div>
 
-        <Button
+        {detectedSource && (
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+            <ConfidenceMeter
+              value={
+                detectedSource === 'property24'
+                  ? 95
+                  : detectedSource === 'private_property'
+                    ? 82
+                    : detectedSource === 'agency'
+                      ? 75
+                      : detectedSource === 'facebook'
+                        ? 68
+                        : 45
+              }
+              size="sm"
+            />
+          </div>
+        )}
+
+        <button
           type="submit"
           disabled={submitting}
-          className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 py-6 text-base font-semibold text-midnight-900 transition-all hover:shadow-[0_0_30px_rgba(0,196,140,0.5)] hover:brightness-110"
+          className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 py-6 text-base font-semibold text-midnight-900 transition-all hover:shadow-[0_0_30px_rgba(14,165,164,0.5)] hover:brightness-110 disabled:opacity-60"
         >
           {submitting ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Analyzing Property...
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Redirecting to secure checkout...
             </>
           ) : (
             <>
-              Get My Free Property Score
-              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <Lock className="h-4 w-4 opacity-70" />
+              Pay R149 — Get My Property Score
+              <ArrowRight className="ml-1 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </>
           )}
-        </Button>
+        </button>
 
         <p className="text-center text-[11px] text-white/40">
-          By submitting, you agree to receive your AI Property Score report via
-          email and WhatsApp. No spam, ever.
+          Secure checkout via PayFast. Your report is delivered to your email and
+          WhatsApp within 24 hours.
         </p>
       </div>
     </form>

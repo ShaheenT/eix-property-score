@@ -1,0 +1,5 @@
+project_id = "mfriitqbxmorndcznwfa"
+
+[functions.send-report-email]
+verify_jwt = false
+entrypoint = "./functions/send-report-email/index.ts"
