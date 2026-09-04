@@ -70,13 +70,9 @@ export default function DashboardPage() {
           return;
         }
 
-        const { data: admin, error: adminError } = await supabase
-          .from('admin_users')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle();
+        const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
 
-        if (adminError || !admin) {
+        if (adminError || !isAdmin) {
           await supabase.auth.signOut();
           router.replace('/admin/login');
           return;
