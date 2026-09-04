@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       payment_id: payment.id,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
+    const message = err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
