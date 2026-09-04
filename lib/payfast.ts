@@ -18,18 +18,23 @@ interface PayFastParams {
   product: 'standard_report' | 'investor_report_pro';
 }
 
-function buildSignature(params: Record<string, string>): string {
-  const sorted = Object.keys(params)
-    .sort()
-    .filter((key) => params[key] !== '' && params[key] !== undefined)
-    .map((key) => `${key}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`)
+function buildSignature(
+  params: Record<string, string>,
+  passphrase?: string
+): string {
+  const paramString = Object.entries(params)
+    .filter(([, value]) => value !== '' && value !== undefined)
+    .map(
+      ([key, value]) =>
+        `${key}=${encodeURIComponent(value.trim()).replace(/%20/g, '+')}`
+    )
     .join('&');
 
-  const withPassphrase = PF_PASSPHRASE
-    ? `${sorted}&passphrase=${PF_PASSPHRASE}`
-    : sorted;
+  const finalString = passphrase
+    ? `${paramString}&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`
+    : paramString;
 
-  return createHash('md5').update(withPassphrase).digest('hex');
+  return createHash('md5').update(finalString).digest('hex');
 }
 
 export function createPayFastPaymentLink({
@@ -41,10 +46,14 @@ export function createPayFastPaymentLink({
   product,
 }: PayFastParams): { url: string; params: Record<string, string> } {
   const isPro = product === 'investor_report_pro';
+
   const returnUrl = isPro
     ? `${BASE_URL}/payment/pro-success`
     : `${BASE_URL}/success`;
-  const cancelUrl = isPro ? `${BASE_URL}/upsell/pro` : `${BASE_URL}/`;
+
+  const cancelUrl = isPro
+    ? `${BASE_URL}/upsell/pro`
+    : `${BASE_URL}/`;
 
   const params: Record<string, string> = {
     merchant_id: PF_MERCHANT_ID,
@@ -61,13 +70,19 @@ export function createPayFastPaymentLink({
     custom_str1: product,
   };
 
-  params.signature = buildSignature(params);
+  params.signature = buildSignature(params, PF_PASSPHRASE);
 
   const queryString = Object.entries(params)
-    .map(([key, val]) => `${key}=${encodeURIComponent(val).replace(/%20/g, '+')}`)
+    .map(
+      ([key, value]) =>
+        `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}`
+    )
     .join('&');
 
-  return { url: `${PF_URL}?${queryString}`, params };
+  return {
+    url: `${PF_URL}?${queryString}`,
+    params,
+  };
 }
 
 export function verifyPayFastSignature(
@@ -75,10 +90,8 @@ export function verifyPayFastSignature(
   receivedSignature: string
 ): boolean {
   const { signature, ...rest } = params;
-  const recalculated = buildSignature(
-    Object.fromEntries(
-      Object.entries(rest).filter(([, v]) => v !== '' && v !== undefined)
-    )
-  );
+
+  const recalculated = buildSignature(rest, PF_PASSPHRASE);
+
   return recalculated === receivedSignature;
 }

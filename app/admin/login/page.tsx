@@ -28,13 +28,10 @@ export default function AdminLoginPage() {
         throw new Error('Invalid email or password.');
       }
 
-      const { data: admin, error: adminError } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', data.user.id)
-        .maybeSingle();
+      const { data: isAdmin, error: adminError } =
+        await supabase.rpc('is_admin');
 
-      if (adminError || !admin) {
+      if (adminError || !isAdmin) {
         await supabase.auth.signOut();
         throw new Error(
           'This account is not authorised for admin access.'
