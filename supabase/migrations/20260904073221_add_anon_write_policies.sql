@@ -1,34 +1,11 @@
 /*
-# Add anon INSERT on payments for checkout flow
+# EiX Property Score server-side access
 
-The checkout API route creates a payment record after a submission.
-Need anon INSERT on payments to support this.
+Checkout and PayFast processing use the Supabase service-role client.
+Therefore no anonymous INSERT/UPDATE policies are required.
 
-1. Security changes:
-- Add INSERT policy on payments (anon + authenticated)
+RLS remains enabled on all operational tables.
+
+This migration intentionally does not expose customer, payment,
+submission, or report records to anonymous browser clients.
 */
-
-DROP POLICY IF EXISTS "anon_insert_payments" ON payments;
-CREATE POLICY "anon_insert_payments"
-ON payments FOR INSERT
-TO anon, authenticated WITH CHECK (true);
-
-DROP POLICY IF EXISTS "anon_insert_reports" ON reports;
-CREATE POLICY "anon_insert_reports"
-ON reports FOR INSERT
-TO anon, authenticated WITH CHECK (true);
-
-DROP POLICY IF EXISTS "anon_update_payments" ON payments;
-CREATE POLICY "anon_update_payments"
-ON payments FOR UPDATE
-TO anon, authenticated USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "anon_update_submissions" ON property_submissions;
-CREATE POLICY "anon_update_submissions"
-ON property_submissions FOR UPDATE
-TO anon, authenticated USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "anon_update_reports" ON reports;
-CREATE POLICY "anon_update_reports"
-ON reports FOR UPDATE
-TO anon, authenticated USING (true) WITH CHECK (true);

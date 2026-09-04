@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://eix-property-score-beta.vercel.app'),
   title: 'EiX Property Score™ — AI Property Investment Score for SA Property',
   description:
     'Paste any Property24 listing. Know if it is worth buying within 24 hours. AI-powered investment scoring, rental yield analysis and risk assessment.',
