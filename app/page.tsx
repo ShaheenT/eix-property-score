@@ -36,13 +36,11 @@ export default function Home() {
 
       <nav className="relative z-50 flex items-center justify-between px-6 py-5 sm:px-10">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-teal-400 shadow-[0_0_20px_rgba(14,165,164,0.3)]">
-            <Building2 className="h-5 w-5 text-midnight-900" />
-          </div>
-          <span className="text-lg font-bold tracking-tight text-white">
-            EiX<span className="text-teal-400"> Concierge Engine</span>
-            <sup className="ml-0.5 text-[10px] text-teal-400/70">™</sup>
-          </span>
+          <img
+            src="/eixproplogo.png"
+            alt="EiX Property Score"
+            className="h-12 w-auto object-contain sm:h-14"
+          />
         </div>
         <div className="hidden items-center gap-7 sm:flex">
           <a href="#how" className="text-sm text-white/60 transition-colors hover:text-white">How it works</a>
@@ -63,7 +61,7 @@ export default function Home() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-teal-400" />
               </span>
-              AI Property Concierge · South African Market
+              AI Property Score · South African Market
             </div>
 
             <h1 className={`mt-6 text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl ${mounted ? 'animate-fade-up' : 'opacity-0'}`} style={{ animationDelay: '0.1s' }}>
@@ -196,11 +194,12 @@ export default function Home() {
 
       <footer className="relative z-10 mt-32 border-t border-white/5 bg-midnight-600/50 px-6 py-10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-400">
-              <Building2 className="h-4 w-4 text-midnight-900" />
-            </div>
-            <span className="text-sm font-semibold text-white/70">EiX Concierge Engine™</span>
+          <div className="flex items-center gap-3">
+            <img
+              src="/eixproplogo.png"
+              alt="EiX Property Score"
+              className="h-10 w-auto object-contain"
+            />
             <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-400 ring-1 ring-teal-500/20">Beta</span>
           </div>
           <p className="text-xs text-white/30">

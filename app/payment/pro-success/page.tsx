@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Download, Mail, Crown, Building2, ArrowRight } from 'lucide-react';
+import { Download, Mail, ArrowRight } from 'lucide-react';
 import { SuccessCard } from '@/components/success-card';
 
 export default function ProSuccessPage() {
@@ -15,14 +15,8 @@ export default function ProSuccessPage() {
         <div className="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-gold-500/10 blur-[120px]" />
       </div>
       <div className={`relative z-10 w-full max-w-2xl ${mounted ? 'animate-scale-in' : 'opacity-0'}`}>
-        <div className="mb-8 flex items-center justify-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-gold-500 to-gold-400 shadow-[0_0_20px_rgba(200,162,74,0.3)]">
-            <Crown className="h-5 w-5 text-midnight-900" />
-          </div>
-          <span className="text-lg font-bold tracking-tight text-white">
-            EiX<span className="text-gold-400"> Concierge Engine</span>
-            <sup className="ml-0.5 text-[10px] text-gold-400/70">™</sup>
-          </span>
+        <div className="mb-8 flex items-center justify-center">
+          <img src="/eixproplogo.png" alt="EiX Property Score" className="h-16 w-auto object-contain" />
         </div>
         <SuccessCard
           title="Investor Report Pro Unlocked"

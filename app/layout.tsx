@@ -5,11 +5,11 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'EiX Concierge Engine™ — AI Property Investment Score for SA Property',
+  title: 'EiX Property Score™ — AI Property Investment Score for SA Property',
   description:
     'Paste any Property24 listing. Know if it is worth buying within 24 hours. AI-powered investment scoring, rental yield analysis and risk assessment.',
   openGraph: {
-    title: 'EiX Concierge Engine™',
+    title: 'EiX Property Score™',
     description:
       'Paste any property listing. Know if it is worth buying within 24 hours. AI-powered investment scoring for South African real estate.',
     images: [

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Building2, Loader2, Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ConfidenceMeter } from '@/components/confidence-meter';
 
@@ -87,12 +87,7 @@ export default function DashboardPage() {
       <div className="pointer-events-none fixed inset-0 grid-pattern opacity-40" />
       <nav className="relative z-50 flex items-center justify-between px-6 py-5 sm:px-10">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-teal-400">
-            <Building2 className="h-5 w-5 text-midnight-900" />
-          </div>
-          <span className="text-lg font-bold tracking-tight text-white">
-            EiX<span className="text-teal-400"> Dashboard</span>
-          </span>
+          <img src="/eixproplogo.png" alt="EiX Property Score" className="h-12 w-auto object-contain" />
         </div>
         <a href="/" className="text-sm text-white/60 transition-colors hover:text-white">Back to site</a>
       </nav>

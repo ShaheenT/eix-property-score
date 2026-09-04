@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  BarChart3, TrendingUp, ShieldAlert, Target, ArrowRight, Building2,
+  BarChart3, TrendingUp, ShieldAlert, Target, ArrowRight,
   Loader2, Sparkles,
 } from 'lucide-react';
 import { PricingCardPro } from '@/components/pricing-card';
@@ -54,14 +54,8 @@ export default function UpsellProPage() {
         <div className="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-gold-500/10 blur-[120px]" />
       </div>
       <nav className="relative z-50 flex items-center justify-center px-6 py-5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-teal-400 shadow-[0_0_20px_rgba(14,165,164,0.3)]">
-            <Building2 className="h-5 w-5 text-midnight-900" />
-          </div>
-          <span className="text-lg font-bold tracking-tight text-white">
-            EiX<span className="text-teal-400"> Concierge Engine</span>
-            <sup className="ml-0.5 text-[10px] text-teal-400/70">™</sup>
-          </span>
+        <div className="flex items-center justify-center">
+          <img src="/eixproplogo.png" alt="EiX Property Score" className="h-14 w-auto object-contain" />
         </div>
       </nav>
       <section className={`relative z-10 mx-auto max-w-5xl px-6 py-16 ${mounted ? 'animate-fade-up' : 'opacity-0'}`}>

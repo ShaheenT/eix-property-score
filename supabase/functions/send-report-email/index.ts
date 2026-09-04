@@ -32,17 +32,17 @@ function buildEmailHtml(name: string, reportType: string, reportUrl?: string): s
 <body style="background:#111315;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <span style="font-size:24px;font-weight:bold;color:#FFFFFF;">EiX<span style="color:#0EA5A4;"> Concierge Engine</span></span>
+      <span style="font-size:24px;font-weight:bold;color:#FFFFFF;">EiX<span style="color:#0EA5A4;"> Property Score</span></span>
     </div>
     <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:32px;">
       <h1 style="color:#FFFFFF;font-size:24px;margin:0 0 16px;">Your ${reportLabel} is Ready</h1>
       <p style="color:#A0AEC0;font-size:16px;line-height:1.6;">Hi ${name},</p>
-      <p style="color:#A0AEC0;font-size:16px;line-height:1.6;">Your AI-powered ${reportLabel} has been generated and is ready for download. Thank you for using EiX Concierge Engine.</p>
+      <p style="color:#A0AEC0;font-size:16px;line-height:1.6;">Your AI-powered ${reportLabel} has been generated and is ready for download. Thank you for using EiX Property Score.</p>
       <div style="text-align:center;margin:24px 0;">
         ${downloadSection}
       </div>
       <div style="border-top:1px solid rgba(255,255,255,0.08);margin-top:24px;padding-top:16px;">
-        <p style="color:#6B7280;font-size:12px;">EiX Concierge Engine — AI Property Investment Analysis for South Africa</p>
+        <p style="color:#6B7280;font-size:12px;">EiX Property Score — AI Property Investment Analysis for South Africa</p>
       </div>
     </div>
   </div>
