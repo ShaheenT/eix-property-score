@@ -89,9 +89,23 @@ export function verifyPayFastSignature(
   params: Record<string, string>,
   receivedSignature: string
 ): boolean {
-  const { signature, ...rest } = params;
+  const entries = Object.entries(params).filter(
+    ([key, value]) =>
+      key !== 'signature' && value !== '' && value !== undefined
+  );
 
-  const recalculated = buildSignature(rest, PF_PASSPHRASE);
+  const paramString = entries
+    .map(
+      ([key, value]) =>
+        `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}`
+    )
+    .join('&');
+
+  const finalString = PF_PASSPHRASE
+    ? `${paramString}&passphrase=${encodeURIComponent(PF_PASSPHRASE).replace(/%20/g, '+')}`
+    : paramString;
+
+  const recalculated = createHash('md5').update(finalString).digest('hex');
 
   return recalculated === receivedSignature;
 }

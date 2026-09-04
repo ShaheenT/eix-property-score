@@ -14,6 +14,10 @@ export async function POST(req: NextRequest) {
     const isValid = verifyPayFastSignature(params, receivedSignature);
 
     if (!isValid) {
+      console.error('[PayFast ITN] Signature mismatch', {
+        keys: Object.keys(params).filter((key) => key !== 'signature'),
+        receivedSignaturePresent: Boolean(receivedSignature),
+      });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
