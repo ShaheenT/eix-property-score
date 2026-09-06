@@ -15,7 +15,7 @@ export const metadata: Metadata = {
       'Paste any property listing. Know if it is worth buying within 24 hours. AI-powered investment scoring for South African real estate.',
     images: [
       {
-        url: 'https://bolt.new/static/og_default.png',
+        url: '/eixpropscorelogo.png',
       },
     ],
   },
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: [
       {
-        url: 'https://bolt.new/static/og_default.png',
+        url: '/eixpropscorelogo.png',
       },
     ],
   },
