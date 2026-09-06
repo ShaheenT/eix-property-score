@@ -371,34 +371,51 @@ function extractObjectFacts(
   };
 }
 
-function mergeFacts(
+export function mergeFacts(
+  target: PropertyFacts,
+  ...sources: Array<Partial<PropertyFacts>>
+): PropertyFacts;
+export function mergeFacts(
   target: Partial<PropertyFacts>,
-  source: Partial<PropertyFacts>
-): void {
-  for (const key of Object.keys(source) as Array<keyof PropertyFacts>) {
-    if (
-      target[key] === undefined &&
-      source[key] !== undefined
-    ) {
-      target[key] = source[key] as never;
+  ...sources: Array<Partial<PropertyFacts>>
+): Partial<PropertyFacts>;
+export function mergeFacts(
+  target: Partial<PropertyFacts>,
+  ...sources: Array<Partial<PropertyFacts>>
+): Partial<PropertyFacts> {
+  for (const source of sources) {
+    for (const key of Object.keys(source) as Array<keyof PropertyFacts>) {
+      if (
+        target[key] === undefined &&
+        source[key] !== undefined
+      ) {
+        (target as Record<keyof PropertyFacts, PropertyFacts[keyof PropertyFacts]>)[key] =
+          source[key] as PropertyFacts[keyof PropertyFacts];
+      }
     }
   }
+
+  return target;
 }
 
-function mergeEvidence(
+export function mergeEvidence(
   target: PropertyEvidence[],
-  source: PropertyEvidence[]
-): void {
+  ...sources: Array<PropertyEvidence[]>
+): PropertyEvidence[] {
   const existingFields = new Set(
     target.map((item) => item.field)
   );
 
-  for (const item of source) {
-    if (!existingFields.has(item.field)) {
-      target.push(item);
-      existingFields.add(item.field);
+  for (const source of sources) {
+    for (const item of source) {
+      if (!existingFields.has(item.field)) {
+        target.push(item);
+        existingFields.add(item.field);
+      }
     }
   }
+
+  return target;
 }
 
 function collectJsonLdObjects(
@@ -450,10 +467,23 @@ function collectJsonLdObjects(
 function extractJsonLdFacts(
   jsonLd: unknown
 ): {
-  facts: Partial<PropertyFacts>;
+  facts: PropertyFacts;
   evidence: PropertyEvidence[];
 } {
-  const facts: Partial<PropertyFacts> = {};
+  const facts: PropertyFacts = {
+    title: null,
+    address: null,
+    suburb: null,
+    city: null,
+    province: null,
+    postalCode: null,
+    askingPriceCents: null,
+    bedrooms: null,
+    bathrooms: null,
+    propertyType: null,
+    floorSizeM2: null,
+    landSizeM2: null,
+  };
   const evidence: PropertyEvidence[] = [];
 
   const objects = collectJsonLdObjects(jsonLd);

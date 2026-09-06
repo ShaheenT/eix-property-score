@@ -29,7 +29,7 @@ test('rejects localhost before fetching', async () => {
     'http://localhost:3000/property'
   );
 
-  assert.equal(result.status, 'extraction_failed');
+  assert.equal(result.status, 'unsupported_source');
   assert.match(
     result.errors[0] ?? '',
     /valid|supported/i
@@ -41,7 +41,7 @@ test('rejects loopback IP before fetching', async () => {
     'http://127.0.0.1/property'
   );
 
-  assert.equal(result.status, 'extraction_failed');
+  assert.equal(result.status, 'unsupported_source');
 });
 
 test('rejects private network IP before fetching', async () => {
@@ -49,7 +49,7 @@ test('rejects private network IP before fetching', async () => {
     'http://192.168.1.10/property'
   );
 
-  assert.equal(result.status, 'extraction_failed');
+  assert.equal(result.status, 'unsupported_source');
 });
 
 test('rejects malformed property URLs', async () => {
@@ -57,7 +57,7 @@ test('rejects malformed property URLs', async () => {
     'https://property24.com/[broken'
   );
 
-  assert.equal(result.status, 'extraction_failed');
+  assert.equal(result.status, 'unsupported_source');
 });
 
 test('rejects unsupported source domains without network access', async () => {

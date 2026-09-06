@@ -1,4 +1,13 @@
 import { validatePropertyInput } from '@/lib/property-input';
+import {
+  extractJsonLdFacts,
+  mergeFacts,
+  mergeEvidence,
+} from '@/lib/property-parser';
+import type {
+  PropertyEvidence,
+  PropertyFacts,
+} from '@/lib/property-types';
 
 export type PropertyExtractionStatus =
   | 'extracted'
@@ -6,79 +15,67 @@ export type PropertyExtractionStatus =
   | 'extraction_failed'
   | 'unsupported_source';
 
-export interface PropertyFacts {
-  title: string | null;
-  address: string | null;
-  suburb: string | null;
-  city: string | null;
-  province: string | null;
-  postalCode: string | null;
-  askingPriceCents: number | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  propertyType: string | null;
-  floorSizeM2: number | null;
-  landSizeM2: number | null;
-}
-
-export interface PropertyEvidence {
-  field: keyof PropertyFacts;
-  value: string;
-  source: 'json_ld' | 'open_graph' | 'meta' | 'html';
-}
-
 export interface PropertyExtractionResult {
   status: PropertyExtractionStatus;
-  sourceUrl: string;
-  finalUrl: string | null;
-  source: string | null;
   facts: PropertyFacts;
   evidence: PropertyEvidence[];
+  source: string;
+  sourceUrl: string;
   errors: string[];
-}
-
-export interface ExtractPropertyOptions {
-  timeoutMs?: number;
-  maxResponseBytes?: number;
 }
 
 export const DEFAULT_EXTRACTION_TIMEOUT_MS = 10_000;
 export const DEFAULT_MAX_RESPONSE_BYTES = 2_000_000;
 
-function emptyFacts(): PropertyFacts {
-  return {
-    title: null,
-    address: null,
-    suburb: null,
-    city: null,
-    province: null,
-    postalCode: null,
-    askingPriceCents: null,
-    bedrooms: null,
-    bathrooms: null,
-    propertyType: null,
-    floorSizeM2: null,
-    landSizeM2: null,
-  };
+const EXTRACTION_USER_AGENT =
+  'EiX-Property-Score/1.0 (+https://eix-property-score-beta.vercel.app)';
+
+const EMPTY_FACTS: PropertyFacts = {
+  title: null,
+  address: null,
+  suburb: null,
+  city: null,
+  province: null,
+  postalCode: null,
+  askingPriceCents: null,
+  bedrooms: null,
+  bathrooms: null,
+  propertyType: null,
+  floorSizeM2: null,
+  landSizeM2: null,
+};
+
+interface FetchOptions {
+  timeoutMs?: number;
+  maxResponseBytes?: number;
 }
 
-function isBlockedHostname(hostname: string): boolean {
+interface FetchedPage {
+  finalUrl: string;
+  contentType: string;
+  body: string;
+}
+
+function emptyFacts(): PropertyFacts {
+  return { ...EMPTY_FACTS };
+}
+
+function isPrivateOrLocalHostname(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, '');
 
   if (
     host === 'localhost' ||
     host === 'localhost.localdomain' ||
-    host === '0.0.0.0' ||
-    host === '127.0.0.1' ||
-    host === '::1' ||
     host.endsWith('.localhost') ||
-    host.endsWith('.local')
+    host.endsWith('.local') ||
+    host === '0.0.0.0' ||
+    host === '::1'
   ) {
     return true;
   }
 
   const ipv4 = host.match(
-    /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
+    /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
   );
 
   if (!ipv4) {
@@ -96,35 +93,55 @@ function isBlockedHostname(hostname: string): boolean {
   return (
     a === 10 ||
     a === 127 ||
-    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
-    (a === 172 && b >= 16 && b <= 31)
+    (a === 169 && b === 254)
   );
 }
 
-function isAllowedSourceUrl(sourceUrl: string): boolean {
-  const validation = validatePropertyInput(sourceUrl);
+function validateFetchUrl(input: string): URL {
+  const parsed = new URL(input);
 
-  if (!validation.ok || validation.kind !== 'url') {
-    return false;
+  if (
+    parsed.protocol !== 'http:' &&
+    parsed.protocol !== 'https:'
+  ) {
+    throw new Error('Unsupported URL protocol.');
   }
 
-  try {
-    const url = new URL(validation.normalizedInput);
-
-    return !isBlockedHostname(url.hostname);
-  } catch {
-    return false;
+  if (parsed.username || parsed.password) {
+    throw new Error('Credential-bearing URLs are not allowed.');
   }
+
+  if (isPrivateOrLocalHostname(parsed.hostname)) {
+    throw new Error(
+      'Private or local network destinations are not allowed.',
+    );
+  }
+
+  return parsed;
 }
 
-function createTimeoutSignal(timeoutMs: number): AbortSignal {
-  return AbortSignal.timeout(timeoutMs);
+function getContentType(response: Response): string {
+  return (
+    response.headers.get('content-type')?.toLowerCase() ?? ''
+  );
 }
 
-async function readResponseWithLimit(
+function isAllowedContentType(contentType: string): boolean {
+  if (!contentType) {
+    return true;
+  }
+
+  return (
+    contentType.includes('text/html') ||
+    contentType.includes('application/xhtml+xml')
+  );
+}
+
+async function readResponseBodyWithLimit(
   response: Response,
-  maxResponseBytes: number
+  maxBytes: number,
 ): Promise<string> {
   const contentLength = response.headers.get('content-length');
 
@@ -133,19 +150,34 @@ async function readResponseWithLimit(
 
     if (
       Number.isFinite(declaredLength) &&
-      declaredLength > maxResponseBytes
+      declaredLength > maxBytes
     ) {
-      throw new Error('Property page exceeds the response size limit.');
+      throw new Error(
+        'Response exceeds the maximum allowed size.',
+      );
     }
   }
 
   if (!response.body) {
-    throw new Error('Property page returned an empty response body.');
+    const body = await response.text();
+
+    if (
+      new TextEncoder().encode(body).byteLength >
+      maxBytes
+    ) {
+      throw new Error(
+        'Response exceeds the maximum allowed size.',
+      );
+    }
+
+    return body;
   }
 
   const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
+  const decoder = new TextDecoder();
+
   let totalBytes = 0;
+  let body = '';
 
   try {
     while (true) {
@@ -155,210 +187,431 @@ async function readResponseWithLimit(
         break;
       }
 
-      if (!value) {
-        continue;
-      }
-
       totalBytes += value.byteLength;
 
-      if (totalBytes > maxResponseBytes) {
+      if (totalBytes > maxBytes) {
         await reader.cancel();
-        throw new Error('Property page exceeds the response size limit.');
-      }
 
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  const combined = new Uint8Array(totalBytes);
-  let offset = 0;
-
-  for (const chunk of chunks) {
-    combined.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-
-  return new TextDecoder('utf-8', { fatal: false }).decode(combined);
-}
-
-function createResult(
-  sourceUrl: string,
-  status: PropertyExtractionStatus,
-  errors: string[] = [],
-  finalUrl: string | null = null,
-  source: string | null = null
-): PropertyExtractionResult {
-  return {
-    status,
-    sourceUrl,
-    finalUrl,
-    source,
-    facts: emptyFacts(),
-    evidence: [],
-    errors,
-  };
-}
-
-export async function extractPropertyFromUrl(
-  sourceUrl: string,
-  options: ExtractPropertyOptions = {}
-): Promise<PropertyExtractionResult> {
-  const timeoutMs =
-    options.timeoutMs ?? DEFAULT_EXTRACTION_TIMEOUT_MS;
-
-  const maxResponseBytes =
-    options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
-
-  const validation = validatePropertyInput(sourceUrl);
-
-  if (!validation.ok) {
-    if (validation.errorCode === 'UNSUPPORTED_URL') {
-      return createResult(
-        sourceUrl,
-        'unsupported_source',
-        [
-          validation.errorMessage ||
-            'The property source is not currently supported.',
-        ]
-      );
-    }
-
-    return createResult(
-      sourceUrl,
-      'extraction_failed',
-      [
-        validation.errorMessage ||
-          'The supplied property URL is not valid.',
-      ]
-    );
-  }
-
-  if (validation.kind !== 'url') {
-    return createResult(
-      sourceUrl,
-      'extraction_failed',
-      ['A property listing URL is required for URL extraction.']
-    );
-  }
-
-  if (!isAllowedSourceUrl(validation.normalizedInput)) {
-    return createResult(
-      sourceUrl,
-      'unsupported_source',
-      ['The property source is not permitted for server-side fetching.']
-    );
-  }
-
-  const initialUrl = new URL(validation.normalizedInput);
-
-  try {
-    const response = await fetch(initialUrl, {
-      method: 'GET',
-      redirect: 'manual',
-      signal: createTimeoutSignal(timeoutMs),
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'User-Agent':
-          'EiX-Property-Score/1.0 (+https://eix-property-score-beta.vercel.app)',
-      },
-    });
-
-    const redirectLocation = response.headers.get('location');
-
-    if (
-      response.status >= 300 &&
-      response.status < 400 &&
-      redirectLocation
-    ) {
-      const redirectUrl = new URL(
-        redirectLocation,
-        initialUrl
-      );
-
-      if (!isAllowedSourceUrl(redirectUrl.toString())) {
-        return createResult(
-          sourceUrl,
-          'extraction_failed',
-          ['The property page redirected to a blocked or unsupported destination.'],
-          redirectUrl.toString(),
-          validation.source
+        throw new Error(
+          'Response exceeds the maximum allowed size.',
         );
       }
 
-      return createResult(
-        sourceUrl,
-        'extraction_failed',
-        [
-          'The property page uses a redirect. Redirect following will be enabled only after destination validation is fully hardened.',
-        ],
-        redirectUrl.toString(),
-        validation.source
+      body += decoder.decode(value, {
+        stream: true,
+      });
+    }
+
+    body += decoder.decode();
+
+    return body;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+async function fetchPage(
+  inputUrl: string,
+  options: FetchOptions = {},
+): Promise<FetchedPage> {
+  const timeoutMs =
+    options.timeoutMs ??
+    DEFAULT_EXTRACTION_TIMEOUT_MS;
+
+  const maxResponseBytes =
+    options.maxResponseBytes ??
+    DEFAULT_MAX_RESPONSE_BYTES;
+
+  const url = validateFetchUrl(inputUrl);
+
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      redirect: 'manual',
+      signal: controller.signal,
+      headers: {
+        Accept:
+          'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
+        'User-Agent': EXTRACTION_USER_AGENT,
+      },
+    });
+
+    if (
+      response.status >= 300 &&
+      response.status < 400
+    ) {
+      const location =
+        response.headers.get('location');
+
+      if (!location) {
+        throw new Error(
+          'Redirect response has no destination.',
+        );
+      }
+
+      const redirectUrl = new URL(
+        location,
+        url.toString(),
+      );
+
+      validateFetchUrl(redirectUrl.toString());
+
+      throw new Error(
+        'Redirect destination requires additional validation before following.',
       );
     }
 
     if (!response.ok) {
-      return createResult(
-        sourceUrl,
-        'extraction_failed',
-        [`Property page returned HTTP ${response.status}.`],
-        response.url || initialUrl.toString(),
-        validation.source
+      throw new Error(
+        `Property page returned HTTP ${response.status}.`,
       );
     }
 
-    const contentType = response.headers.get('content-type') || '';
+    const contentType = getContentType(response);
+
+    if (!isAllowedContentType(contentType)) {
+      throw new Error(
+        `Unsupported response content type: ${
+          contentType || 'unknown'
+        }.`,
+      );
+    }
+
+    const body =
+      await readResponseBodyWithLimit(
+        response,
+        maxResponseBytes,
+      );
+
+    return {
+      finalUrl: url.toString(),
+      contentType,
+      body,
+    };
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      error.name === 'AbortError'
+    ) {
+      throw new Error(
+        'Property page request timed out.',
+      );
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function countExtractedFacts(
+  facts: PropertyFacts,
+): number {
+  return Object.values(facts).filter(
+    (value) =>
+      value !== null &&
+      value !== undefined &&
+      value !== '',
+  ).length;
+}
+
+function hasMinimumPropertyEvidence(
+  facts: PropertyFacts,
+): boolean {
+  const identityFields = [
+    facts.title,
+    facts.address,
+    facts.propertyType,
+  ];
+
+  const physicalOrCommercialFields = [
+    facts.askingPriceCents,
+    facts.bedrooms,
+    facts.bathrooms,
+    facts.floorSizeM2,
+    facts.landSizeM2,
+  ];
+
+  const hasIdentity = identityFields.some(
+    (value) =>
+      value !== null &&
+      value !== undefined &&
+      value !== '',
+  );
+
+  const hasPhysicalOrCommercialData =
+    physicalOrCommercialFields.some(
+      (value) =>
+        value !== null &&
+        value !== undefined,
+    );
+
+  return (
+    hasIdentity &&
+    hasPhysicalOrCommercialData
+  );
+}
+
+function parseMetaAttributes(
+  body: string,
+): {
+  facts: PropertyFacts;
+  evidence: PropertyEvidence[];
+} {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+
+  const metaPattern = /<meta\b[^>]*>/gi;
+  const tags = body.match(metaPattern) ?? [];
+
+  for (const tag of tags) {
+    const nameMatch = tag.match(
+      /\b(?:name|property)\s*=\s*["']([^"']+)["']/i,
+    );
+
+    const contentMatch = tag.match(
+      /\bcontent\s*=\s*["']([^"']*)["']/i,
+    );
+
+    if (!nameMatch || !contentMatch) {
+      continue;
+    }
+
+    const name = nameMatch[1]
+      .toLowerCase()
+      .trim();
+
+    const content = contentMatch[1].trim();
+
+    if (!content) {
+      continue;
+    }
 
     if (
-      !contentType.toLowerCase().includes('text/html') &&
-      !contentType.toLowerCase().includes('application/xhtml+xml')
+      name === 'og:title' ||
+      name === 'twitter:title'
     ) {
-      return createResult(
-        sourceUrl,
-        'extraction_failed',
-        ['The property source did not return an HTML page.'],
-        response.url || initialUrl.toString(),
-        validation.source
-      );
+      if (!facts.title) {
+        facts.title = content;
+
+        evidence.push({
+          field: 'title',
+          value: content,
+          source: 'open_graph',
+        });
+      }
     }
 
-    const html = await readResponseWithLimit(
-      response,
-      maxResponseBytes
-    );
+    if (
+      name === 'og:street-address' ||
+      name === 'property:street_address'
+    ) {
+      if (!facts.address) {
+        facts.address = content;
 
-    if (!html.trim()) {
-      return createResult(
-        sourceUrl,
-        'extraction_failed',
-        ['The property page returned an empty HTML document.'],
-        response.url || initialUrl.toString(),
-        validation.source
-      );
+        evidence.push({
+          field: 'address',
+          value: content,
+          source:
+            name.startsWith('og:')
+              ? 'open_graph'
+              : 'meta',
+        });
+      }
     }
+  }
 
-    return createResult(
-      sourceUrl,
-      'insufficient_data',
-      [
-        'The property page was fetched successfully, but property fact extraction is not implemented yet.',
+  return {
+    facts,
+    evidence,
+  };
+}
+
+function parseVisibleTitle(
+  body: string,
+): {
+  facts: PropertyFacts;
+  evidence: PropertyEvidence[];
+} {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+
+  const titleMatch = body.match(
+    /<title\b[^>]*>([\s\S]*?)<\/title>/i,
+  );
+
+  if (!titleMatch) {
+    return {
+      facts,
+      evidence,
+    };
+  }
+
+  const title = titleMatch[1]
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!title) {
+    return {
+      facts,
+      evidence,
+    };
+  }
+
+  facts.title = title;
+
+  evidence.push({
+    field: 'title',
+    value: title,
+    source: 'html',
+  });
+
+  return {
+    facts,
+    evidence,
+  };
+}
+
+function parseFallbackFacts(
+  body: string,
+): {
+  facts: PropertyFacts;
+  evidence: PropertyEvidence[];
+} {
+  const meta = parseMetaAttributes(body);
+  const title = parseVisibleTitle(body);
+
+  const facts = mergeFacts(
+    emptyFacts(),
+    meta.facts,
+    title.facts,
+  );
+
+  const evidence = mergeEvidence(
+    [],
+    meta.evidence,
+    title.evidence,
+  );
+
+  return {
+    facts,
+    evidence,
+  };
+}
+
+export async function extractPropertyFromUrl(
+  input: string,
+  options: FetchOptions = {},
+): Promise<PropertyExtractionResult> {
+  const validation =
+    validatePropertyInput(input);
+
+  if (!validation.ok) {
+    return {
+      status: 'unsupported_source',
+      facts: emptyFacts(),
+      evidence: [],
+      source: validation.source ?? 'unknown',
+      sourceUrl: validation.normalizedInput,
+      errors: [
+        validation.errorMessage ??
+          'Invalid property input.',
       ],
-      response.url || initialUrl.toString(),
-      validation.source
-    );
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Unknown property extraction error.';
+    };
+  }
 
-    return createResult(
+  if (
+    validation.kind === 'address' ||
+    validation.source === 'address_only'
+  ) {
+    return {
+      status: 'unsupported_source',
+      facts: emptyFacts(),
+      evidence: [],
+      source: 'address_only',
+      sourceUrl: validation.normalizedInput,
+      errors: [
+        'Direct address verification requires a trusted property or geospatial data source.',
+      ],
+    };
+  }
+
+  const source =
+    validation.source ?? 'unknown';
+
+  const sourceUrl =
+    validation.normalizedInput;
+
+  try {
+    const fetched = await fetchPage(
       sourceUrl,
-      'extraction_failed',
-      [message],
-      null,
-      validation.source
+      options,
     );
+
+    const jsonLd =
+      extractJsonLdFacts(fetched.body);
+
+    const fallback =
+      parseFallbackFacts(fetched.body);
+
+    const facts = mergeFacts(
+      emptyFacts(),
+      jsonLd.facts,
+      fallback.facts,
+    );
+
+    const evidence = mergeEvidence(
+      [],
+      jsonLd.evidence,
+      fallback.evidence,
+    );
+
+    const factCount =
+      countExtractedFacts(facts);
+
+    if (
+      factCount === 0 ||
+      !hasMinimumPropertyEvidence(facts)
+    ) {
+      return {
+        status: 'insufficient_data',
+        facts,
+        evidence,
+        source,
+        sourceUrl: fetched.finalUrl,
+        errors: [
+          'The page was fetched successfully, but insufficient property facts were found to safely generate a score.',
+        ],
+      };
+    }
+
+    return {
+      status: 'extracted',
+      facts,
+      evidence,
+      source,
+      sourceUrl: fetched.finalUrl,
+      errors: [],
+    };
+  } catch (error) {
+    return {
+      status: 'extraction_failed',
+      facts: emptyFacts(),
+      evidence: [],
+      source,
+      sourceUrl,
+      errors: [
+        error instanceof Error
+          ? error.message
+          : 'Property extraction failed.',
+      ],
+    };
   }
 }
