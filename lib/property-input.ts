@@ -179,6 +179,33 @@ export function validatePropertyInput(input: unknown): PropertyInputResult {
     /^www\./i.test(normalizedInput);
 
   if (looksLikeUrl) {
+    // Reject characters that should never appear unescaped in a submitted URL.
+    // URL() is intentionally permissive and may silently normalise some malformed
+    // inputs, so validate the raw user input before parsing it.
+    if (
+      normalizedInput.includes('[') ||
+      normalizedInput.includes(']') ||
+      normalizedInput.includes('<') ||
+      normalizedInput.includes('>') ||
+      normalizedInput.includes('"') ||
+      normalizedInput.includes('{') ||
+      normalizedInput.includes('}') ||
+      normalizedInput.includes('|') ||
+      normalizedInput.includes('\\') ||
+      normalizedInput.includes('^') ||
+      normalizedInput.includes('`')
+    ) {
+      return {
+        ok: false,
+        kind: 'url',
+        normalizedInput,
+        source: null,
+        sourceLabel: null,
+        errorCode: 'INVALID_URL',
+        errorMessage: 'That does not appear to be a valid property listing URL.',
+      };
+    }
+
     let url: URL;
 
     try {
