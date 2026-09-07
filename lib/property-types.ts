@@ -11,6 +11,16 @@ export interface PropertyFacts {
   propertyType: string | null;
   floorSizeM2: number | null;
   landSizeM2: number | null;
+  garages: number | null;
+  parking: number | null;
+  hasStudy: boolean | null;
+  hasPool: boolean | null;
+  hasGarden: boolean | null;
+  hasFibre: boolean | null;
+  hasSolar: boolean | null;
+  hasBatteryBackup: boolean | null;
+  leviesCents: number | null;
+  ratesAndTaxesCents: number | null;
 }
 
 export interface PropertyEvidence {
