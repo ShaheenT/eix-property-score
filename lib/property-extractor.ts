@@ -60,6 +60,29 @@ function emptyFacts(): PropertyFacts {
   return { ...EMPTY_FACTS };
 }
 
+function extractJsonLdBlocks(body: string): unknown[] {
+  const blocks: unknown[] = [];
+
+  const scriptPattern =
+    /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+
+  for (const match of body.matchAll(scriptPattern)) {
+    const raw = match[1].trim();
+
+    if (!raw) {
+      continue;
+    }
+
+    try {
+      blocks.push(JSON.parse(raw));
+    } catch {
+      // Ignore malformed JSON-LD and continue safely.
+    }
+  }
+
+  return blocks;
+}
+
 function isPrivateOrLocalHostname(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, '');
 
@@ -555,8 +578,20 @@ export async function extractPropertyFromUrl(
       options,
     );
 
-    const jsonLd =
-      extractJsonLdFacts(fetched.body);
+    const jsonLdBlocks =
+      extractJsonLdBlocks(fetched.body);
+
+    const jsonLd = {
+      facts: emptyFacts(),
+      evidence: [] as PropertyEvidence[],
+    };
+
+    for (const block of jsonLdBlocks) {
+      const parsed = extractJsonLdFacts(block);
+
+      mergeFacts(jsonLd.facts, parsed.facts);
+      mergeEvidence(jsonLd.evidence, parsed.evidence);
+    }
 
     const fallback =
       parseFallbackFacts(fetched.body);

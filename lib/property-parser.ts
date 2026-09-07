@@ -328,12 +328,26 @@ function extractObjectFacts(
     );
   }
 
-  addNumberFact(
-    facts,
-    evidence,
-    'landSizeM2',
-    jsonLd['lotSize']
+  const lotSize = getObjectProperty(
+    jsonLd,
+    'lotSize'
   );
+
+  if (lotSize) {
+    addNumberFact(
+      facts,
+      evidence,
+      'landSizeM2',
+      lotSize['value']
+    );
+  } else {
+    addNumberFact(
+      facts,
+      evidence,
+      'landSizeM2',
+      jsonLd['lotSize']
+    );
+  }
 
   const offers = getObjectProperty(
     jsonLd,
@@ -386,8 +400,8 @@ export function mergeFacts(
   for (const source of sources) {
     for (const key of Object.keys(source) as Array<keyof PropertyFacts>) {
       if (
-        target[key] === undefined &&
-        source[key] !== undefined
+        (target[key] === undefined || target[key] === null) &&
+        source[key] !== undefined && source[key] !== null
       ) {
         (target as Record<keyof PropertyFacts, PropertyFacts[keyof PropertyFacts]>)[key] =
           source[key] as PropertyFacts[keyof PropertyFacts];

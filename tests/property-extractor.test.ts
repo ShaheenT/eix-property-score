@@ -86,3 +86,46 @@ test('returns structured failure data instead of throwing', async () => {
   assert.ok(Array.isArray(result.evidence));
   assert.equal(typeof result.facts, 'object');
 });
+
+
+test('extracts complete property facts from JSON-LD', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('<html><head><script type="application/ld+json">{"@context":"https://schema.org","@type":"SingleFamilyResidence","name":"Luxury Cape Town Home","address":{"@type":"PostalAddress","streetAddress":"12 Main Road","addressLocality":"Observatory","addressRegion":"Western Cape","postalCode":"7925"},"offers":{"@type":"Offer","price":"R2,495,000","priceCurrency":"ZAR"},"numberOfBedrooms":3,"numberOfBathrooms":2,"floorSize":{"@type":"QuantitativeValue","value":145},"lotSize":{"@type":"QuantitativeValue","value":320},"propertyType":"House"}</script></head><body></body></html>', {status:200,headers:{'content-type':'text/html; charset=utf-8'}}); try { const result = await extractPropertyFromUrl('https://www.property24.com/for-sale/cape-town/western-cape/12345'); assert.equal(result.status,'extracted'); assert.equal(result.source,'property24'); assert.equal(result.facts.title,'Luxury Cape Town Home'); assert.equal(result.facts.address,'12 Main Road'); assert.equal(result.facts.suburb,'Observatory'); assert.equal(result.facts.province,'Western Cape'); assert.equal(result.facts.postalCode,'7925'); assert.equal(result.facts.askingPriceCents,249500000); assert.equal(result.facts.bedrooms,3); assert.equal(result.facts.bathrooms,2); assert.equal(result.facts.floorSizeM2,145); assert.equal(result.facts.landSizeM2,320); assert.equal(result.facts.propertyType,'House'); assert.ok(result.evidence.some(item => item.field === 'askingPriceCents' && item.source === 'json_ld')); } finally { globalThis.fetch = originalFetch; }
+});
+
+test('does not invent missing commercial facts from OpenGraph metadata', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('<html><head><meta property="og:title" content="3 Bedroom Apartment in Sea Point"><meta property="og:street-address" content="45 Main Road, Sea Point"></head><body></body></html>', {status:200,headers:{'content-type':'text/html; charset=utf-8'}}); try { const result = await extractPropertyFromUrl('https://www.property24.com/for-sale/cape-town/western-cape/12345'); assert.equal(result.status,'insufficient_data'); assert.equal(result.facts.title,'3 Bedroom Apartment in Sea Point'); assert.equal(result.facts.address,'45 Main Road, Sea Point'); assert.equal(result.facts.askingPriceCents,null); assert.equal(result.facts.bedrooms,null); } finally { globalThis.fetch = originalFetch; }
+});
+
+test('does not treat a generic page title as a property', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('<html><head><title>Property24 - Buy and Sell Property</title></head><body></body></html>', {status:200,headers:{'content-type':'text/html; charset=utf-8'}}); try { const result = await extractPropertyFromUrl('https://www.property24.com/for-sale/cape-town/western-cape/12345'); assert.equal(result.status,'insufficient_data'); assert.equal(result.facts.title,'Property24 - Buy and Sell Property'); assert.equal(result.facts.askingPriceCents,null); assert.equal(result.facts.bedrooms,null); assert.equal(result.evidence.length,1); } finally { globalThis.fetch = originalFetch; }
+});
+
+test('ignores unrelated JSON-LD entities', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('<html><head><script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Example Realty","url":"https://www.property24.com"}</script></head><body></body></html>', {status:200,headers:{'content-type':'text/html; charset=utf-8'}}); try { const result = await extractPropertyFromUrl('https://www.property24.com/for-sale/cape-town/western-cape/12345'); assert.equal(result.status,'insufficient_data'); assert.equal(result.facts.title,null); assert.equal(result.facts.address,null); assert.equal(result.facts.askingPriceCents,null); assert.equal(result.evidence.length,0); } finally { globalThis.fetch = originalFetch; }
+});
+
+test('rejects non-HTML responses', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('{}', {status:200,headers:{'content-type':'application/json'}}); try { const result = await extractPropertyFromUrl('https://www.property24.com/for-sale/cape-town/western-cape/12345'); assert.equal(result.status,'extraction_failed'); assert.match(result.errors[0] ?? '',/content type/i); } finally { globalThis.fetch = originalFetch; }
+});
+
+test('returns structured failure for HTTP 404', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('Not found', {status:404,headers:{'content-type':'text/html'}}); try { const result = await extractPropertyFromUrl('https://www.property24.com/for-sale/cape-town/western-cape/12345'); assert.equal(result.status,'extraction_failed'); assert.match(result.errors[0] ?? '',/HTTP 404/i); } finally { globalThis.fetch = originalFetch; }
+});
+
+test('does not follow redirects without revalidation', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('', {status:302,headers:{'location':'https://www.property24.com/redirected-property'}}); try { const result = await extractPropertyFromUrl('https://www.property24.com/for-sale/cape-town/western-cape/12345'); assert.equal(result.status,'extraction_failed'); assert.match(result.errors[0] ?? '',/Redirect destination requires additional validation/i); } finally { globalThis.fetch = originalFetch; }
+});
+
+test('keeps direct addresses unverified without trusted property or geospatial data', async () => {
+  const result = await extractPropertyFromUrl('12 Main Road, Observatory, Cape Town');
+  assert.equal(result.status,'unsupported_source');
+  assert.equal(result.source,'address_only');
+  assert.match(result.errors[0] ?? '',/trusted property or geospatial data source/i);
+});
