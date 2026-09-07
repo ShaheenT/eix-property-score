@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processReport } from '@/lib/report-processor';
 import { supabaseAdmin } from '@/lib/supabase';
-import { verifyPayFastSignature } from '@/lib/payfast';
+import { verifyPayFastITNSignature } from '@/lib/payfast';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     });
 
     const receivedSignature = params.signature || '';
-    if (!verifyPayFastSignature(params, receivedSignature)) {
+    if (!verifyPayFastITNSignature(params, receivedSignature)) {
       console.error('[PayFast ITN] Signature mismatch', {
         keys: Object.keys(params).filter((key) => key !== 'signature'),
         receivedSignaturePresent: Boolean(receivedSignature),
