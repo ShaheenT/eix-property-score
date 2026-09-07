@@ -3,11 +3,8 @@ import { createHash } from 'crypto';
 const PF_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '10030587';
 const PF_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || '';
 const PF_PASSPHRASE = process.env.PAYFAST_PASSPHRASE || '';
-const PF_URL =
-  process.env.PAYFAST_URL || 'https://sandbox.payfast.co.za/eng/process';
-
-const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || 'https://eix-property-score-beta.vercel.app';
+const PF_URL = process.env.PAYFAST_URL || 'https://sandbox.payfast.co.za/eng/process';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eix-property-score-beta.vercel.app';
 
 interface PayFastParams {
   amount: number;
@@ -28,20 +25,14 @@ function urlencode(value: string): string {
     .replace(/~/g, '%7E');
 }
 
-function buildSignature(
-  params: Record<string, string>,
-  passphrase?: string,
-  includeBlankFields = false
-): string {
+function buildCheckoutSignature(params: Record<string, string>, passphrase: string): string {
   const paramString = Object.entries(params)
-    .filter(([, value]) => includeBlankFields || (value !== '' && value !== undefined))
+    .filter(([, value]) => value !== '')
     .map(([key, value]) => `${key}=${urlencode(value)}`)
     .join('&');
-
   const finalString = passphrase
     ? `${paramString}&passphrase=${urlencode(passphrase)}`
     : paramString;
-
   return createHash('md5').update(finalString).digest('hex');
 }
 
@@ -54,14 +45,10 @@ export function createPayFastPaymentLink({
   product,
 }: PayFastParams): { url: string; params: Record<string, string> } {
   const isPro = product === 'investor_report_pro';
-
   const returnUrl = isPro
     ? `${BASE_URL}/payment/pro-success?submission_id=${encodeURIComponent(submissionId)}`
     : `${BASE_URL}/success?submission_id=${encodeURIComponent(submissionId)}`;
-
-  const cancelUrl = isPro
-    ? `${BASE_URL}/upsell/pro`
-    : `${BASE_URL}/`;
+  const cancelUrl = isPro ? `${BASE_URL}/upsell/pro` : `${BASE_URL}/`;
 
   const params: Record<string, string> = {
     merchant_id: PF_MERCHANT_ID,
@@ -78,16 +65,13 @@ export function createPayFastPaymentLink({
     custom_str1: product,
   };
 
-  params.signature = buildSignature(params, PF_PASSPHRASE);
+  params.signature = buildCheckoutSignature(params, PF_PASSPHRASE);
 
   const queryString = Object.entries(params)
     .map(([key, value]) => `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}`)
     .join('&');
 
-  return {
-    url: `${PF_URL}?${queryString}`,
-    params,
-  };
+  return { url: `${PF_URL}?${queryString}`, params };
 }
 
 export function verifyPayFastSignature(
@@ -96,17 +80,12 @@ export function verifyPayFastSignature(
 ): boolean {
   const paramString = Object.entries(params)
     .reduce((parts, [key, value]) => {
-      if (key === 'signature') return parts;
-      parts.push(`${key}=${urlencode(value)}`);
+      if (key !== 'signature') parts.push(`${key}=${urlencode(value)}`);
       return parts;
     }, [] as string[])
     .join('&');
-
   const finalString = PF_PASSPHRASE
     ? `${paramString}&passphrase=${urlencode(PF_PASSPHRASE)}`
     : paramString;
-
-  const recalculated = createHash('md5').update(finalString).digest('hex');
-
-  return recalculated === receivedSignature;
+  return createHash('md5').update(finalString).digest('hex') === receivedSignature;
 }
