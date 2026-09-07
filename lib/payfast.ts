@@ -18,20 +18,27 @@ interface PayFastParams {
   product: 'standard_report' | 'investor_report_pro';
 }
 
+function urlencode(value: string): string {
+  return encodeURIComponent(value.trim())
+    .replace(/%20/g, '+')
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/~/g, '%7E');
+}
+
 function buildSignature(
   params: Record<string, string>,
   passphrase?: string
 ): string {
   const paramString = Object.entries(params)
     .filter(([, value]) => value !== '' && value !== undefined)
-    .map(
-      ([key, value]) =>
-        `${key}=${encodeURIComponent(value.trim()).replace(/%20/g, '+')}`
-    )
+    .map(([key, value]) => `${key}=${urlencode(value)}`)
     .join('&');
 
   const finalString = passphrase
-    ? `${paramString}&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`
+    ? `${paramString}&passphrase=${urlencode(passphrase)}`
     : paramString;
 
   return createHash('md5').update(finalString).digest('hex');
@@ -73,10 +80,7 @@ export function createPayFastPaymentLink({
   params.signature = buildSignature(params, PF_PASSPHRASE);
 
   const queryString = Object.entries(params)
-    .map(
-      ([key, value]) =>
-        `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}`
-    )
+    .map(([key, value]) => `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}`)
     .join('&');
 
   return {
@@ -89,21 +93,11 @@ export function verifyPayFastSignature(
   params: Record<string, string>,
   receivedSignature: string
 ): boolean {
-  const urlencode = (value: string) =>
-    encodeURIComponent(value)
-      .replace(/%20/g, '+')
-      .replace(/!/g, '%21')
-      .replace(/'/g, '%27')
-      .replace(/\(/g, '%28')
-      .replace(/\)/g, '%29')
-      .replace(/~/g, '%7E');
-
-  const entries = Object.entries(params).filter(
-    ([key, value]) =>
-      key !== 'signature' && value !== '' && value !== undefined
-  );
-
-  const paramString = entries
+  const paramString = Object.entries(params)
+    .filter(
+      ([key, value]) =>
+        key !== 'signature' && value !== '' && value !== undefined
+    )
     .map(([key, value]) => `${key}=${urlencode(value)}`)
     .join('&');
 
