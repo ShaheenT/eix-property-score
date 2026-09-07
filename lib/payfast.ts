@@ -25,6 +25,10 @@ function urlencode(value: string): string {
     .replace(/~/g, '%7E');
 }
 
+function md5Signature(paramString: string): string {
+  return createHash('md5').update(paramString).digest('hex');
+}
+
 function buildCheckoutSignature(params: Record<string, string>, passphrase: string): string {
   const paramString = Object.entries(params)
     .filter(([, value]) => value !== '')
@@ -33,7 +37,18 @@ function buildCheckoutSignature(params: Record<string, string>, passphrase: stri
   const finalString = passphrase
     ? `${paramString}&passphrase=${urlencode(passphrase)}`
     : paramString;
-  return createHash('md5').update(finalString).digest('hex');
+  return md5Signature(finalString);
+}
+
+function buildITNSignature(params: Record<string, string>, passphrase: string): string {
+  const paramString = Object.entries(params)
+    .filter(([key]) => key !== 'signature')
+    .map(([key, value]) => `${key}=${urlencode(value)}`)
+    .join('&');
+  const finalString = passphrase
+    ? `${paramString}&passphrase=${urlencode(passphrase)}`
+    : paramString;
+  return md5Signature(finalString);
 }
 
 export function createPayFastPaymentLink({
@@ -79,13 +94,18 @@ export function verifyPayFastSignature(
   receivedSignature: string
 ): boolean {
   const paramString = Object.entries(params)
-    .reduce((parts, [key, value]) => {
-      if (key !== 'signature') parts.push(`${key}=${urlencode(value)}`);
-      return parts;
-    }, [] as string[])
+    .filter(([, value]) => value !== '')
+    .map(([key, value]) => `${key}=${urlencode(value)}`)
     .join('&');
   const finalString = PF_PASSPHRASE
     ? `${paramString}&passphrase=${urlencode(PF_PASSPHRASE)}`
     : paramString;
-  return createHash('md5').update(finalString).digest('hex') === receivedSignature;
+  return md5Signature(finalString) === receivedSignature;
+}
+
+export function verifyPayFastITNSignature(
+  params: Record<string, string>,
+  receivedSignature: string
+): boolean {
+  return buildITNSignature(params, PF_PASSPHRASE) === receivedSignature;
 }
