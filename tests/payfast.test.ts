@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'crypto';
-import { createPayFastPaymentLink, verifyPayFastSignature } from '../lib/payfast';
+import {
+  createPayFastPaymentLink,
+  verifyPayFastITNSignature,
+  verifyPayFastSignature,
+} from '../lib/payfast';
 
 function payfastUrlencode(value: string): string {
   return encodeURIComponent(value.trim())
@@ -13,9 +17,9 @@ function payfastUrlencode(value: string): string {
     .replace(/~/g, '%7E');
 }
 
-function sign(params: Record<string, string>): string {
+function sign(params: Record<string, string>, includeBlankFields = false): string {
   const paramString = Object.entries(params)
-    .filter(([, value]) => value !== '')
+    .filter(([, value]) => includeBlankFields || value !== '')
     .map(([key, value]) => `${key}=${payfastUrlencode(value)}`)
     .join('&');
   const passphrase = process.env.PAYFAST_PASSPHRASE || '';
@@ -66,16 +70,32 @@ test('PayFast ITN verification includes blank fields posted before signature', (
     merchant_id: process.env.PAYFAST_MERCHANT_ID || '10030587',
   };
 
-  const paramString = Object.entries(params)
-    .map(([key, value]) => `${key}=${payfastUrlencode(value)}`)
-    .join('&');
-  const passphrase = process.env.PAYFAST_PASSPHRASE || '';
-  const signedString = passphrase
-    ? `${paramString}&passphrase=${payfastUrlencode(passphrase)}`
-    : paramString;
-  const signature = createHash('md5').update(signedString).digest('hex');
+  const signature = sign(params, true);
+
+  assert.equal(verifyPayFastITNSignature(params, signature), true);
+});
+
+test('PayFast checkout verification excludes blank fields', () => {
+  const params: Record<string, string> = {
+    merchant_id: process.env.PAYFAST_MERCHANT_ID || '10030587',
+    merchant_key: '',
+    amount: '149.00',
+    item_name: 'EiX Property Score',
+  };
+  const signature = sign(params);
 
   assert.equal(verifyPayFastSignature(params, signature), true);
+});
+
+test('PayFast ITN verification rejects a signature that omits a posted blank field', () => {
+  const params: Record<string, string> = {
+    payment_status: 'COMPLETE',
+    item_description: '',
+    amount_gross: '149.00',
+  };
+  const signatureWithoutBlank = sign(params);
+
+  assert.equal(verifyPayFastITNSignature(params, signatureWithoutBlank), false);
 });
 
 test('PayFast signature verification rejects a changed value', () => {
@@ -88,11 +108,11 @@ test('PayFast signature verification rejects a changed value', () => {
     product: 'standard_report',
   });
 
-  const { signature, ...itnParams } = payment.params;
-  itnParams.amount = '150.00';
+  const { signature, ...checkoutParams } = payment.params;
+  checkoutParams.amount = '150.00';
 
   assert.equal(
-    verifyPayFastSignature(itnParams, signature),
+    verifyPayFastSignature(checkoutParams, signature),
     false,
   );
 });
