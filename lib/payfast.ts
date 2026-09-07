@@ -30,10 +30,11 @@ function urlencode(value: string): string {
 
 function buildSignature(
   params: Record<string, string>,
-  passphrase?: string
+  passphrase?: string,
+  includeBlankFields = false
 ): string {
   const paramString = Object.entries(params)
-    .filter(([, value]) => value !== '' && value !== undefined)
+    .filter(([, value]) => includeBlankFields || (value !== '' && value !== undefined))
     .map(([key, value]) => `${key}=${urlencode(value)}`)
     .join('&');
 
@@ -93,10 +94,6 @@ export function verifyPayFastSignature(
   params: Record<string, string>,
   receivedSignature: string
 ): boolean {
-  // PayFast ITN verification preserves the order in which PayFast posted
-  // the fields and includes blank posted fields. This is important because
-  // PayFast's ITN payload includes empty custom_int/custom_str fields and
-  // those fields are part of the signed parameter string.
   const paramString = Object.entries(params)
     .reduce((parts, [key, value]) => {
       if (key === 'signature') return parts;
