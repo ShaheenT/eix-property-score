@@ -13,7 +13,19 @@ function payfastUrlencode(value: string): string {
     .replace(/~/g, '%7E');
 }
 
-test('PayFast signatures use the same URL encoding for creation and ITN verification', () => {
+function sign(params: Record<string, string>): string {
+  const paramString = Object.entries(params)
+    .filter(([, value]) => value !== '')
+    .map(([key, value]) => `${key}=${payfastUrlencode(value)}`)
+    .join('&');
+  const passphrase = process.env.PAYFAST_PASSPHRASE || '';
+  const signedString = passphrase
+    ? `${paramString}&passphrase=${payfastUrlencode(passphrase)}`
+    : paramString;
+  return createHash('md5').update(signedString).digest('hex');
+}
+
+test('PayFast checkout signature can be verified with the checkout parameter set', () => {
   const payment = createPayFastPaymentLink({
     amount: 149,
     itemName: 'EiX! Property Score™ — Standard Report',
@@ -23,12 +35,9 @@ test('PayFast signatures use the same URL encoding for creation and ITN verifica
     product: 'standard_report',
   });
 
-  const { signature, ...itnParams } = payment.params;
+  const { signature, ...checkoutParams } = payment.params;
 
-  assert.equal(
-    verifyPayFastSignature(itnParams, signature),
-    true,
-  );
+  assert.equal(verifyPayFastSignature(checkoutParams, signature), true);
 });
 
 test('PayFast ITN verification includes blank fields posted before signature', () => {
