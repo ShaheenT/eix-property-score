@@ -6,6 +6,12 @@ function currency(cents: number | null): string {
   return cents === null ? 'Not verified' : `R ${(cents / 100).toLocaleString('en-ZA')}`;
 }
 
+function yesNo(value: unknown): string {
+  if (value === true) return 'Yes';
+  if (value === false) return 'No';
+  return 'Not verified';
+}
+
 export default async function CustomerReportPage({
   params,
   searchParams,
@@ -31,6 +37,25 @@ export default async function CustomerReportPage({
   const limitations = Array.isArray(report.limitations) ? report.limitations : [];
   const assumptions = Array.isArray(report.assumptions) ? report.assumptions : [];
 
+  const verifiedFacts: Array<[string, string]> = [
+    ['Asking Price', currency(typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null)],
+    ['Property Type', String(facts.propertyType || 'Not verified')],
+    ['Bedrooms', String(facts.bedrooms ?? 'Not verified')],
+    ['Bathrooms', String(facts.bathrooms ?? 'Not verified')],
+    ['Floor Size', facts.floorSizeM2 ? `${facts.floorSizeM2} m²` : 'Not verified'],
+    ['Land Size', facts.landSizeM2 ? `${facts.landSizeM2} m²` : 'Not verified'],
+    ['Garages', String(facts.garages ?? 'Not verified')],
+    ['Parking', String(facts.parking ?? 'Not verified')],
+    ['Study', yesNo(facts.hasStudy)],
+    ['Pool', yesNo(facts.hasPool)],
+    ['Garden', yesNo(facts.hasGarden)],
+    ['Fibre', yesNo(facts.hasFibre)],
+    ['Solar', yesNo(facts.hasSolar)],
+    ['Backup Power', yesNo(facts.hasBatteryBackup)],
+    ['Levies', currency(typeof facts.leviesCents === 'number' ? facts.leviesCents : null)],
+    ['Rates & Taxes', currency(typeof facts.ratesAndTaxesCents === 'number' ? facts.ratesAndTaxesCents : null)],
+  ];
+
   return (
     <main className="min-h-screen bg-midnight px-6 py-10 text-white sm:px-10">
       <div className="mx-auto max-w-4xl">
@@ -53,14 +78,12 @@ export default async function CustomerReportPage({
         <section className="mt-6 glass rounded-2xl p-6">
           <h2 className="text-lg font-bold">Verified Property Facts</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {[
-              ['Asking Price', currency(typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null)],
-              ['Property Type', String(facts.propertyType || 'Not verified')],
-              ['Bedrooms', String(facts.bedrooms ?? 'Not verified')],
-              ['Bathrooms', String(facts.bathrooms ?? 'Not verified')],
-              ['Floor Size', facts.floorSizeM2 ? `${facts.floorSizeM2} m²` : 'Not verified'],
-              ['Land Size', facts.landSizeM2 ? `${facts.landSizeM2} m²` : 'Not verified'],
-            ].map(([label, value]) => <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/40">{label}</p><p className="mt-1 font-semibold">{value}</p></div>)}
+            {verifiedFacts.map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">{label}</p>
+                <p className="mt-1 font-semibold">{value}</p>
+              </div>
+            ))}
           </div>
           <p className="mt-5 text-xs text-white/40">Evidence records attached: {evidence.length}</p>
         </section>
