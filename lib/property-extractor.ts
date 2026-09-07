@@ -66,7 +66,7 @@ function extractJsonLdBlocks(body: string): unknown[] {
   const scriptPattern =
     /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
 
-  for (const match of body.matchAll(scriptPattern)) {
+  for (const match of Array.from(body.matchAll(scriptPattern))) {
     const raw = match[1].trim();
 
     if (!raw) {
