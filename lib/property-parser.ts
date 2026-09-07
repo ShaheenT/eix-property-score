@@ -26,6 +26,13 @@ function propertyTypePriority(value: JsonLdObject): number {
   if (types.includes('product')) return 5;
   return 0;
 }
+function canonicalPropertyType(jsonLd: JsonLdObject): string | null {
+  const types = getJsonLdTypes(jsonLd).map(normaliseType);
+  if (types.includes('house') || types.includes('singlefamilyresidence')) return 'House';
+  if (types.includes('apartment')) return 'Apartment';
+  if (types.includes('residence')) return 'Residence';
+  return getStringValue(jsonLd['propertyType']) ?? getStringValue(jsonLd['additionalType']);
+}
 function parseNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value !== 'string') return null;
@@ -55,7 +62,7 @@ function extractObjectFacts(jsonLd: JsonLdObject): { facts: Partial<PropertyFact
   const floorSize = getObjectProperty(jsonLd, 'floorSize'); if (floorSize) addNumberFact(facts, evidence, 'floorSizeM2', floorSize['value']); else addNumberFact(facts, evidence, 'floorSizeM2', jsonLd['floorSize']);
   const lotSize = getObjectProperty(jsonLd, 'lotSize'); if (lotSize) addNumberFact(facts, evidence, 'landSizeM2', lotSize['value']); else addNumberFact(facts, evidence, 'landSizeM2', jsonLd['lotSize']);
   const offers = getObjectProperty(jsonLd, 'offers'); if (offers) addPriceFact(facts, evidence, offers['price']); addPriceFact(facts, evidence, jsonLd['price']);
-  addStringFact(facts, evidence, 'propertyType', getStringValue(jsonLd['propertyType']) ?? getStringValue(jsonLd['additionalType']));
+  addStringFact(facts, evidence, 'propertyType', canonicalPropertyType(jsonLd));
   return { facts, evidence };
 }
 
