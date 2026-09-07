@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase';
+import { ReportPrintButton } from '@/components/report-print-button';
 
 function currency(cents: number | null): string {
   return cents === null ? 'Not verified' : `R ${(cents / 100).toLocaleString('en-ZA')}`;
@@ -14,7 +15,6 @@ export default async function CustomerReportPage({
 }) {
   const { id } = await params;
   const { token } = await searchParams;
-
   if (!token) notFound();
 
   const { data: report } = await supabaseAdmin
@@ -36,14 +36,13 @@ export default async function CustomerReportPage({
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 flex items-center justify-between">
           <img src="/eixproplogo.png" alt="EiX Property Score" className="h-12 w-auto" />
-          <button onClick={() => window.print()} className="no-print rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-midnight-900">Download / Print</button>
+          <ReportPrintButton />
         </div>
 
         <section className="glass-strong rounded-3xl p-8 sm:p-10">
           <p className="text-sm font-semibold uppercase tracking-wider text-teal-400">EiX Property Score™ Report</p>
           <h1 className="mt-3 text-3xl font-bold">{String(facts.title || 'Property Analysis')}</h1>
           <p className="mt-2 text-white/60">{String(facts.address || 'Address not verified')}</p>
-
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="glass rounded-2xl p-5"><p className="text-xs uppercase text-white/40">Investment Score</p><p className="mt-2 text-4xl font-bold text-teal-400">{report.investment_score ?? '—'}<span className="text-lg text-white/40">/100</span></p></div>
             <div className="glass rounded-2xl p-5"><p className="text-xs uppercase text-white/40">Confidence</p><p className="mt-2 text-3xl font-bold">{report.ai_confidence ?? 0}%</p><p className="text-sm text-white/50">{report.confidence_label || 'Unknown'}</p></div>
