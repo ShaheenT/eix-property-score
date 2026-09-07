@@ -1,14 +1,19 @@
-name: CI
+name: EiX Property Score CI
 
 on:
   push:
-    branches: [updateeixpropscore]
+    branches:
+      - updateeixpropscore
   pull_request:
-    branches: [updateeixpropscore]
+    branches:
+      - updateeixpropscore
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,7 +22,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
         run: npm ci
