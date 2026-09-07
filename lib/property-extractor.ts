@@ -40,6 +40,16 @@ const EMPTY_FACTS: PropertyFacts = {
   propertyType: null,
   floorSizeM2: null,
   landSizeM2: null,
+  garages: null,
+  parking: null,
+  hasStudy: null,
+  hasPool: null,
+  hasGarden: null,
+  hasFibre: null,
+  hasSolar: null,
+  hasBatteryBackup: null,
+  leviesCents: null,
+  ratesAndTaxesCents: null,
 };
 
 interface FetchOptions {
@@ -228,6 +238,201 @@ function hasMinimumPropertyEvidence(facts: PropertyFacts): boolean {
   return hasIdentity && hasPhysicalOrCommercialData;
 }
 
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#xB2;/gi, '²')
+    .replace(/&#178;/gi, '²')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#x27;/gi, "'")
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseRandCents(value: string): number | null {
+  const cleaned = decodeHtmlEntities(value).replace(/[^\d.-]/g, '');
+  if (!cleaned) return null;
+  const amount = Number(cleaned);
+  return Number.isFinite(amount) ? Math.round(amount * 100) : null;
+}
+
+function parsePositiveInteger(value: string): number | null {
+  const cleaned = decodeHtmlEntities(value).replace(/[^\d]/g, '');
+  if (!cleaned) return null;
+  const parsed = Number(cleaned);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function extractProperty24ListingId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/\/(\d+)\/?$/);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function hasMatchingProperty24Listing(body: string, listingId: string): boolean {
+  const escaped = listingId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const patterns = [
+    new RegExp(`data-listingnumber\\s*=\\s*["']${escaped}["']`, 'i'),
+    new RegExp(`listing(?:Number|number)\\s*[:=]\\s*["']?${escaped}["']?`, 'i'),
+    new RegExp(`Listing Number\\s*${escaped}`, 'i'),
+  ];
+  return patterns.some((pattern) => pattern.test(body));
+}
+
+function parseProperty24Overview(
+  body: string,
+): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+  const rowStart = /<div\b[^>]*class=["'][^"']*\bp24_propertyOverviewRow\b[^"']*["'][^>]*>/gi;
+  const starts = Array.from(body.matchAll(rowStart)).map((match) => match.index ?? -1).filter((index) => index >= 0);
+
+  for (let index = 0; index < starts.length; index += 1) {
+    const start = starts[index];
+    const end = starts[index + 1] ?? body.length;
+    const row = body.slice(start, end);
+
+    const keyMatch = row.match(
+      /<div\b[^>]*class=["'][^"']*\bp24_propertyOverviewKey\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    );
+    const valueMatch = row.match(
+      /<div\b[^>]*class=["'][^"']*\bp24_propertyOverviewResult\b[^"']*["'][^>]*>[\s\S]*?<div\b[^>]*class=["'][^"']*\bp24_info\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    );
+
+    if (!keyMatch || !valueMatch) continue;
+
+    const key = decodeHtmlEntities(keyMatch[1]).toLowerCase();
+    const value = decodeHtmlEntities(valueMatch[1]);
+    if (!value) continue;
+
+    if (key === 'levies') {
+      const cents = parseRandCents(value);
+      if (cents !== null && facts.leviesCents === null) {
+        facts.leviesCents = cents;
+        evidence.push({ field: 'leviesCents', value, source: 'html' });
+      }
+    } else if (key === 'rates and taxes') {
+      const cents = parseRandCents(value);
+      if (cents !== null && facts.ratesAndTaxesCents === null) {
+        facts.ratesAndTaxesCents = cents;
+        evidence.push({ field: 'ratesAndTaxesCents', value, source: 'html' });
+      }
+    } else if (key === 'parking') {
+      const parking = parsePositiveInteger(value);
+      if (parking !== null && facts.parking === null) {
+        facts.parking = parking;
+        evidence.push({ field: 'parking', value, source: 'html' });
+      }
+    } else if (key === 'garden') {
+      facts.hasGarden = value.toLowerCase() === 'yes';
+      evidence.push({ field: 'hasGarden', value, source: 'html' });
+    } else if (key === 'pool') {
+      facts.hasPool = value.toLowerCase() === 'yes';
+      evidence.push({ field: 'hasPool', value, source: 'html' });
+    } else if (key === 'solar') {
+      facts.hasSolar = true;
+      evidence.push({ field: 'hasSolar', value, source: 'html' });
+    } else if (key === 'backup power') {
+      facts.hasBatteryBackup = true;
+      evidence.push({ field: 'hasBatteryBackup', value, source: 'html' });
+    } else if (key === 'internet access' && value.toLowerCase().includes('fibre')) {
+      facts.hasFibre = true;
+      evidence.push({ field: 'hasFibre', value, source: 'html' });
+    }
+  }
+
+  return { facts, evidence };
+}
+
+function parseProperty24KeyFeatures(
+  body: string,
+): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+  const marker = /<div\b[^>]*class=["'][^"']*\bp24_listingFeatures\b[^"']*["'][^>]*>/gi;
+  const starts = Array.from(body.matchAll(marker)).map((match) => match.index ?? -1).filter((index) => index >= 0);
+
+  for (let index = 0; index < starts.length; index += 1) {
+    const start = starts[index];
+    const end = starts[index + 1] ?? body.length;
+    const block = body.slice(start, end);
+
+    const labelMatch = block.match(
+      /<span\b[^>]*class=["'][^"']*\bp24_feature\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/i,
+    );
+    const amountMatch = block.match(
+      /<span\b[^>]*class=["'][^"']*\bp24_featureAmount\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/i,
+    );
+    const iconMatch = block.match(/<img\b[^>]*alt=["']([^"']+)["'][^>]*>/i);
+
+    const label = labelMatch
+      ? decodeHtmlEntities(labelMatch[1]).replace(/:$/, '').toLowerCase()
+      : iconMatch
+        ? decodeHtmlEntities(iconMatch[1]).toLowerCase()
+        : '';
+    const amount = amountMatch ? decodeHtmlEntities(amountMatch[1]) : '';
+
+    if (label === 'garages') {
+      const garages = parsePositiveInteger(amount);
+      if (garages !== null && facts.garages === null) {
+        facts.garages = garages;
+        evidence.push({ field: 'garages', value: amount, source: 'html' });
+      }
+    } else if (label === 'parking') {
+      const parking = parsePositiveInteger(amount);
+      if (parking !== null && facts.parking === null) {
+        facts.parking = parking;
+        evidence.push({ field: 'parking', value: amount, source: 'html' });
+      }
+    } else if (label === 'study') {
+      facts.hasStudy = true;
+      evidence.push({ field: 'hasStudy', value: 'Study', source: 'html' });
+    } else if (label === 'pool') {
+      facts.hasPool = true;
+      evidence.push({ field: 'hasPool', value: 'Pool', source: 'html' });
+    } else if (label === 'garden') {
+      facts.hasGarden = true;
+      evidence.push({ field: 'hasGarden', value: 'Garden', source: 'html' });
+    } else if (label.includes('fibre')) {
+      facts.hasFibre = true;
+      evidence.push({ field: 'hasFibre', value: 'Fibre Internet', source: 'html' });
+    } else if (label.includes('solar')) {
+      facts.hasSolar = true;
+      evidence.push({ field: 'hasSolar', value: 'Solar Panels', source: 'html' });
+    } else if (label.includes('backup battery') || label.includes('backup power')) {
+      facts.hasBatteryBackup = true;
+      evidence.push({ field: 'hasBatteryBackup', value: 'Backup Battery / Inverter', source: 'html' });
+    }
+  }
+
+  return { facts, evidence };
+}
+
+function parseProperty24Facts(
+  body: string,
+  sourceUrl: string,
+): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+  const listingId = extractProperty24ListingId(sourceUrl);
+  if (!listingId || !hasMatchingProperty24Listing(body, listingId)) {
+    return { facts: emptyFacts(), evidence: [] };
+  }
+
+  const overview = parseProperty24Overview(body);
+  const keyFeatures = parseProperty24KeyFeatures(body);
+
+  return {
+    facts: mergeFacts(emptyFacts(), overview.facts, keyFeatures.facts),
+    evidence: mergeEvidence([], overview.evidence, keyFeatures.evidence),
+  };
+}
+
 function parseMetaAttributes(body: string): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
   const facts = emptyFacts();
   const evidence: PropertyEvidence[] = [];
@@ -270,12 +475,13 @@ function parseVisibleTitle(body: string): { facts: PropertyFacts; evidence: Prop
   return { facts, evidence };
 }
 
-function parseFallbackFacts(body: string): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+function parseFallbackFacts(body: string, sourceUrl: string): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
   const meta = parseMetaAttributes(body);
   const title = parseVisibleTitle(body);
+  const property24 = parseProperty24Facts(body, sourceUrl);
   return {
-    facts: mergeFacts(emptyFacts(), meta.facts, title.facts),
-    evidence: mergeEvidence([], meta.evidence, title.evidence),
+    facts: mergeFacts(emptyFacts(), meta.facts, title.facts, property24.facts),
+    evidence: mergeEvidence([], meta.evidence, title.evidence, property24.evidence),
   };
 }
 
@@ -311,7 +517,7 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
       mergeEvidence(jsonLd.evidence, parsed.evidence);
     }
 
-    const fallback = parseFallbackFacts(fetched.body);
+    const fallback = parseFallbackFacts(fetched.body, fetched.finalUrl);
     const facts = mergeFacts(emptyFacts(), jsonLd.facts, fallback.facts);
     const evidence = mergeEvidence([], jsonLd.evidence, fallback.evidence);
     const factCount = countExtractedFacts(facts);
