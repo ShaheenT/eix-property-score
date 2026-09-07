@@ -48,8 +48,8 @@ export function createPayFastPaymentLink({
   const isPro = product === 'investor_report_pro';
 
   const returnUrl = isPro
-    ? `${BASE_URL}/payment/pro-success`
-    : `${BASE_URL}/success`;
+    ? `${BASE_URL}/payment/pro-success?submission_id=${encodeURIComponent(submissionId)}`
+    : `${BASE_URL}/success?submission_id=${encodeURIComponent(submissionId)}`;
 
   const cancelUrl = isPro
     ? `${BASE_URL}/upsell/pro`
