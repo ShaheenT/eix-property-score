@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { processReport } from '@/lib/report-processor';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyPayFastSignature } from '@/lib/payfast';
+
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,9 +14,7 @@ export async function POST(req: NextRequest) {
     });
 
     const receivedSignature = params.signature || '';
-    const isValid = verifyPayFastSignature(params, receivedSignature);
-
-    if (!isValid) {
+    if (!verifyPayFastSignature(params, receivedSignature)) {
       console.error('[PayFast ITN] Signature mismatch', {
         keys: Object.keys(params).filter((key) => key !== 'signature'),
         receivedSignaturePresent: Boolean(receivedSignature),
@@ -22,14 +23,14 @@ export async function POST(req: NextRequest) {
     }
 
     const paymentStatus = params.payment_status || '';
-    const mPaymentId = params.m_payment_id || '';
+    const submissionId = params.m_payment_id || '';
     const pfPaymentId = params.pf_payment_id || '';
 
-    if (paymentStatus === 'COMPLETE' && mPaymentId) {
+    if (paymentStatus === 'COMPLETE' && submissionId) {
       const { data: submission } = await supabaseAdmin
         .from('property_submissions')
         .select('id')
-        .eq('id', mPaymentId)
+        .eq('id', submissionId)
         .single();
 
       if (submission) {
@@ -43,17 +44,34 @@ export async function POST(req: NextRequest) {
           .update({ status: 'paid' })
           .eq('id', submission.id);
 
-        await supabaseAdmin.from('reports').insert({
-          submission_id: submission.id,
-          status: 'queued',
-          report_type: params.custom_str1 || 'standard',
-        });
+        const { data: existingReport } = await supabaseAdmin
+          .from('reports')
+          .select('id')
+          .eq('submission_id', submission.id)
+          .maybeSingle();
+
+        if (!existingReport) {
+          await supabaseAdmin.from('reports').insert({
+            submission_id: submission.id,
+            status: 'queued',
+            report_type: params.custom_str1 || 'standard_report',
+          });
+        }
+
+        try {
+          await processReport(submission.id);
+        } catch (error) {
+          // Payment remains recorded. The report stays failed for a controlled retry
+          // rather than making PayFast retry payment state transitions.
+          console.error('[PayFast ITN] Report processing failed', error);
+        }
       }
     }
 
     return NextResponse.json({ status: 'ok' });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[PayFast ITN]', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
