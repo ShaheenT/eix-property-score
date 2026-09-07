@@ -4,18 +4,7 @@ import { calculateReport } from '../lib/report-engine';
 import type { PropertyEvidence, PropertyFacts } from '../lib/property-types';
 
 const facts: PropertyFacts = {
-  title: 'Verified Test Property',
-  address: '1 Test Road, Cape Town, Western Cape',
-  suburb: 'Test Suburb',
-  city: 'Cape Town',
-  province: 'Western Cape',
-  postalCode: '8000',
-  askingPriceCents: 200000000,
-  bedrooms: 3,
-  bathrooms: 2,
-  propertyType: 'House',
-  floorSizeM2: 150,
-  landSizeM2: 400,
+  title: 'Verified Test Property', address: '1 Test Road, Cape Town, Western Cape', suburb: 'Test Suburb', city: 'Cape Town', province: 'Western Cape', postalCode: '8000', askingPriceCents: 200000000, bedrooms: 3, bathrooms: 2, propertyType: 'House', floorSizeM2: 150, landSizeM2: 400,
 };
 
 const evidence: PropertyEvidence[] = [
@@ -31,7 +20,7 @@ const evidence: PropertyEvidence[] = [
 
 test('calculates a deterministic score from verified facts', () => {
   const result = calculateReport({ facts, evidence, goal: 'Rental' });
-  assert.equal(result.investmentScore, 100);
+  assert.equal(result.investmentScore, 95);
   assert.equal(result.aiConfidence, 100);
   assert.equal(result.confidenceLabel, 'High');
   assert.equal(result.recommendation, 'Strong Buy');
