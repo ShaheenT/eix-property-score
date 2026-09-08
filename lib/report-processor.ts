@@ -116,10 +116,13 @@ export async function processReport(
 
       if (standardReportError) throw standardReportError;
 
-      if (hasPersistedPropertyEvidence(
-        standardReport?.property_facts,
-        standardReport?.property_evidence,
-      )) {
+      if (
+        standardReport &&
+        hasPersistedPropertyEvidence(
+          standardReport.property_facts,
+          standardReport.property_evidence,
+        )
+      ) {
         facts = standardReport.property_facts;
         evidence = standardReport.property_evidence as PropertyEvidence[];
       } else {
