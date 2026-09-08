@@ -34,6 +34,7 @@ test('PayFast checkout signature can be verified with the checkout parameter set
     amount: 149,
     itemName: 'EiX! Property Score™ — Standard Report',
     submissionId: 'submission-123',
+    paymentId: 'payment-123',
     customerEmail: 'buyer@example.com',
     customerName: 'Test Buyer',
     product: 'standard_report',
@@ -42,6 +43,22 @@ test('PayFast checkout signature can be verified with the checkout parameter set
   const { signature, ...checkoutParams } = payment.params;
 
   assert.equal(verifyPayFastSignature(checkoutParams, signature), true);
+});
+
+test('PayFast checkout carries the exact payment ID in custom_str2', () => {
+  const payment = createPayFastPaymentLink({
+    amount: 349,
+    itemName: 'EiX Investor Report Pro',
+    submissionId: 'submission-pro-123',
+    paymentId: 'payment-pro-456',
+    customerEmail: 'buyer@example.com',
+    customerName: 'Test Buyer',
+    product: 'investor_report_pro',
+  });
+
+  assert.equal(payment.params.m_payment_id, 'submission-pro-123');
+  assert.equal(payment.params.custom_str1, 'investor_report_pro');
+  assert.equal(payment.params.custom_str2, 'payment-pro-456');
 });
 
 test('PayFast ITN verification includes blank fields posted before signature', () => {
@@ -103,6 +120,7 @@ test('PayFast signature verification rejects a changed value', () => {
     amount: 149,
     itemName: 'EiX Property Score',
     submissionId: 'submission-456',
+    paymentId: 'payment-456',
     customerEmail: 'buyer@example.com',
     customerName: 'Test Buyer',
     product: 'standard_report',

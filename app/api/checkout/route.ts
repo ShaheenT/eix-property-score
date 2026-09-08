@@ -42,26 +42,37 @@ export async function POST(req: NextRequest) {
     const listingUrl =
       typeof body.listing_url === 'string' ? body.listing_url : '';
     const goal = typeof body.goal === 'string' ? body.goal.trim() : '';
+    const submissionId =
+      typeof body.submission_id === 'string'
+        ? body.submission_id.trim()
+        : '';
     const product =
       typeof body.product === 'string'
         ? body.product
         : 'standard_report';
 
-    if (!name || !email || !listingUrl.trim() || !goal) {
+    if (product === 'standard_report' && (!name || !email || !listingUrl.trim() || !goal)) {
       return NextResponse.json(
         { error: 'Name, email, property and goal are required.' },
         { status: 400 }
       );
     }
 
-    if (!isValidEmail(email)) {
+    if (product === 'investor_report_pro' && !submissionId) {
+      return NextResponse.json(
+        { error: 'A valid submission_id is required for the Investor Report Pro upgrade.' },
+        { status: 400 }
+      );
+    }
+
+    if (product === 'standard_report' && !isValidEmail(email)) {
       return NextResponse.json(
         { error: 'Please enter a valid email address.' },
         { status: 400 }
       );
     }
 
-    if (!ALLOWED_GOALS.has(goal)) {
+    if (product === 'standard_report' && !ALLOWED_GOALS.has(goal)) {
       return NextResponse.json(
         { error: 'Please select a valid property goal.' },
         { status: 400 }
@@ -82,52 +93,185 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-     * SERVER-AUTHORITATIVE PROPERTY VALIDATION
-     *
-     * Nothing customer/payment related is created until this succeeds.
-     */
-    const propertyInput = validatePropertyInput(listingUrl);
+    const prod = product as 'standard_report' | 'investor_report_pro';
 
-    if (!propertyInput.ok) {
-      return NextResponse.json(
-        {
-          error:
-            propertyInput.errorMessage ||
-            'Please enter a valid property listing URL or address.',
-          code: propertyInput.errorCode,
-        },
-        { status: 422 }
-      );
+    let customer: {
+      id: string;
+      name: string;
+      email: string;
+    };
+
+    let submission: {
+      id: string;
+      listing_url: string;
+      source_platform: string | null;
+      goal: string;
+      status: string;
+    };
+
+    let propertyInput: ReturnType<typeof validatePropertyInput> | null = null;
+
+    if (prod === 'standard_report') {
+      /*
+       * SERVER-AUTHORITATIVE PROPERTY VALIDATION
+       *
+       * Nothing customer/payment related is created until this succeeds.
+       */
+      propertyInput = validatePropertyInput(listingUrl);
+
+      if (!propertyInput.ok) {
+        return NextResponse.json(
+          {
+            error:
+              propertyInput.errorMessage ||
+              'Please enter a valid property listing URL or address.',
+            code: propertyInput.errorCode,
+          },
+          { status: 422 }
+        );
+      }
+
+      const { data: createdCustomer, error: customerError } =
+        await supabaseAdmin
+          .from('customers')
+          .insert({
+            name,
+            email,
+            whatsapp: whatsapp || null,
+          })
+          .select('id, name, email')
+          .single();
+
+      if (customerError) throw customerError;
+
+      customer = createdCustomer;
+
+      const { data: createdSubmission, error: subError } =
+        await supabaseAdmin
+          .from('property_submissions')
+          .insert({
+            customer_id: customer.id,
+            listing_url: propertyInput.normalizedInput,
+            source_platform: propertyInput.source,
+            goal,
+            status: 'awaiting_payment',
+          })
+          .select('id, listing_url, source_platform, goal, status')
+          .single();
+
+      if (subError) throw subError;
+
+      submission = createdSubmission;
+    } else {
+      /*
+       * INVESTOR PRO UPGRADE
+       *
+       * Never create a new customer or property submission.
+       * The upgrade must attach to the already-paid standard submission.
+       */
+      const { data: existingSubmission, error: submissionError } =
+        await supabaseAdmin
+          .from('property_submissions')
+          .select(
+            'id, listing_url, source_platform, goal, status, customer:customers(id, name, email)'
+          )
+          .eq('id', submissionId)
+          .single();
+
+      if (submissionError || !existingSubmission) {
+        return NextResponse.json(
+          { error: 'Property submission not found.' },
+          { status: 404 }
+        );
+      }
+
+      if (existingSubmission.status !== 'paid' && existingSubmission.status !== 'report_sent') {
+        return NextResponse.json(
+          { error: 'The standard Property Score must be paid before upgrading to Investor Report Pro.' },
+          { status: 409 }
+        );
+      }
+
+      const existingCustomer = existingSubmission.customer as
+        | {
+            id: string;
+            name: string;
+            email: string;
+          }
+        | {
+            id: string;
+            name: string;
+            email: string;
+          }[]
+        | null;
+
+      const resolvedCustomer = Array.isArray(existingCustomer)
+        ? existingCustomer[0]
+        : existingCustomer;
+
+      if (
+        !resolvedCustomer ||
+        typeof resolvedCustomer.id !== 'string' ||
+        typeof resolvedCustomer.name !== 'string' ||
+        typeof resolvedCustomer.email !== 'string'
+      ) {
+        return NextResponse.json(
+          { error: 'Customer record for this submission could not be loaded.' },
+          { status: 500 }
+        );
+      }
+
+      customer = resolvedCustomer;
+      submission = {
+        id: existingSubmission.id,
+        listing_url: existingSubmission.listing_url,
+        source_platform: existingSubmission.source_platform,
+        goal: existingSubmission.goal,
+        status: existingSubmission.status,
+      };
+
+      const { data: standardPayment, error: standardPaymentError } =
+        await supabaseAdmin
+          .from('payments')
+          .select('id')
+          .eq('submission_id', submission.id)
+          .eq('product', 'standard_report')
+          .eq('status', 'completed')
+          .maybeSingle();
+
+      if (standardPaymentError) throw standardPaymentError;
+
+      if (!standardPayment) {
+        return NextResponse.json(
+          { error: 'A completed standard report payment is required before upgrading.' },
+          { status: 409 }
+        );
+      }
+
+      const { data: existingProPayment, error: proPaymentLookupError } =
+        await supabaseAdmin
+          .from('payments')
+          .select('id, status')
+          .eq('submission_id', submission.id)
+          .eq('product', 'investor_report_pro')
+          .in('status', ['pending', 'completed'])
+          .maybeSingle();
+
+      if (proPaymentLookupError) throw proPaymentLookupError;
+
+      if (existingProPayment) {
+        return NextResponse.json(
+          {
+            error:
+              existingProPayment.status === 'completed'
+                ? 'Investor Report Pro has already been purchased for this property.'
+                : 'Investor Report Pro checkout is already pending for this property.',
+          },
+          { status: 409 }
+        );
+      }
     }
 
-    const { data: customer, error: customerError } = await supabaseAdmin
-      .from('customers')
-      .insert({
-        name,
-        email,
-        whatsapp: whatsapp || null,
-      })
-      .select('id')
-      .single();
-
-    if (customerError) throw customerError;
-
-    const { data: submission, error: subError } = await supabaseAdmin
-      .from('property_submissions')
-      .insert({
-        customer_id: customer.id,
-        listing_url: propertyInput.normalizedInput,
-        source_platform: propertyInput.source,
-        goal,
-        status: 'awaiting_payment',
-      })
-      .select('id')
-      .single();
-
-    if (subError) throw subError;
-
-    const prod = product as 'standard_report' | 'investor_report_pro';
     const amount = prod === 'investor_report_pro' ? 349 : 149;
     const itemName =
       prod === 'investor_report_pro'
@@ -148,12 +292,20 @@ export async function POST(req: NextRequest) {
 
     if (paymentError) throw paymentError;
 
+    const { error: paymentReferenceError } = await supabaseAdmin
+      .from('payments')
+      .update({ payment_reference: payment.id })
+      .eq('id', payment.id);
+
+    if (paymentReferenceError) throw paymentReferenceError;
+
     const { url } = createPayFastPaymentLink({
       amount,
       itemName,
       submissionId: submission.id,
-      customerEmail: email,
-      customerName: name,
+      paymentId: payment.id,
+      customerEmail: customer.email,
+      customerName: customer.name,
       product: prod,
     });
 
@@ -162,9 +314,9 @@ export async function POST(req: NextRequest) {
       submission_id: submission.id,
       payment_id: payment.id,
       property: {
-        kind: propertyInput.kind,
-        source: propertyInput.source,
-        source_label: propertyInput.sourceLabel,
+        kind: propertyInput?.kind ?? 'listing',
+        source: propertyInput?.source ?? submission.source_platform,
+        source_label: propertyInput?.sourceLabel ?? submission.source_platform,
       },
     });
   } catch (err) {

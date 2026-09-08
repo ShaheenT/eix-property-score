@@ -10,6 +10,7 @@ interface PayFastParams {
   amount: number;
   itemName: string;
   submissionId: string;
+  paymentId: string;
   customerEmail: string;
   customerName: string;
   product: 'standard_report' | 'investor_report_pro';
@@ -55,6 +56,7 @@ export function createPayFastPaymentLink({
   amount,
   itemName,
   submissionId,
+  paymentId,
   customerEmail,
   customerName,
   product,
@@ -63,7 +65,9 @@ export function createPayFastPaymentLink({
   const returnUrl = isPro
     ? `${BASE_URL}/payment/pro-success?submission_id=${encodeURIComponent(submissionId)}`
     : `${BASE_URL}/success?submission_id=${encodeURIComponent(submissionId)}`;
-  const cancelUrl = isPro ? `${BASE_URL}/upsell/pro` : `${BASE_URL}/`;
+  const cancelUrl = isPro
+    ? `${BASE_URL}/upsell/pro?submission_id=${encodeURIComponent(submissionId)}`
+    : `${BASE_URL}/`;
 
   const params: Record<string, string> = {
     merchant_id: PF_MERCHANT_ID,
@@ -78,6 +82,7 @@ export function createPayFastPaymentLink({
     amount: amount.toFixed(2),
     item_name: itemName,
     custom_str1: product,
+    custom_str2: paymentId,
   };
 
   params.signature = buildCheckoutSignature(params, PF_PASSPHRASE);

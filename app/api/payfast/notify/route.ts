@@ -24,38 +24,155 @@ export async function POST(req: NextRequest) {
 
     const paymentStatus = params.payment_status || '';
     const submissionId = params.m_payment_id || '';
+    const paymentId = params.custom_str2 || '';
+    const product = params.custom_str1 || '';
     const pfPaymentId = params.pf_payment_id || '';
 
     if (paymentStatus === 'COMPLETE' && submissionId) {
-      const { data: submission } = await supabaseAdmin
-        .from('property_submissions')
-        .select('id')
-        .eq('id', submissionId)
-        .single();
-
-      if (submission) {
+      const { data: submission, error: submissionError } =
         await supabaseAdmin
-          .from('payments')
-          .update({ status: 'completed', payfast_payment_id: pfPaymentId })
-          .eq('submission_id', submission.id);
+          .from('property_submissions')
+          .select('id')
+          .eq('id', submissionId)
+          .single();
 
+      if (submissionError || !submission) {
+        console.error('[PayFast ITN] Submission not found', {
+          submissionId,
+        });
+        return NextResponse.json(
+          { error: 'Submission not found' },
+          { status: 404 }
+        );
+      }
+
+      let payment: {
+        id: string;
+        submission_id: string;
+        product: string;
+        status: string;
+      } | null = null;
+
+      /*
+       * New payments carry their exact database payment ID in custom_str2.
+       * This prevents an R349 Pro payment from completing an unrelated R149
+       * payment belonging to the same property submission.
+       */
+      if (paymentId) {
+        const { data: exactPayment, error: paymentError } =
+          await supabaseAdmin
+            .from('payments')
+            .select('id, submission_id, product, status')
+            .eq('id', paymentId)
+            .maybeSingle();
+
+        if (paymentError) throw paymentError;
+
+        if (!exactPayment) {
+          return NextResponse.json(
+            { error: 'Payment not found' },
+            { status: 404 }
+          );
+        }
+
+        payment = exactPayment;
+      } else {
+        /*
+         * Backward-compatible fallback for older standard payments created
+         * before payment-specific PayFast references existed.
+         *
+         * We deliberately require exactly one pending standard payment.
+         * We never update all payments for a submission.
+         */
+        if (product !== 'standard_report') {
+          return NextResponse.json(
+            { error: 'Payment reference is required for this product' },
+            { status: 400 }
+          );
+        }
+
+        const { data: legacyPayments, error: legacyPaymentError } =
+          await supabaseAdmin
+            .from('payments')
+            .select('id, submission_id, product, status')
+            .eq('submission_id', submission.id)
+            .eq('product', 'standard_report')
+            .eq('status', 'pending');
+
+        if (legacyPaymentError) throw legacyPaymentError;
+
+        if (!legacyPayments || legacyPayments.length !== 1) {
+          return NextResponse.json(
+            { error: 'Could not uniquely identify the payment' },
+            { status: 409 }
+          );
+        }
+
+        payment = legacyPayments[0];
+      }
+
+      if (payment.submission_id !== submission.id) {
+        console.error('[PayFast ITN] Payment/submission mismatch', {
+          paymentId: payment.id,
+          paymentSubmissionId: payment.submission_id,
+          submissionId: submission.id,
+        });
+
+        return NextResponse.json(
+          { error: 'Payment does not belong to submission' },
+          { status: 400 }
+        );
+      }
+
+      if (payment.product !== product) {
+        console.error('[PayFast ITN] Product mismatch', {
+          paymentId: payment.id,
+          databaseProduct: payment.product,
+          payfastProduct: product,
+        });
+
+        return NextResponse.json(
+          { error: 'Payment product mismatch' },
+          { status: 400 }
+        );
+      }
+
+      const { error: paymentUpdateError } = await supabaseAdmin
+        .from('payments')
+        .update({
+          status: 'completed',
+          payfast_payment_id: pfPaymentId || null,
+        })
+        .eq('id', payment.id);
+
+      if (paymentUpdateError) throw paymentUpdateError;
+
+      if (payment.product === 'standard_report') {
         await supabaseAdmin
           .from('property_submissions')
           .update({ status: 'paid' })
           .eq('id', submission.id);
 
-        const { data: existingReport } = await supabaseAdmin
-          .from('reports')
-          .select('id')
-          .eq('submission_id', submission.id)
-          .maybeSingle();
+        const { data: existingReport, error: reportLookupError } =
+          await supabaseAdmin
+            .from('reports')
+            .select('id')
+            .eq('submission_id', submission.id)
+            .eq('report_type', 'standard_report')
+            .maybeSingle();
+
+        if (reportLookupError) throw reportLookupError;
 
         if (!existingReport) {
-          await supabaseAdmin.from('reports').insert({
-            submission_id: submission.id,
-            status: 'queued',
-            report_type: params.custom_str1 || 'standard_report',
-          });
+          const { error: reportInsertError } = await supabaseAdmin
+            .from('reports')
+            .insert({
+              submission_id: submission.id,
+              status: 'queued',
+              report_type: 'standard_report',
+            });
+
+          if (reportInsertError) throw reportInsertError;
         }
 
         try {
@@ -66,6 +183,14 @@ export async function POST(req: NextRequest) {
           console.error('[PayFast ITN] Report processing failed', error);
         }
       }
+
+      /*
+       * Investor Report Pro:
+       *
+       * The payment is now correctly recorded against the existing submission.
+       * We intentionally do not call processReport() here yet because the Pro
+       * analysis/report engine has not been implemented.
+       */
     }
 
     return NextResponse.json({ status: 'ok' });
