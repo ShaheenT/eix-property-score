@@ -30,9 +30,10 @@ export function LeadForm() {
     setSubmitting(true);
     try {
       const res = await fetch('/api/checkout', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: { name: form.name, email: form.email, whatsapp: form.whatsapp || undefined, listing_url: form.listing_url, goal: form.goal, product: 'standard_report' },
-      } as RequestInit);
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.name, email: form.email, whatsapp: form.whatsapp || undefined, listing_url: form.listing_url, goal: form.goal, product: 'standard_report' }),
+      });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Checkout failed'); }
       const data = await res.json();
       window.location.href = data.checkout_url;
