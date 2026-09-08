@@ -5,6 +5,9 @@ import type { PropertyEvidence, PropertyFacts } from '../lib/property-types';
 
 const facts: PropertyFacts = {
   title: 'Verified Test Property', address: '1 Test Road, Cape Town, Western Cape', suburb: 'Test Suburb', city: 'Cape Town', province: 'Western Cape', postalCode: '8000', askingPriceCents: 200000000, bedrooms: 3, bathrooms: 2, propertyType: 'House', floorSizeM2: 150, landSizeM2: 400,
+  leviesCents: null, ratesAndTaxesCents: null, garages: null, parking: null,
+  hasStudy: null, hasPool: null, hasGarden: null, hasFibre: null,
+  hasSolar: null, hasBatteryBackup: null,
 };
 const evidence: PropertyEvidence[] = [
   { field: 'title', value: facts.title!, source: 'json_ld' }, { field: 'address', value: facts.address!, source: 'json_ld' },
@@ -23,14 +26,20 @@ test('complete listing facts do not create an unsupported investment score', () 
 
 test('does not fabricate rental yield without verified rent', () => {
   const result = calculateReport({ facts, evidence, goal: 'Rental' });
+
   assert.equal(result.rentalYieldPercent, null);
-  assert.ok(result.limitations.some((item) => item.includes('rental evidence')));
+  assert.equal(result.decision.decision, 'INSUFFICIENT_DATA');
+  assert.equal(result.recommendation, 'Insufficient Data');
+  assert.ok(
+    result.limitations.some((item) => item.includes('Verified rental income is unavailable.')),
+  );
 });
 
 test('bond scenario is explicitly assumption-based', () => {
   const result = calculateReport({ facts, evidence, goal: 'Buy to Live' });
+
   assert.ok(result.bondMonthlyPaymentCents !== null);
-  assert.ok(result.assumptions.some((item) => item.includes('10% deposit')));
+  assert.ok(result.assumptions.some((item) => item.includes('Deposit scenario assumes 10% of asking price.')));
 });
 
 test('low evidence cannot produce a confident recommendation', () => {
@@ -39,4 +48,106 @@ test('low evidence cannot produce a confident recommendation', () => {
   assert.equal(result.recommendation, 'Insufficient Data');
   assert.equal(result.investmentScore, null);
   assert.equal(result.riskLevel, 'Unrated');
+});
+
+test('report engine exposes acquisition intelligence as the authoritative bond scenario', () => {
+  const result = calculateReport({
+    facts,
+    evidence,
+    goal: 'Buy to Live',
+  });
+
+  assert.equal(
+    result.bondLoanAmountCents,
+    result.acquisitionIntelligence.loanAmountCents,
+  );
+
+  assert.equal(
+    result.bondMonthlyPaymentCents,
+    result.acquisitionIntelligence.bondMonthlyPaymentCents,
+  );
+
+  assert.equal(
+    result.acquisitionIntelligence.purchasePriceCents,
+    facts.askingPriceCents,
+  );
+});
+
+test('report engine exposes market intelligence and canonical decision', () => {
+  const comparable: import('../lib/property24-comparables').ComparableProperty = {
+    listingId: 'comparable-1',
+    sourceUrl:
+      'https://www.property24.com/for-sale/house/cape-town/comparable-1',
+    facts: {
+      ...facts,
+      title: 'Comparable',
+      askingPriceCents: 250000000,
+      floorSizeM2: 150,
+    },
+    evidence: [],
+    similarity: 0.95,
+  };
+
+  const result = calculateReport({
+    facts,
+    evidence,
+    goal: 'Buy to Live',
+    comparables: [comparable],
+  });
+
+  assert.equal(result.marketIntelligence.comparableCount, 1);
+  assert.equal(result.decision.decision, 'NEGOTIATE');
+  assert.equal(result.recommendation, 'Consider');
+});
+
+test('report engine can propagate a BUY decision from the decision engine', () => {
+  const comparable: import('../lib/property24-comparables').ComparableProperty = {
+    listingId: 'comparable-1',
+    sourceUrl:
+      'https://www.property24.com/for-sale/house/cape-town/comparable-1',
+    facts: {
+      ...facts,
+      title: 'Comparable',
+      askingPriceCents: 250000000,
+      floorSizeM2: 150,
+    },
+    evidence: [],
+    similarity: 0.95,
+  };
+
+  const result = calculateReport({
+    facts,
+    evidence,
+    goal: 'Buy to Live',
+    comparables: [comparable],
+    constraints: {
+      maxKnownUpfrontCashCents: 1000000000,
+    },
+  });
+
+  assert.equal(result.decision.decision, 'BUY');
+  assert.equal(result.recommendation, 'Buy');
+});
+
+test('report engine does not recreate an investment score from market or acquisition data', () => {
+  const result = calculateReport({
+    facts,
+    evidence,
+    goal: 'Buy to Live',
+    comparables: [],
+  });
+
+  assert.equal(result.investmentScore, null);
+});
+
+test('report engine preserves insufficient-data decision for rental', () => {
+  const result = calculateReport({
+    facts,
+    evidence,
+    goal: 'Rental',
+  });
+
+  assert.equal(result.decision.decision, 'INSUFFICIENT_DATA');
+  assert.equal(result.recommendation, 'Insufficient Data');
+  assert.equal(result.rentalYieldPercent, null);
 });

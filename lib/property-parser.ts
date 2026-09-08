@@ -57,11 +57,21 @@ function extractObjectFacts(jsonLd: JsonLdObject): { facts: Partial<PropertyFact
   if (!isPropertyJsonLd(jsonLd)) return { facts, evidence };
   addStringFact(facts, evidence, 'title', jsonLd['name']);
   const address = getObjectProperty(jsonLd, 'address');
-  if (address) { addStringFact(facts, evidence, 'address', address['streetAddress']); addStringFact(facts, evidence, 'suburb', address['addressLocality']); addStringFact(facts, evidence, 'city', address['addressLocality']); addStringFact(facts, evidence, 'province', address['addressRegion']); addStringFact(facts, evidence, 'postalCode', address['postalCode']); }
+  if (address) { addStringFact(facts, evidence, 'address', address['streetAddress']); addStringFact(facts, evidence, 'suburb', address['addressLocality']); addStringFact(facts, evidence, 'province', address['addressRegion']); addStringFact(facts, evidence, 'postalCode', address['postalCode']); }
   addNumberFact(facts, evidence, 'bedrooms', jsonLd['numberOfBedrooms']); addNumberFact(facts, evidence, 'bathrooms', jsonLd['numberOfBathrooms']);
   const floorSize = getObjectProperty(jsonLd, 'floorSize'); if (floorSize) addNumberFact(facts, evidence, 'floorSizeM2', floorSize['value']); else addNumberFact(facts, evidence, 'floorSizeM2', jsonLd['floorSize']);
   const lotSize = getObjectProperty(jsonLd, 'lotSize'); if (lotSize) addNumberFact(facts, evidence, 'landSizeM2', lotSize['value']); else addNumberFact(facts, evidence, 'landSizeM2', jsonLd['lotSize']);
-  const offers = getObjectProperty(jsonLd, 'offers'); if (offers) addPriceFact(facts, evidence, offers['price']); addPriceFact(facts, evidence, jsonLd['price']);
+  const offers = getObjectProperty(jsonLd, 'offers');
+  if (offers) {
+    addPriceFact(facts, evidence, offers['price']);
+
+    const priceSpecification = getObjectProperty(offers, 'priceSpecification');
+    if (priceSpecification) {
+      addPriceFact(facts, evidence, priceSpecification['price']);
+    }
+  }
+
+  addPriceFact(facts, evidence, jsonLd['price']);
   addStringFact(facts, evidence, 'propertyType', canonicalPropertyType(jsonLd));
   return { facts, evidence };
 }

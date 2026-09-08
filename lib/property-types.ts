@@ -11,6 +11,10 @@ export interface PropertyFacts {
   propertyType: string | null;
   floorSizeM2: number | null;
   landSizeM2: number | null;
+
+  // Verified Property24 fields
+  leviesCents: number | null;
+  ratesAndTaxesCents: number | null;
   garages: number | null;
   parking: number | null;
   hasStudy: boolean | null;
@@ -19,12 +23,10 @@ export interface PropertyFacts {
   hasFibre: boolean | null;
   hasSolar: boolean | null;
   hasBatteryBackup: boolean | null;
-  leviesCents: number | null;
-  ratesAndTaxesCents: number | null;
 }
 
 export interface PropertyEvidence {
   field: keyof PropertyFacts;
-  value: string;
+  value: string | number | boolean;
   source: 'json_ld' | 'open_graph' | 'meta' | 'html';
 }

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -213,6 +214,72 @@ test('extracts only listing-scoped Property24 facts for listing 117227369', asyn
       assert.ok(result.evidence.some(item => item.field === field && item.source === 'html'), `missing evidence for ${field}`);
     }
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('extracts the complete verified Property24 listing 117227369 fixture', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const html = readFileSync(
+    new URL('../property24-117227369.html', import.meta.url),
+    'utf8'
+  );
+
+  globalThis.fetch = async () =>
+    new Response(html, {
+      status: 200,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+      },
+    });
+
+  try {
+    const result = await extractPropertyFromUrl(
+      'https://www.property24.com/for-sale/steenberg-golf-estate/cape-town/western-cape/15183/117227369'
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.source, 'property24');
+
+    assert.equal(
+      result.facts.title,
+      '3 Bedroom House for sale in Steenberg Golf Estate'
+    );
+    assert.equal(result.facts.suburb, 'Steenberg Golf Estate');
+    assert.equal(result.facts.city, 'Cape Town');
+    assert.equal(result.facts.province, 'Western Cape');
+
+    assert.equal(result.facts.askingPriceCents, 3_000_000_000);
+    assert.equal(result.facts.bedrooms, 3);
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.propertyType, 'House');
+
+    assert.equal(result.facts.floorSizeM2, 307);
+    assert.equal(result.facts.landSizeM2, 709);
+
+    assert.equal(result.facts.garages, 2);
+    assert.equal(result.facts.parking, 2);
+    assert.equal(result.facts.hasStudy, true);
+    assert.equal(result.facts.hasPool, true);
+    assert.equal(result.facts.hasGarden, true);
+    assert.equal(result.facts.hasFibre, true);
+    assert.equal(result.facts.hasSolar, true);
+    assert.equal(result.facts.hasBatteryBackup, true);
+
+    assert.equal(result.facts.leviesCents, 1_388_000);
+    assert.equal(result.facts.ratesAndTaxesCents, 656_400);
+
+    assert.ok(
+      result.evidence.some(
+        (item) =>
+          item.field === 'askingPriceCents' &&
+          item.source === 'json_ld'
+      )
+    );
+
+    assert.ok(result.evidence.length >= 15);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test('does not apply Property24 feature markup when the listing identity does not match', async () => {

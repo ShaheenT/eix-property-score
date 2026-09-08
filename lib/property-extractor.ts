@@ -67,6 +67,14 @@ function emptyFacts(): PropertyFacts {
   return { ...EMPTY_FACTS };
 }
 
+function parseProperty24SizeM2(value: string): number | null {
+  const match = value.replace(/,/g, '').match(/\d+(?:\.\d+)?/);
+  if (!match) return null;
+
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 function extractJsonLdBlocks(body: string): unknown[] {
   const blocks: unknown[] = [];
   const scriptPattern = /<script\b[^>]*type=["']([^"']+)["'][^>]*>([\s\S]*?)<\/script>/gi;
@@ -266,6 +274,37 @@ function parsePositiveInteger(value: string): number | null {
   return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function getProperty24City(sourceUrl: string): string | null {
+  try {
+    const url = new URL(sourceUrl);
+
+    const segments = url.pathname
+      .split('/')
+      .map((segment) => decodeURIComponent(segment))
+      .filter(Boolean);
+
+    const forSaleIndex = segments.findIndex(
+      (segment) => segment.toLowerCase() === 'for-sale',
+    );
+
+    if (forSaleIndex === -1 || segments.length < forSaleIndex + 6) {
+      return null;
+    }
+
+    const city = segments[forSaleIndex + 2];
+
+    if (!city) {
+      return null;
+    }
+
+    return city
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  } catch {
+    return null;
+  }
+}
+
 function extractProperty24ListingId(url: string): string | null {
   try {
     const parsed = new URL(url);
@@ -312,7 +351,13 @@ function parseProperty24Overview(
     const value = decodeHtmlEntities(valueMatch[1]);
     if (!value) continue;
 
-    if (key === 'levies') {
+    if (key === 'erf size') {
+      const landSizeM2 = parseProperty24SizeM2(value);
+      if (landSizeM2 !== null && facts.landSizeM2 === null) {
+        facts.landSizeM2 = landSizeM2;
+        evidence.push({ field: 'landSizeM2', value, source: 'html' });
+      }
+    } else if (key === 'levies') {
       const cents = parseRandCents(value);
       if (cents !== null && facts.leviesCents === null) {
         facts.leviesCents = cents;
@@ -379,7 +424,19 @@ function parseProperty24KeyFeatures(
         : '';
     const amount = amountMatch ? decodeHtmlEntities(amountMatch[1]) : '';
 
-    if (label === 'garages') {
+    if (label === 'bedrooms') {
+      const bedrooms = parsePositiveInteger(amount);
+      if (bedrooms !== null && facts.bedrooms === null) {
+        facts.bedrooms = bedrooms;
+        evidence.push({ field: 'bedrooms', value: amount, source: 'html' });
+      }
+    } else if (label === 'bathrooms') {
+      const bathrooms = parsePositiveInteger(amount);
+      if (bathrooms !== null && facts.bathrooms === null) {
+        facts.bathrooms = bathrooms;
+        evidence.push({ field: 'bathrooms', value: amount, source: 'html' });
+      }
+    } else if (label === 'garages') {
       const garages = parsePositiveInteger(amount);
       if (garages !== null && facts.garages === null) {
         facts.garages = garages;
@@ -518,6 +575,19 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
     }
 
     const fallback = parseFallbackFacts(fetched.body, fetched.finalUrl);
+
+    if (source === 'property24' && !jsonLd.facts.city) {
+      const property24City = getProperty24City(fetched.finalUrl);
+
+      if (property24City) {
+        jsonLd.facts.city = property24City;
+        jsonLd.evidence.push({
+          field: 'city',
+          value: property24City,
+          source: 'html',
+        });
+      }
+    }
     const facts = mergeFacts(emptyFacts(), jsonLd.facts, fallback.facts);
     const evidence = mergeEvidence([], jsonLd.evidence, fallback.evidence);
     const factCount = countExtractedFacts(facts);
