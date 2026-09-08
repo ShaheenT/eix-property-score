@@ -33,7 +33,7 @@ export default function Home() {
           <img
             src="/eixpropscorelogo.png"
             alt="EiX Property Score"
-            className="h-12 w-auto object-contain sm:h-14"
+            className="h-14 w-auto object-contain sm:h-16"
           />
         </div>
         <div className="hidden items-center gap-7 sm:flex">
@@ -235,7 +235,7 @@ export default function Home() {
             <img
               src="/eixpropscorelogo.png"
               alt="EiX Property Score"
-              className="h-10 w-auto object-contain"
+              className="h-12 w-auto object-contain"
             />
             <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-400 ring-1 ring-teal-500/20">Beta</span>
           </div>
