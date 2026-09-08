@@ -6,12 +6,23 @@ import {
 
 test('accepts a real-looking Property24 URL', () => {
   const result = validatePropertyInput(
-    'https://www.property24.com/for-sale/observatory/cape-town/western-cape/12345'
+    'https://www.property24.com/for-sale/observatory/cape-town/western-cape/1234/12345'
   );
 
   assert.equal(result.ok, true);
   assert.equal(result.kind, 'url');
   assert.equal(result.source, 'property24');
+});
+
+test('rejects a legacy Property24 URL without the current area ID', () => {
+  const result = validatePropertyInput(
+    'https://www.property24.com/for-sale/steenberg-golf-estate/cape-town/western-cape/117227369'
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.errorCode, 'INVALID_URL');
+  assert.equal(result.source, 'property24');
+  assert.match(result.errorMessage ?? '', /outdated/i);
 });
 
 test('accepts a Private Property URL', () => {
@@ -176,7 +187,7 @@ test('normalises whitespace in an address', () => {
 
 test('normalises a www URL to HTTPS', () => {
   const result = validatePropertyInput(
-    'www.property24.com/for-sale/12345'
+    'www.property24.com/for-sale/observatory/cape-town/western-cape/1234/12345'
   );
 
   assert.equal(result.ok, true);

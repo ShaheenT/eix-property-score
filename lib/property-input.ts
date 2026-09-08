@@ -119,6 +119,25 @@ function isLikelyAddress(value: string): boolean {
   );
 }
 
+function isLegacyProperty24Url(url: URL): boolean {
+  const segments = url.pathname
+    .split('/')
+    .filter(Boolean);
+
+  // Current Property24 listing URLs include a numeric area ID immediately
+  // before the listing ID:
+  // /for-sale/{suburb}/{city}/{province}/{areaId}/{listingId}
+  //
+  // Legacy URLs omitted that area ID:
+  // /for-sale/{suburb}/{city}/{province}/{listingId}
+  if (segments.length !== 5 || segments[0].toLowerCase() !== 'for-sale') {
+    return false;
+  }
+
+  const listingId = segments[4];
+  return /^\d+$/.test(listingId);
+}
+
 function detectAgency(hostname: string): {
   source: PropertySource;
   label: string;
@@ -253,6 +272,19 @@ export function validatePropertyInput(input: unknown): PropertyInputResult {
     }
 
     const exactSource = EXACT_HOSTS[hostname];
+
+    if (exactSource === 'property24' && isLegacyProperty24Url(url)) {
+      return {
+        ok: false,
+        kind: 'url',
+        normalizedInput: url.toString(),
+        source: 'property24',
+        sourceLabel: 'Property24',
+        errorCode: 'INVALID_URL',
+        errorMessage:
+          'This Property24 listing link is outdated. Please open the listing on Property24 and paste the current listing URL.',
+      };
+    }
 
     if (exactSource) {
       const labels: Record<PropertySource, string> = {
