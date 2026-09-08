@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { calculateReport } from '@/lib/report-engine';
+import { calculateInvestorReport } from '@/lib/investor-report-engine';
 import { extractPropertyFromUrl } from '@/lib/property-extractor';
 import { supabaseAdmin } from '@/lib/supabase';
 
@@ -20,12 +21,6 @@ export async function processReport(
   options: ProcessReportOptions = {},
 ) {
   const reportType = options.reportType || 'standard_report';
-
-  if (reportType !== 'standard_report') {
-    throw new Error(
-      `Report processor does not yet support ${reportType}`,
-    );
-  }
 
   const { data: submission, error: submissionError } =
     await supabaseAdmin
@@ -56,28 +51,18 @@ export async function processReport(
       .eq('report_type', reportType)
       .maybeSingle();
 
-  if (reportError) {
-    throw reportError;
-  }
+  if (reportError) throw reportError;
 
   if (!queuedReport) {
     throw new Error(`Report record not found: ${reportType}`);
   }
 
   if (queuedReport.status === 'sent') {
-    return {
-      status: 'already_sent',
-      reportId: queuedReport.id,
-      reportType,
-    };
+    return { status: 'already_sent', reportId: queuedReport.id, reportType };
   }
 
   if (queuedReport.status === 'processing') {
-    return {
-      status: 'processing',
-      reportId: queuedReport.id,
-      reportType,
-    };
+    return { status: 'processing', reportId: queuedReport.id, reportType };
   }
 
   const { data: claimed } = await supabaseAdmin
@@ -103,61 +88,76 @@ export async function processReport(
   }
 
   try {
-    const extraction = await extractPropertyFromUrl(
-      submission.listing_url,
-    );
+    const extraction = await extractPropertyFromUrl(submission.listing_url);
 
     if (extraction.status !== 'extracted') {
-      const detail =
-        extraction.errors?.filter(Boolean).join('; ') ||
+      const detail = extraction.errors?.filter(Boolean).join('; ') ||
         'No extractor error detail was returned.';
-
-      throw new Error(
-        `Property extraction failed: ${extraction.status}: ${detail}`,
-      );
+      throw new Error(`Property extraction failed: ${extraction.status}: ${detail}`);
     }
 
-    const goal = submission.goal as Goal;
-
-    const result = calculateReport({
-      facts: extraction.facts,
-      evidence: extraction.evidence,
-      goal,
-    });
-
-    const accessToken =
-      queuedReport.access_token || randomUUID();
-
+    const accessToken = queuedReport.access_token || randomUUID();
     const reportUrl =
-      `${BASE_URL}/report/${queuedReport.id}` +
-      `?token=${encodeURIComponent(accessToken)}`;
+      `${BASE_URL}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
 
-    const { error: persistError } = await supabaseAdmin
-      .from('reports')
-      .update({
-        status: 'completed',
-        investment_score: result.investmentScore,
-        ai_confidence: result.aiConfidence,
-        property_facts: extraction.facts,
-        property_evidence: extraction.evidence,
-        score_breakdown: result.scoreBreakdown,
-        assumptions: result.assumptions,
-        limitations: result.limitations,
-        rental_yield_percent: result.rentalYieldPercent,
-        bond_monthly_payment_cents:
-          result.bondMonthlyPaymentCents,
-        bond_loan_amount_cents:
-          result.bondLoanAmountCents,
-        risk_level: result.riskLevel,
-        recommendation: result.recommendation,
-        confidence_label: result.confidenceLabel,
-        access_token: accessToken,
-        processed_at: new Date().toISOString(),
-      })
-      .eq('id', queuedReport.id);
+    if (reportType === 'standard_report') {
+      const goal = submission.goal as Goal;
+      const result = calculateReport({
+        facts: extraction.facts,
+        evidence: extraction.evidence,
+        goal,
+      });
 
-    if (persistError) {
-      throw persistError;
+      const { error: persistError } = await supabaseAdmin
+        .from('reports')
+        .update({
+          status: 'completed',
+          investment_score: result.investmentScore,
+          ai_confidence: result.aiConfidence,
+          property_facts: extraction.facts,
+          property_evidence: extraction.evidence,
+          score_breakdown: result.scoreBreakdown,
+          assumptions: result.assumptions,
+          limitations: result.limitations,
+          rental_yield_percent: result.rentalYieldPercent,
+          bond_monthly_payment_cents: result.bondMonthlyPaymentCents,
+          bond_loan_amount_cents: result.bondLoanAmountCents,
+          risk_level: result.riskLevel,
+          recommendation: result.recommendation,
+          confidence_label: result.confidenceLabel,
+          access_token: accessToken,
+          processed_at: new Date().toISOString(),
+        })
+        .eq('id', queuedReport.id);
+
+      if (persistError) throw persistError;
+    } else if (reportType === 'investor_report_pro') {
+      const result = calculateInvestorReport({
+        facts: extraction.facts,
+        evidence: extraction.evidence,
+        // Comparable discovery is intentionally not fabricated. The current
+        // extraction contract supplies only the subject property; a future
+        // market-data adapter can provide verified comparable listings here.
+        comparables: [],
+      });
+
+      const { error: persistError } = await supabaseAdmin
+        .from('reports')
+        .update({
+          status: 'completed',
+          property_facts: extraction.facts,
+          property_evidence: extraction.evidence,
+          investor_analysis: result,
+          assumptions: result.assumptions,
+          limitations: result.limitations,
+          access_token: accessToken,
+          processed_at: new Date().toISOString(),
+        })
+        .eq('id', queuedReport.id);
+
+      if (persistError) throw persistError;
+    } else {
+      throw new Error(`Unsupported report type: ${reportType}`);
     }
 
     return {
