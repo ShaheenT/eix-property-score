@@ -3,6 +3,7 @@ import { calculateReport } from '@/lib/report-engine';
 import { calculateInvestorReport } from '@/lib/investor-report-engine';
 import { extractPropertyFromUrl } from '@/lib/property-extractor';
 import { supabaseAdmin } from '@/lib/supabase';
+import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
@@ -14,6 +15,19 @@ export type ReportType = 'standard_report' | 'investor_report_pro';
 
 interface ProcessReportOptions {
   reportType?: ReportType;
+}
+
+function hasPersistedPropertyEvidence(
+  facts: unknown,
+  evidence: unknown,
+): facts is PropertyFacts {
+  return Boolean(
+    facts &&
+      typeof facts === 'object' &&
+      evidence &&
+      Array.isArray(evidence) &&
+      Object.keys(facts).length > 0,
+  );
 }
 
 export async function processReport(
@@ -88,12 +102,49 @@ export async function processReport(
   }
 
   try {
-    const extraction = await extractPropertyFromUrl(submission.listing_url);
+    let facts: PropertyFacts;
+    let evidence: PropertyEvidence[];
 
-    if (extraction.status !== 'extracted') {
-      const detail = extraction.errors?.filter(Boolean).join('; ') ||
-        'No extractor error detail was returned.';
-      throw new Error(`Property extraction failed: ${extraction.status}: ${detail}`);
+    if (reportType === 'investor_report_pro') {
+      const { data: standardReport, error: standardReportError } =
+        await supabaseAdmin
+          .from('reports')
+          .select('property_facts, property_evidence')
+          .eq('submission_id', submissionId)
+          .eq('report_type', 'standard_report')
+          .maybeSingle();
+
+      if (standardReportError) throw standardReportError;
+
+      if (hasPersistedPropertyEvidence(
+        standardReport?.property_facts,
+        standardReport?.property_evidence,
+      )) {
+        facts = standardReport.property_facts;
+        evidence = standardReport.property_evidence as PropertyEvidence[];
+      } else {
+        const extraction = await extractPropertyFromUrl(submission.listing_url);
+
+        if (extraction.status !== 'extracted') {
+          const detail = extraction.errors?.filter(Boolean).join('; ') ||
+            'No extractor error detail was returned.';
+          throw new Error(`Property extraction failed: ${extraction.status}: ${detail}`);
+        }
+
+        facts = extraction.facts;
+        evidence = extraction.evidence;
+      }
+    } else {
+      const extraction = await extractPropertyFromUrl(submission.listing_url);
+
+      if (extraction.status !== 'extracted') {
+        const detail = extraction.errors?.filter(Boolean).join('; ') ||
+          'No extractor error detail was returned.';
+        throw new Error(`Property extraction failed: ${extraction.status}: ${detail}`);
+      }
+
+      facts = extraction.facts;
+      evidence = extraction.evidence;
     }
 
     const accessToken = queuedReport.access_token || randomUUID();
@@ -103,8 +154,8 @@ export async function processReport(
     if (reportType === 'standard_report') {
       const goal = submission.goal as Goal;
       const result = calculateReport({
-        facts: extraction.facts,
-        evidence: extraction.evidence,
+        facts,
+        evidence,
         goal,
       });
 
@@ -114,8 +165,8 @@ export async function processReport(
           status: 'completed',
           investment_score: result.investmentScore,
           ai_confidence: result.aiConfidence,
-          property_facts: extraction.facts,
-          property_evidence: extraction.evidence,
+          property_facts: facts,
+          property_evidence: evidence,
           score_breakdown: result.scoreBreakdown,
           assumptions: result.assumptions,
           limitations: result.limitations,
@@ -133,8 +184,8 @@ export async function processReport(
       if (persistError) throw persistError;
     } else if (reportType === 'investor_report_pro') {
       const result = calculateInvestorReport({
-        facts: extraction.facts,
-        evidence: extraction.evidence,
+        facts,
+        evidence,
         // Comparable discovery is intentionally not fabricated. The current
         // extraction contract supplies only the subject property; a future
         // market-data adapter can provide verified comparable listings here.
@@ -145,8 +196,8 @@ export async function processReport(
         .from('reports')
         .update({
           status: 'completed',
-          property_facts: extraction.facts,
-          property_evidence: extraction.evidence,
+          property_facts: facts,
+          property_evidence: evidence,
           investor_analysis: result,
           assumptions: result.assumptions,
           limitations: result.limitations,
