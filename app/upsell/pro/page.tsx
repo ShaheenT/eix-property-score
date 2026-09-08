@@ -28,33 +28,21 @@ export default function UpsellProPage() {
 
   const handleAccept = async () => {
     if (!submissionId) {
-      toast({
-        title: 'Property reference missing',
-        description: 'Please return to your completed Property Score and use the Investor Report Pro upgrade there.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Property reference missing', description: 'Please return to your completed Property Score and use the Investor Report Pro upgrade there.', variant: 'destructive' });
       return;
     }
-
     setLoading(true);
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: {
-          submission_id: submissionId,
-          product: 'investor_report_pro',
-        } as unknown as BodyInit,
+        body: JSON.stringify({ submission_id: submissionId, product: 'investor_report_pro' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Checkout failed');
       window.location.href = data.checkout_url;
     } catch (error) {
-      toast({
-        title: 'Checkout error',
-        description: error instanceof Error ? error.message : 'Could not start Pro checkout. Please try again.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Checkout error', description: error instanceof Error ? error.message : 'Could not start Pro checkout. Please try again.', variant: 'destructive' });
       setLoading(false);
     }
   };
@@ -63,9 +51,7 @@ export default function UpsellProPage() {
     <main className="relative min-h-screen overflow-x-hidden bg-midnight">
       <div className="pointer-events-none fixed inset-0 grid-pattern opacity-40" />
       <div className="pointer-events-none fixed inset-0"><div className="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-gold-500/10 blur-[120px]" /></div>
-      <nav className="relative z-50 flex items-center justify-center px-6 py-5">
-        <img src="/eixproplogo.png" alt="EiX Property Score" className="h-14 w-auto object-contain" />
-      </nav>
+      <nav className="relative z-50 flex items-center justify-center px-6 py-5"><img src="/eixproplogo.png" alt="EiX Property Score" className="h-14 w-auto object-contain" /></nav>
       <section className={`relative z-10 mx-auto max-w-5xl px-6 py-16 ${mounted ? 'animate-fade-up' : 'opacity-0'}`}>
         <div className="text-center">
           <span className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">Upgrade Your Report</span>
@@ -74,13 +60,7 @@ export default function UpsellProPage() {
         </div>
         <div className="mt-14 grid items-start gap-8 lg:grid-cols-[1fr_0.8fr]">
           <div className="grid gap-4 sm:grid-cols-2">
-            {PRO_FEATURES.map((feature) => (
-              <div key={feature.title} className="group glass rounded-2xl p-6 transition-all duration-300 hover:border-gold-500/20 hover:bg-white/[0.04]">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-400 ring-1 ring-gold-500/20">{feature.icon}</div>
-                <h3 className="mt-4 text-base font-semibold text-white">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/50">{feature.desc}</p>
-              </div>
-            ))}
+            {PRO_FEATURES.map((feature) => <div key={feature.title} className="group glass rounded-2xl p-6 transition-all duration-300 hover:border-gold-500/20 hover:bg-white/[0.04]"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-400 ring-1 ring-gold-500/20">{feature.icon}</div><h3 className="mt-4 text-base font-semibold text-white">{feature.title}</h3><p className="mt-2 text-sm leading-relaxed text-white/50">{feature.desc}</p></div>)}
           </div>
           <div className="lg:sticky lg:top-8">
             <PricingCardPro />
