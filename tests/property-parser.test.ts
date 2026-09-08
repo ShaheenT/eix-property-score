@@ -113,3 +113,17 @@ test('never creates a synthetic property by combining different listings in @gra
   ] });
   assert.deepEqual(result.facts, {});
 });
+
+test('rejects a 1 m² JSON-LD land-size artefact', () => {
+  const result = extractJsonLdFacts({
+    '@type': 'SingleFamilyResidence',
+    name: 'Test Property',
+    lotSize: 1,
+  });
+
+  assert.equal(result.facts.landSizeM2, undefined);
+  assert.equal(
+    result.evidence.some((item) => item.field === 'landSizeM2'),
+    false,
+  );
+});

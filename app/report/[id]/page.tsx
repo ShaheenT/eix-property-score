@@ -53,7 +53,7 @@ export default async function CustomerReportPage({
     ['Bedrooms', text(facts.bedrooms)],
     ['Bathrooms', text(facts.bathrooms)],
     ['Floor Size', facts.floorSizeM2 ? `${facts.floorSizeM2} m²` : 'Not verified'],
-    ['Land Size', facts.landSizeM2 ? `${facts.landSizeM2} m²` : 'Not verified'],
+    ['Land Size', typeof facts.landSizeM2 === 'number' && facts.landSizeM2 > 1 ? `${facts.landSizeM2} m2` : 'Not verified'],
     ['Garages', text(facts.garages)],
     ['Parking', text(facts.parking)],
     ['Study', yesNo(facts.hasStudy)],
@@ -103,7 +103,37 @@ export default async function CustomerReportPage({
         </section>
 
         {isPro ? <>
-          <section className="mt-6 glass rounded-2xl p-6"><h2 className="text-lg font-bold">Investor Analysis</h2><p className="mt-2 text-sm text-white/50">Each section is labelled according to the strength of the evidence available at report generation.</p></section>
+          <section className="mt-6 glass rounded-2xl p-6">
+            <h2 className="text-lg font-bold">Investor Analysis</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/60">
+              This Pro analysis evaluates the property using verified listing evidence,
+              acquisition assumptions, available market evidence, and explicitly identified
+              information gaps.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Market Evidence</p>
+                <p className="mt-1 font-semibold">{statusLabel(investor.marketIntelligence?.status)}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Rental Evidence</p>
+                <p className="mt-1 font-semibold">{statusLabel(investor.rentalDemand?.status)}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Growth Evidence</p>
+                <p className="mt-1 font-semibold">{statusLabel(investor.growthOutlook?.status)}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Exit Evidence</p>
+                <p className="mt-1 font-semibold">{statusLabel(investor.exitStrategy?.status)}</p>
+              </div>
+            </div>
+            <p className="mt-5 text-xs leading-relaxed text-white/40">
+              Evidence strength is reported explicitly. Where verified evidence is
+              insufficient, EiX does not manufacture a valuation, rental forecast,
+              growth projection, or exit value.
+            </p>
+          </section>
           {proSections.map(([title, section]) => <section key={title} className="mt-6 glass rounded-2xl p-6">
             <div className="flex items-center justify-between gap-4"><h2 className="text-lg font-bold">{title}</h2><span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-gold-300">{statusLabel(section?.status)}</span></div>
             <p className="mt-3 text-sm leading-relaxed text-white/60">{text(section?.summary)}</p>

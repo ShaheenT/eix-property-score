@@ -68,11 +68,20 @@ function emptyFacts(): PropertyFacts {
 }
 
 function parseProperty24SizeM2(value: string): number | null {
-  const match = value.replace(/,/g, '').match(/\d+(?:\.\d+)?/);
+  const normalized = value.replace(/,/g, " ").trim();
+
+  // Property24 can expose placeholder/artefact values such as "1 m²".
+  // Do not persist these as verified land-size evidence.
+  const match = normalized.match(/[0-9]+(?:\.[0-9]+)?/);
   if (!match) return null;
 
   const parsed = Number(match[0]);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+
+  if (!Number.isFinite(parsed) || parsed <= 1) {
+    return null;
+  }
+
+  return parsed;
 }
 
 function extractJsonLdBlocks(body: string): unknown[] {

@@ -293,3 +293,30 @@ test('does not apply Property24 feature markup when the listing identity does no
     assert.equal(result.status, 'insufficient_data');
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test('rejects a Property24 1 m² land-size artefact', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(
+    '<html><body>' +
+      '<div class="p24_propertyOverviewRow">' +
+        '<div class="p24_propertyOverviewKey">Erf Size</div>' +
+        '<div class="p24_propertyOverviewResult"><div class="p24_info">1 m²</div></div>' +
+      '</div>' +
+    '</body></html>',
+    { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } },
+  );
+
+  try {
+    const result = await extractPropertyFromUrl(
+      'https://www.property24.com/for-sale/cape-town/western-cape/12345',
+    );
+
+    assert.equal(result.facts.landSizeM2, null);
+    assert.equal(
+      result.evidence.some((item) => item.field === 'landSizeM2'),
+      false,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
