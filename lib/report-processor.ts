@@ -25,7 +25,10 @@ export async function processReport(submissionId: string) {
 
   try {
     const extraction = await extractPropertyFromUrl(submission.listing_url);
-    if (extraction.status !== 'extracted') throw new Error(`Property extraction failed: ${extraction.status}`);
+    if (extraction.status !== 'extracted') {
+      const detail = extraction.errors?.filter(Boolean).join('; ') || 'No extractor error detail was returned.';
+      throw new Error(`Property extraction failed: ${extraction.status}: ${detail}`);
+    }
     const goal = submission.goal as Goal;
     const result = calculateReport({ facts: extraction.facts, evidence: extraction.evidence, goal });
     const accessToken = queuedReport.access_token || randomUUID();
