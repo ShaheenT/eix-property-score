@@ -17,7 +17,7 @@ export async function processReport(submissionId: string) {
   if (queuedReport.status === 'sent') return { status: 'already_sent', reportId: queuedReport.id };
   if (queuedReport.status === 'processing') return { status: 'processing', reportId: queuedReport.id };
 
-  const { data: claimed } = await supabaseAdmin.from('reports').update({ status: 'processing' }).eq('id', queuedReport.id).eq('status', 'queued').select('id').maybeSingle();
+  const { data: claimed } = await supabaseAdmin.from('reports').update({ status: 'processing' }).eq('id', queuedReport.id).in('status', ['queued', 'failed']).select('id').maybeSingle();
   if (!claimed) {
     const { data: current } = await supabaseAdmin.from('reports').select('id, status').eq('id', queuedReport.id).single();
     return { status: current?.status || 'processing', reportId: queuedReport.id };
