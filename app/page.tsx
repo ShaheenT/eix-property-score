@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Home as HomeIcon,
-  TrendingUp,
-  Percent,
   ShieldAlert,
   ArrowRight,
   Check,
@@ -14,11 +11,8 @@ import {
   Target,
   BarChart3,
 } from 'lucide-react';
-import { ScoreGauge } from '@/components/score-gauge';
-import { MetricCard } from '@/components/metric-card';
 import { LeadForm } from '@/components/lead-form';
 import { PricingCard } from '@/components/pricing-card';
-import { ConfidenceMeter } from '@/components/confidence-meter';
 import { Toaster } from '@/components/ui/toaster';
 
 export default function Home() {
@@ -65,13 +59,14 @@ export default function Home() {
             </div>
 
             <h1 className={`mt-6 text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl ${mounted ? 'animate-fade-up' : 'opacity-0'}`} style={{ animationDelay: '0.1s' }}>
-              Paste any Property24 listing.{' '}
-              <span className="text-gradient-teal">Know if it&apos;s worth buying</span> within 24 hours.
+              Avoid a R200,000 property mistake.{' '}
+              <span className="text-gradient-teal">Know if it&apos;s worth buying</span> in under 24 hours.
             </h1>
 
             <p className={`mt-6 max-w-xl text-base leading-relaxed text-white/60 sm:text-lg ${mounted ? 'animate-fade-up' : 'opacity-0'}`} style={{ animationDelay: '0.2s' }}>
-              AI-powered investment scoring, rental yield analysis and risk
-              assessment before you buy.
+              Paste any South African property listing. Get AI-powered
+              investment analysis with verified property facts, acquisition costs,
+              risks and market evidence — without making up the numbers.
             </p>
 
             <div className={`mt-8 flex flex-wrap items-center gap-4 ${mounted ? 'animate-fade-up' : 'opacity-0'}`} style={{ animationDelay: '0.3s' }}>
@@ -95,29 +90,71 @@ export default function Home() {
           </div>
 
           <div id="score" className={`relative ${mounted ? 'animate-scale-in' : 'opacity-0'}`} style={{ animationDelay: '0.3s' }}>
-            <div className="glass-strong relative overflow-hidden rounded-3xl p-8 glow-teal">
-              <div className="absolute left-1/2 top-12 -z-10 h-48 w-48 -translate-x-1/2 rounded-full bg-teal-500/15 blur-3xl animate-pulse-glow" />
-              <div className="flex flex-col items-center">
-                <ScoreGauge score={91} size={220} />
-                <div className="mt-4 flex items-center gap-2 text-sm text-white/50">
-                  <span className="flex h-1.5 w-1.5 rounded-full bg-teal-400" />
-                  Live AI Analysis · Sample Report
+            <div className="glass-strong relative overflow-hidden rounded-[2rem] p-8 sm:p-10">
+              <div className="absolute left-1/2 top-0 -z-10 h-64 w-64 -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl" />
+
+              <div className="text-center">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-teal-400/70">
+                  EiX Property Score™
+                </span>
+
+                <h2 className="mt-5 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  Evidence before opinion.
+                </h2>
+
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/40">
+                  Every report separates verified facts, calculated figures,
+                  available evidence and what remains unknown.
+                </p>
+              </div>
+
+              <div className="mt-10 space-y-3">
+                <div className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.025] px-5 py-4">
+                  <div>
+                    <p className="text-sm font-medium text-white/80">Property facts</p>
+                    <p className="mt-1 text-xs text-white/35">What the listing supports</p>
+                  </div>
+                  <span className="text-xs font-semibold text-teal-400">Verified</span>
+                </div>
+
+                <div className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.025] px-5 py-4">
+                  <div>
+                    <p className="text-sm font-medium text-white/80">Acquisition costs</p>
+                    <p className="mt-1 text-xs text-white/35">Deposit, duty and financing</p>
+                  </div>
+                  <span className="text-xs font-semibold text-teal-400">Calculated</span>
+                </div>
+
+                <div className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.025] px-5 py-4">
+                  <div>
+                    <p className="text-sm font-medium text-white/80">Market evidence</p>
+                    <p className="mt-1 text-xs text-white/35">Used where available</p>
+                  </div>
+                  <span className="text-xs font-semibold text-white/50">Evidence-based</span>
+                </div>
+
+                <div className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.025] px-5 py-4">
+                  <div>
+                    <p className="text-sm font-medium text-white/80">Unknowns</p>
+                    <p className="mt-1 text-xs text-white/35">Never hidden from you</p>
+                  </div>
+                  <span className="text-xs font-semibold text-white/50">Clearly stated</span>
                 </div>
               </div>
-              <div className="mt-8 grid grid-cols-2 gap-3">
-                <MetricCard label="Market Value" value="R 2.45M" trend="3.2%" trendUp icon={<HomeIcon className="h-5 w-5" />} delay={600} />
-                <MetricCard label="Monthly Cash Flow" value="R 8,420" unit="/mo" trend="Positive" trendUp icon={<TrendingUp className="h-5 w-5" />} delay={700} />
-                <MetricCard label="Gross Yield" value="8.9%" trend="1.4%" trendUp icon={<Percent className="h-5 w-5" />} delay={800} />
-                <MetricCard label="Risk Score" value="Low" trend="Safe" trendUp icon={<ShieldAlert className="h-5 w-5" />} delay={900} />
-              </div>
-              <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <ConfidenceMeter value={95} size="sm" />
+
+              <div className="mt-8 border-t border-white/[0.06] pt-6 text-center">
+                <p className="text-sm leading-relaxed text-white/40">
+                  When the evidence isn&apos;t available,{' '}
+                  <span className="font-medium text-white/75">EiX Property Score™</span>{' '}
+                  tells you.
+                </p>
               </div>
             </div>
+
             <div className="absolute -right-3 -top-3 hidden rounded-xl glass-teal px-3 py-2 text-xs font-semibold text-teal-400 sm:block animate-float">
               <div className="flex items-center gap-1.5">
                 <Zap className="h-3.5 w-3.5" />
-                AI Rated
+                Evidence First
               </div>
             </div>
           </div>
@@ -131,14 +168,14 @@ export default function Home() {
             Three steps to your AI Property Score
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/50">
-            No spreadsheets, no guesswork. Just paste a link and let our AI do the heavy lifting.
+            Paste a listing. EiX Property Score™ verifies what it can, calculates what it can, and clearly identifies what it cannot verify.
           </p>
         </div>
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {[
-            { icon: <FileSearch className="h-6 w-6" />, title: 'Paste any listing', desc: 'Copy any Property24, Private Property, Facebook, or agency link—or just enter the address.' },
-            { icon: <BarChart3 className="h-6 w-6" />, title: 'AI analyzes the deal', desc: 'Our engine evaluates market value, rental yield, cash flow, and risk factors in seconds.' },
-            { icon: <Target className="h-6 w-6" />, title: 'Get your score', desc: 'Receive a detailed report with your Investment Score, BondMatch scenario, and risk assessment.' },
+            { icon: <FileSearch className="h-6 w-6" />, title: 'Paste the property', desc: 'Use a South African property listing or enter the address directly.' },
+            { icon: <BarChart3 className="h-6 w-6" />, title: 'We analyse the evidence', desc: 'EiX Property Score™ extracts property facts, calculates acquisition costs, and evaluates available market evidence.' },
+            { icon: <Target className="h-6 w-6" />, title: 'Make the decision', desc: 'Receive a clear Investment Score, acquisition scenario, risks, and a record of what could and could not be verified.' },
           ].map((step, i) => (
             <div key={step.title} className="group glass relative rounded-2xl p-7 transition-all duration-300 hover:border-teal-500/20 hover:bg-white/[0.04]">
               <div className="absolute right-5 top-5 text-5xl font-bold text-white/5">0{i + 1}</div>
@@ -154,17 +191,17 @@ export default function Home() {
 
       <section id="features" className="relative z-10 mx-auto mt-32 max-w-7xl px-6">
         <div className="text-center">
-          <span className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400">What you get</span>
+          <span className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400">The evidence behind the decision</span>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Everything you need to decide with confidence
+            Everything you need to make a better-informed decision
           </h2>
         </div>
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { icon: <BarChart3 className="h-5 w-5" />, title: 'AI Investment Score™', desc: 'A single 0-100 score that factors in dozens of market and property data points.' },
-            { icon: <Percent className="h-5 w-5" />, title: 'Rental Yield Estimate', desc: 'Projected gross and net rental yields based on comparable area rentals.' },
-            { icon: <Building2 className="h-5 w-5" />, title: 'BondMatch™ Scenario', desc: 'See your bond affordability and monthly repayment scenarios at current rates.' },
-            { icon: <ShieldAlert className="h-5 w-5" />, title: 'Risk Assessment', desc: 'Area crime trends, vacancy risk, and market volatility flagged in plain language.' },
+            { icon: <BarChart3 className="h-5 w-5" />, title: 'Investment Score™', desc: 'A clear score built from the property facts and evidence available for the analysis.' },
+            { icon: <FileSearch className="h-5 w-5" />, title: 'Verified Property Facts', desc: 'See the property details EiX could verify, with uncertain or missing information clearly identified.' },
+            { icon: <Building2 className="h-5 w-5" />, title: 'Acquisition Intelligence', desc: 'Understand deposit, transfer duty, financing assumptions, and the estimated cost of acquiring the property.' },
+            { icon: <ShieldAlert className="h-5 w-5" />, title: 'Transparent Risk Review', desc: 'Understand the risks EiX can support with evidence—and exactly where the available evidence is limited.' },
           ].map((feature) => (
             <div key={feature.title} className="group glass rounded-2xl p-6 transition-all duration-300 hover:border-teal-500/20 hover:bg-white/[0.04]">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-500/10 text-teal-400 ring-1 ring-teal-500/20">
