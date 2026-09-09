@@ -51,6 +51,7 @@ function getObjectProperty(object: JsonLdObject, key: string): JsonLdObject | nu
 function addStringFact(facts: Partial<PropertyFacts>, evidence: PropertyEvidence[], field: keyof PropertyFacts, value: unknown): void { if (facts[field] !== undefined) return; const cleaned = getStringValue(value); if (!cleaned) return; facts[field] = cleaned as never; evidence.push({ field, value: cleaned, source: 'json_ld' }); }
 function addNumberFact(facts: Partial<PropertyFacts>, evidence: PropertyEvidence[], field: keyof PropertyFacts, value: unknown): void { if (facts[field] !== undefined) return; const parsed = parsePositiveNumber(value); if (parsed === null) return; if (field === 'landSizeM2' && parsed <= 1) return; facts[field] = parsed as never; evidence.push({ field, value: String(parsed), source: 'json_ld' }); }
 function addPriceFact(facts: Partial<PropertyFacts>, evidence: PropertyEvidence[], value: unknown): void { if (facts.askingPriceCents !== undefined) return; const parsed = parsePriceCents(value); if (parsed === null) return; facts.askingPriceCents = parsed; evidence.push({ field: 'askingPriceCents', value: String(parsed), source: 'json_ld' }); }
+function addMoneyFact(facts: Partial<PropertyFacts>, evidence: PropertyEvidence[], field: 'leviesCents' | 'ratesAndTaxesCents', value: unknown): void { if (facts[field] !== undefined) return; const parsed = parsePriceCents(value); if (parsed === null) return; facts[field] = parsed; evidence.push({ field, value: String(parsed), source: 'json_ld' }); }
 
 function normaliseAdditionalPropertyName(value: unknown): string {
   return (getStringValue(value) ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -72,16 +73,8 @@ function extractAdditionalProperties(jsonLd: JsonLdObject, facts: Partial<Proper
     else if ((name.includes('erf') || name.includes('land') || name.includes('lot')) && name.includes('size')) addNumberFact(facts, evidence, 'landSizeM2', value);
     else if (name.includes('garage')) addNumberFact(facts, evidence, 'garages', value);
     else if (name === 'parking' || name.includes('parking bay')) addNumberFact(facts, evidence, 'parking', value);
-    else if (name.includes('levy')) addPriceFact(facts, evidence, value);
-    else if (name.includes('rates') && name.includes('tax')) {
-      if (facts.ratesAndTaxesCents === undefined) {
-        const parsed = parsePriceCents(value);
-        if (parsed !== null) {
-          facts.ratesAndTaxesCents = parsed;
-          evidence.push({ field: 'ratesAndTaxesCents', value: String(parsed), source: 'json_ld' });
-        }
-      }
-    }
+    else if (name.includes('levy')) addMoneyFact(facts, evidence, 'leviesCents', value);
+    else if (name.includes('rates') && name.includes('tax')) addMoneyFact(facts, evidence, 'ratesAndTaxesCents', value);
   }
 }
 
@@ -90,7 +83,7 @@ function extractObjectFacts(jsonLd: JsonLdObject): { facts: Partial<PropertyFact
   if (!isPropertyJsonLd(jsonLd)) return { facts, evidence };
   addStringFact(facts, evidence, 'title', jsonLd['name']);
   const address = getObjectProperty(jsonLd, 'address');
-  if (address) { addStringFact(facts, evidence, 'address', address['streetAddress']); addStringFact(facts, evidence, 'suburb', address['addressLocality']); addStringFact(facts, evidence, 'city', address['addressLocality']); addStringFact(facts, evidence, 'province', address['addressRegion']); addStringFact(facts, evidence, 'postalCode', address['postalCode']); }
+  if (address) { addStringFact(facts, evidence, 'address', address['streetAddress']); addStringFact(facts, evidence, 'suburb', address['addressLocality']); addStringFact(facts, evidence, 'province', address['addressRegion']); addStringFact(facts, evidence, 'postalCode', address['postalCode']); }
   addNumberFact(facts, evidence, 'bedrooms', jsonLd['numberOfBedrooms']);
   addNumberFact(facts, evidence, 'bedrooms', jsonLd['numberOfBedroomsTotal']);
   addNumberFact(facts, evidence, 'bathrooms', jsonLd['numberOfBathrooms']);
