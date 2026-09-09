@@ -24,6 +24,13 @@ function cleanString(value: unknown, maxLength: number): string | null {
   return trimmed;
 }
 
+function normaliseSouthAfricanMobile(value: string): string | null {
+  const digits = value.replace(/\D/g, '');
+  if (/^0[6-8]\d{8}$/.test(digits)) return `+27${digits.slice(1)}`;
+  if (/^27[6-8]\d{8}$/.test(digits)) return `+${digits}`;
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -51,9 +58,9 @@ export async function POST(req: NextRequest) {
         ? body.product
         : 'standard_report';
 
-    if (product === 'standard_report' && (!name || !email || !listingUrl.trim() || !goal)) {
+    if (product === 'standard_report' && (!name || !email || !whatsapp || !listingUrl.trim() || !goal)) {
       return NextResponse.json(
-        { error: 'Name, email, property and goal are required.' },
+        { error: 'Full name, email, WhatsApp number, property and goal are required.' },
         { status: 400 }
       );
     }
@@ -82,6 +89,17 @@ export async function POST(req: NextRequest) {
     if (!ALLOWED_PRODUCTS.has(product)) {
       return NextResponse.json(
         { error: 'Invalid report product.' },
+        { status: 400 }
+      );
+    }
+
+    const normalisedWhatsapp = product === 'standard_report'
+      ? normaliseSouthAfricanMobile(whatsapp)
+      : null;
+
+    if (product === 'standard_report' && !normalisedWhatsapp) {
+      return NextResponse.json(
+        { error: 'Please enter a valid South African mobile/WhatsApp number.' },
         { status: 400 }
       );
     }
@@ -137,7 +155,7 @@ export async function POST(req: NextRequest) {
           .insert({
             name,
             email,
-            whatsapp: whatsapp || null,
+            whatsapp: normalisedWhatsapp,
           })
           .select('id, name, email')
           .single();
