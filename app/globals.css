@@ -42,7 +42,6 @@
     --secondary: 210 8% 15%;
     --secondary-foreground: 0 0% 98%;
     --muted: 210 8% 15%;
-    --muted-foreground: 210 8% 65%;
     --accent: 187 83% 35%;
     --accent-foreground: 0 0% 5%;
     --destructive: 0 72% 51%;
@@ -59,8 +58,17 @@
 }
 
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
     @apply border-border;
+    box-sizing: border-box;
+  }
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground;
