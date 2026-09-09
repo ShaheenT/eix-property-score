@@ -34,6 +34,44 @@ test('extracts a complete property JSON-LD object', () => {
   assert.ok(result.evidence.every((item) => item.source === 'json_ld'));
 });
 
+test('extracts alternate Schema.org bedroom and bathroom totals', () => {
+  const result = extractJsonLdFacts({
+    '@type': 'House',
+    name: 'McGregor Family Home',
+    numberOfBedroomsTotal: 3,
+    numberOfBathroomsTotal: 2,
+    floorSize: '185 m²',
+    lotSize: '720 m²',
+    offers: { price: 'R2,495,000' },
+  });
+  assert.equal(result.facts.bedrooms, 3);
+  assert.equal(result.facts.bathrooms, 2);
+  assert.equal(result.facts.floorSizeM2, 185);
+  assert.equal(result.facts.landSizeM2, 720);
+  assert.equal(result.facts.askingPriceCents, 249500000);
+});
+
+test('extracts Property24-style additionalProperty facts', () => {
+  const result = extractJsonLdFacts({
+    '@type': 'SingleFamilyResidence',
+    name: 'McGregor Property',
+    additionalProperty: [
+      { '@type': 'PropertyValue', name: 'Bedrooms', value: 3 },
+      { '@type': 'PropertyValue', name: 'Bathrooms', value: 2 },
+      { '@type': 'PropertyValue', name: 'Erf Size', value: '720 m²' },
+      { '@type': 'PropertyValue', name: 'Floor Size', value: '185 m²' },
+      { '@type': 'PropertyValue', name: 'Garages', value: 2 },
+      { '@type': 'PropertyValue', name: 'Parking', value: 2 },
+    ],
+  });
+  assert.equal(result.facts.bedrooms, 3);
+  assert.equal(result.facts.bathrooms, 2);
+  assert.equal(result.facts.landSizeM2, 720);
+  assert.equal(result.facts.floorSizeM2, 185);
+  assert.equal(result.facts.garages, 2);
+  assert.equal(result.facts.parking, 2);
+});
+
 test('extracts property data from @graph when there is one property entity', () => {
   const result = extractJsonLdFacts({ '@graph': [
     { '@type': 'WebSite', name: 'Example Estate Agency' },
