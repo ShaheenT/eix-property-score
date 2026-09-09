@@ -10,13 +10,14 @@ export default function SuccessPage() {
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [status, setStatus] = useState('Checking payment and preparing your report…');
   const [failed, setFailed] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const currentSubmissionId = new URLSearchParams(window.location.search).get('submission_id');
     setSubmissionId(currentSubmissionId);
     if (!currentSubmissionId) {
-      setStatus('Your payment was received. We could not attach the report automatically.');
+      setStatus('No submission was attached to this page. Please return to EiX and start a new property analysis.');
       setFailed(true);
       return;
     }
@@ -28,21 +29,39 @@ export default function SuccessPage() {
       attempts += 1;
       try {
         const response = await fetch(`/api/report/status?submission_id=${encodeURIComponent(currentSubmissionId)}`, { cache: 'no-store' });
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 404) {
+          setStatus('We could not find this property submission. Please return to EiX and start again.');
+          setFailed(true);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Unable to confirm your payment.');
+        }
+
         if (data.status === 'completed' && typeof data.reportUrl === 'string') {
+          setPaymentConfirmed(true);
           setReportUrl(data.reportUrl);
           setStatus('Your report is ready.');
           return;
         }
-        if (data.status === 'awaiting_payment') setStatus('Confirming your payment with PayFast…');
-        else if (data.status === 'processing' || data.status === 'queued') setStatus('Your property analysis is being prepared…');
-        else if (data.status === 'failed') setStatus('We are retrying your report preparation…');
+        if (data.status === 'awaiting_payment') {
+          setStatus('Confirming your payment with PayFast…');
+        } else if (data.status === 'processing' || data.status === 'queued') {
+          setPaymentConfirmed(true);
+          setStatus('Your property analysis is being prepared…');
+        } else if (data.status === 'failed') {
+          setPaymentConfirmed(true);
+          setStatus('We are retrying your report preparation…');
+        }
       } catch {
         setStatus('We are checking your report status…');
       }
       if (attempts < 30) timer = setTimeout(check, 2000);
       else {
-        setStatus('Your payment was received, but the report is taking longer than expected. Please try again shortly.');
+        setStatus('Your payment is recorded, but the report is taking longer than expected. Please try again shortly.');
         setFailed(true);
       }
     };
@@ -62,8 +81,8 @@ export default function SuccessPage() {
       <div className={`relative z-10 w-full max-w-2xl ${mounted ? 'animate-scale-in' : 'opacity-0'}`}>
         <div className="mb-8 flex items-center justify-center"><img src="/eixproplogo.png" alt="EiX Property Score" className="h-16 w-auto object-contain" /></div>
         <SuccessCard
-          title="Payment Received"
-          message="Your EiX Property Score™ request has been received. We are preparing the report from the property listing you submitted."
+          title={paymentConfirmed ? 'Payment Received' : 'Confirming Your Payment'}
+          message="Your EiX Property Score™ request is being checked securely. Once PayFast confirms the payment, we prepare the report from the property listing you submitted."
           steps={[
             'Payment confirmation is checked securely.',
             'Your submitted property listing is analysed.',
@@ -77,12 +96,12 @@ export default function SuccessPage() {
             <p className="mt-3 text-lg font-semibold">Your R149 report is ready</p>
             <a href={reportUrl} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-teal-400 px-8 py-4 text-sm font-bold text-midnight-900 transition-all hover:brightness-110">View My Report<ArrowRight className="h-4 w-4" /></a>
           </> : <>
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-teal-400" />
+            <Loader2 className={`mx-auto h-8 w-8 text-teal-400 ${failed ? '' : 'animate-spin'}`} />
             <p className="mt-3 text-sm text-white/60">{status}</p>
-            {failed && <p className="mt-2 text-xs text-white/40">Your payment remains recorded. Do not pay again.</p>}
+            {failed && <a href="/" className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10">Return to EiX<ArrowRight className="h-4 w-4" /></a>}
           </>}
         </div>
-        {submissionId && <div className="mt-8 text-center">
+        {submissionId && paymentConfirmed && <div className="mt-8 text-center">
           <a href={proUrl} className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 px-8 py-4 text-sm font-bold text-midnight-900 transition-all hover:shadow-[0_0_30px_rgba(200,162,74,0.5)] hover:brightness-110">Unlock Investor Report — R349<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></a>
         </div>}
         <div className="mt-4 text-center"><a href="/" className="inline-block text-sm text-white/40 transition-colors hover:text-white">Analyze Another Property</a></div>
