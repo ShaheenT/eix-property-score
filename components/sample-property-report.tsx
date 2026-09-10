@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, CircleHelp, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleHelp, TrendingDown, TrendingUp } from 'lucide-react';
 
 export function SamplePropertyReport() {
   return (
