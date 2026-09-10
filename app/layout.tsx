@@ -5,16 +5,17 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'EiX Property Score™ Beta | AI Investment Score for SA Property',
+  metadataBase: new URL('https://eix-property-score-beta.vercel.app'),
+  title: 'EiX Property Score™ — AI Property Investment Score for SA Property',
   description:
-    'Paste any South African Property24 or Private Property listing and receive an AI Investment Score™, Rental Yield Estimate, BondMatch™ scenario and Risk Assessment.',
+    'Paste any Property24 listing. Know if it is worth buying within 24 hours. AI-powered investment scoring, rental yield analysis and risk assessment.',
   openGraph: {
-    title: 'EiX Property Score™ Beta',
+    title: 'EiX Property Score™',
     description:
-      'Know if a property is worth buying before you make an offer. AI-powered property investment scoring for South African real estate.',
+      'Paste any property listing. Know if it is worth buying within 24 hours. AI-powered investment scoring for South African real estate.',
     images: [
       {
-        url: 'https://bolt.new/static/og_default.png',
+        url: '/eixpropscorelogo.png',
       },
     ],
   },
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: [
       {
-        url: 'https://bolt.new/static/og_default.png',
+        url: '/eixpropscorelogo.png',
       },
     ],
   },

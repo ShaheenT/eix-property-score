@@ -50,9 +50,9 @@ export function ScoreGauge({ score = 91, size = 220 }: ScoreGaugeProps) {
       >
         <defs>
           <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#00C48C" />
-            <stop offset="50%" stopColor="#00E6A8" />
-            <stop offset="100%" stopColor="#00FFC2" />
+            <stop offset="0%" stopColor="#0EA5A4" />
+            <stop offset="50%" stopColor="#28C6C7" />
+            <stop offset="100%" stopColor="#5BD3D3" />
           </linearGradient>
           <filter id="gaugeGlow">
             <feGaussianBlur stdDeviation="4" result="coloredBlur" />
@@ -92,7 +92,7 @@ export function ScoreGauge({ score = 91, size = 220 }: ScoreGaugeProps) {
       </svg>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-[10px] font-medium uppercase tracking-[0.3em] text-emerald-400/70">
+        <div className="text-[10px] font-medium uppercase tracking-[0.3em] text-teal-400/70">
           Investment Score
         </div>
         <div className="mt-1 flex items-baseline">
@@ -101,12 +101,12 @@ export function ScoreGauge({ score = 91, size = 220 }: ScoreGaugeProps) {
           </span>
           <span className="ml-1 text-2xl font-light text-white/40">/100</span>
         </div>
-        <div className="mt-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 ring-1 ring-emerald-500/20">
+        <div className="mt-2 rounded-full bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-400 ring-1 ring-teal-500/20">
           Excellent
         </div>
       </div>
 
-      <div className="absolute inset-0 -z-10 rounded-full bg-emerald-500/10 blur-3xl" />
+      <div className="absolute inset-0 -z-10 rounded-full bg-teal-500/10 blur-3xl" />
     </div>
   );
 }
