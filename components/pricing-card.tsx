@@ -2,47 +2,20 @@
 
 import { Check, Crown } from 'lucide-react';
 
-const FEATURES = [
-  'EiX Investment Score™',
-  'Rental Yield Estimate',
-  'Cash Flow Analysis',
-  'Risk Score',
-  'AI Confidence Meter™',
-  '24-hour delivery',
-];
+const FEATURES = ['EiX Investment Score™','Rental Yield Estimate','Cash Flow Analysis','Risk Score','AI Confidence Meter™','24-hour delivery'];
 
 export function PricingCard() {
   return (
-    <div className="glass-strong relative overflow-hidden rounded-2xl p-7 sm:p-8">
-      <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-teal-500/8 blur-3xl" />
+    <div className="relative overflow-hidden rounded-[2rem] border border-[#2A2D27]/10 bg-[#20231F] p-7 text-white shadow-[0_28px_80px_rgba(42,45,39,.16)] sm:p-8">
+      <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#11A397]/15 blur-3xl" />
       <div className="relative">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-400 ring-1 ring-teal-500/20">
-            Founding Beta
-          </span>
-        </div>
-        <div className="mt-5 flex items-baseline gap-1">
-          <span className="text-5xl font-bold text-white">R149</span>
-          <span className="text-sm text-white/40">one-time</span>
-        </div>
-        <p className="mt-2 text-sm text-white/50">
-          One property · Delivered within 24 hours
-        </p>
-        <div className="my-6 h-px bg-white/8" />
-        <ul className="space-y-3">
-          {FEATURES.map((feature) => (
-            <li key={feature} className="flex items-center gap-3 text-sm text-white/70">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-500/15">
-                <Check className="h-3 w-3 text-teal-400" />
-              </span>
-              {feature}
-            </li>
-          ))}
-        </ul>
-        <div className="my-6 h-px bg-white/8" />
-        <p className="text-xs text-white/40">
-          Limited launch pricing before the full platform rolls out.
-        </p>
+        <span className="inline-flex rounded-full bg-[#75D0C7]/10 px-3 py-1.5 text-xs font-semibold text-[#75D0C7] ring-1 ring-[#75D0C7]/20">Founding Beta</span>
+        <div className="mt-6 flex items-baseline gap-2"><span className="text-5xl font-bold tracking-tight">R149</span><span className="text-sm text-white/50">one-time</span></div>
+        <p className="mt-2 text-sm text-white/60">One property · Delivered within 24 hours</p>
+        <div className="my-7 h-px bg-white/10" />
+        <ul className="space-y-3">{FEATURES.map((feature)=><li key={feature} className="flex items-center gap-3 text-sm text-white/80"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#11A397]/15"><Check className="h-3 w-3 text-[#75D0C7]" /></span>{feature}</li>)}</ul>
+        <div className="my-7 h-px bg-white/10" />
+        <p className="text-xs leading-5 text-white/45">Limited launch pricing before the full platform rolls out.</p>
       </div>
     </div>
   );
@@ -50,41 +23,8 @@ export function PricingCard() {
 
 export function PricingCardPro() {
   return (
-    <div className="glass-gold relative overflow-hidden rounded-2xl p-7 sm:p-8 glow-gold">
-      <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gold-500/8 blur-3xl" />
-      <div className="relative">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-full bg-gold-500/10 px-3 py-1 text-xs font-semibold text-gold-400 ring-1 ring-gold-500/20">
-            <Crown className="h-3 w-3" />
-            Investor Report Pro
-          </span>
-        </div>
-        <div className="mt-5 flex items-baseline gap-1">
-          <span className="text-5xl font-bold text-white">R349</span>
-          <span className="text-sm text-white/40">one-time</span>
-        </div>
-        <p className="mt-2 text-sm text-white/50">
-          Full investor analysis · Delivered with your report
-        </p>
-        <div className="my-6 h-px bg-white/8" />
-        <ul className="space-y-3">
-          {[
-            'Everything in Founding Beta',
-            'Comparable sales analysis',
-            'Rental demand insights',
-            'Negotiation opportunities',
-            'Investment risk breakdown',
-            'Growth outlook & exit strategy',
-          ].map((feature) => (
-            <li key={feature} className="flex items-center gap-3 text-sm text-white/70">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gold-500/15">
-                <Check className="h-3 w-3 text-gold-400" />
-              </span>
-              {feature}
-            </li>
-          ))}
-        </ul>
-      </div>
+    <div className="relative overflow-hidden rounded-[2rem] border border-[#B98F3F]/20 bg-[#FFF9EA] p-7 shadow-[0_20px_60px_rgba(42,45,39,.08)] sm:p-8">
+      <div className="relative"><span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#9D742C]"><Crown className="h-3.5 w-3.5" /> Investor Report Pro</span><div className="mt-5 flex items-baseline gap-2"><span className="text-5xl font-bold">R349</span><span className="text-sm text-[#777970]">one-time</span></div><p className="mt-2 text-sm text-[#6A6D66]">Full investor analysis · Delivered with your report</p><div className="my-6 h-px bg-[#2A2D27]/8" /><ul className="space-y-3">{['Everything in Founding Beta','Comparable sales analysis','Rental demand insights','Negotiation opportunities','Investment risk breakdown','Growth outlook & exit strategy'].map((feature)=><li key={feature} className="flex items-center gap-3 text-sm text-[#4B4E47]"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#B98F3F]/10"><Check className="h-3 w-3 text-[#9D742C]" /></span>{feature}</li>)}</ul></div>
     </div>
   );
 }
