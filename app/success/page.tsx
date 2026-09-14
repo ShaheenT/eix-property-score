@@ -14,10 +14,13 @@ export default function SuccessPage() {
 
   useEffect(() => {
     setMounted(true);
-    const currentSubmissionId = new URLSearchParams(window.location.search).get('submission_id');
-    setSubmissionId(currentSubmissionId);
-    if (!currentSubmissionId) {
-      setStatus('No submission was attached to this page. Please return to EiX and start a new property analysis.');
+    const params = new URLSearchParams(window.location.search);
+    const currentSubmissionId = params.get('submission_id')?.trim() || '';
+    const currentPaymentId = params.get('payment_id')?.trim() || '';
+    setSubmissionId(currentSubmissionId || null);
+
+    if (!currentSubmissionId && !currentPaymentId) {
+      setStatus('No payment reference was attached to this page. Please return to EiX and start a new property analysis.');
       setFailed(true);
       return;
     }
@@ -28,17 +31,25 @@ export default function SuccessPage() {
     const check = async () => {
       attempts += 1;
       try {
-        const response = await fetch(`/api/report/status?submission_id=${encodeURIComponent(currentSubmissionId)}`, { cache: 'no-store' });
+        const query = new URLSearchParams();
+        if (currentSubmissionId) query.set('submission_id', currentSubmissionId);
+        if (currentPaymentId) query.set('payment_id', currentPaymentId);
+
+        const response = await fetch(`/api/report/status?${query.toString()}`, { cache: 'no-store' });
         const data = await response.json().catch(() => ({}));
 
         if (response.status === 404) {
-          setStatus('We could not find this property submission. Please return to EiX and start again.');
+          setStatus('We could not match the PayFast payment to your property submission. Please contact EiX support before submitting another payment.');
           setFailed(true);
           return;
         }
 
         if (!response.ok) {
           throw new Error(data.error || 'Unable to confirm your payment.');
+        }
+
+        if (typeof data.submissionId === 'string') {
+          setSubmissionId(data.submissionId);
         }
 
         if (data.status === 'completed' && typeof data.reportUrl === 'string') {
