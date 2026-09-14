@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - feature/international-buyer-intelligence
+      - feature/secure-extraction-engine
   pull_request:
     branches:
       - main
       - feature/international-buyer-intelligence
+      - feature/secure-extraction-engine
 
 jobs:
   quality:
