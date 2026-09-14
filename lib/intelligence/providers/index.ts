@@ -1,9 +1,12 @@
 import type { GeospatialProvider, ProviderRegistry, ProviderRuntimeConfig } from './provider-types';
 import { NominatimGeospatialProvider } from './nominatim-provider';
+import { ConfiguredGeospatialProvider } from './configured-geospatial-provider';
 
 export * from './provider-types';
 export * from './secure-http';
 export * from './nominatim-provider';
+export * from './configured-geospatial-provider';
+export * from './provider-enrichment';
 
 function runtimeConfig(): ProviderRuntimeConfig {
   const cacheTtlSeconds = Number(process.env.EIX_PROVIDER_CACHE_TTL_SECONDS ?? 86400);
@@ -20,6 +23,11 @@ function runtimeConfig(): ProviderRuntimeConfig {
 
 export function getProviderRegistry(): ProviderRegistry | null {
   const config = runtimeConfig();
+  if (config.geospatialProvider === 'configured') {
+    const baseUrl = process.env.EIX_GEOPROVIDER_BASE_URL?.trim();
+    if (!baseUrl) return null;
+    return { geospatial: new ConfiguredGeospatialProvider(baseUrl) };
+  }
   if (config.geospatialProvider === 'nominatim') {
     return { geospatial: new NominatimGeospatialProvider() };
   }
