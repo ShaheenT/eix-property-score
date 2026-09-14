@@ -62,9 +62,8 @@ export function createPayFastPaymentLink({
   product,
 }: PayFastParams): { url: string; params: Record<string, string> } {
   const isPro = product === 'investor_report_pro';
-  const returnUrl = isPro
-    ? `${BASE_URL}/payment/pro-success?submission_id=${encodeURIComponent(submissionId)}`
-    : `${BASE_URL}/success?submission_id=${encodeURIComponent(submissionId)}`;
+  const returnPath = isPro ? '/payment/pro-success' : '/success';
+  const returnUrl = `${BASE_URL}${returnPath}?submission_id=${encodeURIComponent(submissionId)}&payment_id=${encodeURIComponent(paymentId)}`;
   const cancelUrl = isPro
     ? `${BASE_URL}/upsell/pro?submission_id=${encodeURIComponent(submissionId)}`
     : `${BASE_URL}/`;
