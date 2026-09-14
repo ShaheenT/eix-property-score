@@ -22,24 +22,20 @@ test('recognizes all target agency domains', () => {
     ['https://www.century21.co.za/results/residential/for-sale/bettys-bay/bettys-bay/vacant-land/2797878/4-lakeside-drive/', 'century21'],
     ['https://m.jawitz.co.za/results/residential/for-sale/durbanville/clara-anna-fontein/house/3335363/', 'jawitz'],
   ] as const;
-  for (const [input, expected] of cases) {
-    const source = identifySource(new URL(input));
-    assert.equal(source?.source, expected, input);
-  }
+  for (const [input, expected] of cases) assert.equal(identifySource(new URL(input))?.source, expected, input);
 });
 
 test('extracts listing identifiers from the supplied real-world corpus', () => {
   assert.equal(extractListingId('private_property', new URL('https://www.privateproperty.co.za/for-sale/western-cape/boland/franschhoek/franschhoek/T5582432')), 'T5582432');
   assert.equal(extractListingId('rawson', new URL('https://rawson.co.za/property/for-sale/constantia/1358643')), '1358643');
   assert.equal(extractListingId('jawitz', new URL('https://m.jawitz.co.za/results/residential/for-sale/durbanville/clara-anna-fontein/house/3335363/')), '3335363');
-  assert.equal(extractListingId('century21', new URL('https://www.century21.co.za/results/residential/for-sale/bettys-bay/bettys-bay/vacant-land/2797878/4-lakeside-drive/')), '4-lakeside-drive');
+  assert.equal(extractListingId('century21', new URL('https://www.century21.co.za/results/residential/for-sale/bettys-bay/bettys-bay/vacant-land/2797878/4-lakeside-drive/')), '2797878');
 });
 
 test('rejects unsupported and private destinations before extraction', () => {
   const unsupported = validatePropertyInput('https://example.com/property/123');
   assert.equal(unsupported.ok, false);
   assert.equal(unsupported.errorCode, 'UNSUPPORTED_URL');
-
   const local = validatePropertyInput('http://127.0.0.1:3000/property');
   assert.equal(local.ok, false);
   assert.equal(local.errorCode, 'INVALID_URL');
