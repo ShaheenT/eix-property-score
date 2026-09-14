@@ -13,25 +13,32 @@ const focusAreas = [
 
 const lifestyleImages = [
   {
-    src: 'https://unsplash.com/photos/vJmJtm7AhJE/download?force=true&w=1800',
+    src: '/images/winelands/winelands-home.jpg',
     alt: 'Cape Winelands home surrounded by vineyards and mountains',
     title: 'A home with a sense of place',
     text: 'Cape Dutch character, contemporary architecture, gardens, space and mountain views.',
     className: 'lg:col-span-7 lg:row-span-2',
   },
   {
-    src: 'https://unsplash.com/photos/b2ZNdLFDrKc/download?force=true&w=1400',
+    src: '/images/winelands/winelands-landscape.jpg',
     alt: 'Franschhoek vineyard with mountains in the background',
     title: 'The landscape',
     text: 'Vineyards, valleys and the Boland mountains become part of the everyday experience.',
     className: 'lg:col-span-5',
   },
   {
-    src: 'https://unsplash.com/photos/pU4bB4ftIog/download?force=true&w=1400',
-    alt: 'Paarl Winelands estate road lined with cypress trees and mountains',
+    src: '/images/winelands/winelands-lifestyle.jpg',
+    alt: 'Cape Winelands outdoor lifestyle and estate living',
     title: 'Room to breathe',
     text: 'Country tranquillity without giving up access to Cape Town, the airport and established amenities.',
     className: 'lg:col-span-5',
+  },
+  {
+    src: '/images/winelands/winelands-golf.jpg',
+    alt: 'Cape Winelands golf and lifestyle estate',
+    title: 'Live, taste, play',
+    text: 'Golf, wine estates, outdoor living and the recreation that makes the region distinctive.',
+    className: 'lg:col-span-12',
   },
 ];
 
@@ -68,6 +75,18 @@ export default function InternationalBuyersPage() {
         </div>
       </section>
 
+      <section className="border-b border-[#2A2D27]/8 bg-[#FFFDF8] px-6 py-8 sm:px-10">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#0E847B]">Where international buyers begin</p>
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            {['Cape Town', 'Stellenbosch', 'Franschhoek', 'Paarl', 'Somerset West'].map((place) => (
+              <span key={place} className="rounded-full border border-[#2A2D27]/10 bg-[#F7F4EE] px-4 py-2 text-sm font-medium text-[#3E413B]">{place}</span>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-[#6A6D66]">Wine estates · Golf · Mountains · Coast · International connectivity</p>
+        </div>
+      </section>
+
       <section id="form" className="scroll-mt-6 border-b border-[#2A2D27]/8 bg-[#F7F4EE] px-6 py-12 sm:px-10 sm:py-16">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[.78fr_1fr] lg:items-start">
           <div className="pt-2 lg:sticky lg:top-8">
@@ -97,11 +116,28 @@ export default function InternationalBuyersPage() {
         </div>
       </section>
 
+      <section className="border-b border-[#2A2D27]/8 bg-[#F7F4EE]">
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1fr_.7fr] lg:items-center">
+          <div><span className="text-xs font-semibold uppercase tracking-[.2em] text-[#0E847B]">Why international buyers look here</span><h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">A lifestyle proposition deserves an evidence-based property decision.</h2><p className="mt-5 max-w-2xl leading-7 text-[#3E413B]">The Cape Winelands combines landscape, wine, outdoor living, recreation and access to Cape Town. EiX helps separate what the property evidence supports from what still needs independent verification.</p></div>
+          <div className="rounded-[2rem] border border-[#2A2D27]/10 bg-[#FFFDF8] p-7 shadow-[0_24px_70px_rgba(42,45,39,.08)] sm:p-8">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {['International access', 'Wine & culinary culture', 'Golf & outdoor living', 'Mountain & vineyard lifestyle'].map((item) => <div key={item} className="rounded-xl bg-[#F7F4EE] p-4 text-sm font-medium text-[#3E413B] ring-1 ring-[#2A2D27]/8">{item}</div>)}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="border-b border-[#2A2D27]/8 bg-[#F7F4EE]"><div className="mx-auto grid max-w-7xl gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1fr_.7fr] lg:items-center"><div><span className="text-xs font-semibold uppercase tracking-[.2em] text-[#0E847B]">Why R1,495?</span><h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">One property. One international buyer intelligence report.</h2><p className="mt-5 max-w-2xl leading-7 text-[#3E413B]">The International Buyer Intelligence report is deliberately focused: submit one property, get one evidence-based decision report, and see exactly what the evidence supports — and what still needs independent verification.</p></div><div className="rounded-[2rem] border border-[#2A2D27]/10 bg-[#FFFDF8] p-7 shadow-[0_24px_70px_rgba(42,45,39,.10)] sm:p-8"><span className="inline-flex rounded-full bg-[#E8F7F5] px-3 py-1.5 text-xs font-semibold text-[#0E847B] ring-1 ring-[#0E847B]/10">International Buyer Intelligence</span><div className="mt-6 flex items-baseline gap-2"><span className="text-5xl font-bold tracking-tight">R1,495</span><span className="text-sm text-[#777970]">equivalent</span></div><p className="mt-2 text-sm text-[#6A6D66]">One property · Delivered within 24 hours</p><div className="my-7 h-px bg-[#2A2D27]/8" /><ul className="space-y-3">{['Property & market intelligence', 'Acquisition cost snapshot', 'Lifestyle indicators', 'Evidence gaps & confidence', 'International buyer due diligence', '24-hour delivery'].map((item) => <li key={item} className="flex items-center gap-3 text-sm text-[#4B4E47]"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E8F7F5]"><Check className="h-3 w-3 text-[#0E847B]" /></span>{item}</li>)}</ul><div className="my-7 h-px bg-[#2A2D27]/8" /><p className="text-xs leading-5 text-[#777970]">Canonical price is R1,495 in ZAR. Your payment provider may display the converted amount in your local currency.</p></div></div></section>
 
-      <section className="border-b border-[#2A2D27]/8 bg-[#FFFDF8]"><div className="mx-auto max-w-7xl px-6 py-14 sm:px-10"><div className="flex flex-col gap-5 rounded-[2rem] bg-[#F7F4EE] p-7 ring-1 ring-[#2A2D27]/8 sm:p-8 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-start gap-4"><Sparkles className="mt-1 h-6 w-6 shrink-0 text-[#0E847B]" /><div><p className="font-semibold">Ready to analyse another South African property?</p><p className="mt-1 text-sm leading-6 text-[#3E413B]">Submit one property and receive the International Buyer Intelligence report within 24 hours.</p></div></div><Link href="#form" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0E847B] px-6 py-4 text-sm font-semibold text-white hover:bg-[#08756D]">Analyse a Property — R1,495 equivalent <ArrowRight className="h-4 w-4" /></Link></div></div></section>
+      <section className="relative overflow-hidden bg-[#273028] text-white">
+        <img src="/images/winelands/winelands-sunset.jpg" alt="Cape Winelands sunset over vineyards and mountains" className="absolute inset-0 h-full w-full object-cover opacity-70" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#273028]/80 via-[#273028]/45 to-[#273028]/55" />
+        <div className="relative mx-auto max-w-7xl px-6 py-24 sm:px-10 sm:py-32">
+          <div className="max-w-3xl"><span className="text-xs font-semibold uppercase tracking-[.2em] text-[#D8EEEA]">The decision starts with evidence</span><h2 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">Ready to analyse another South African property?</h2><p className="mt-5 max-w-2xl text-lg leading-8 text-white/85">Submit one property and receive the International Buyer Intelligence report within 24 hours.</p><Link href="#form" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#0E847B] px-6 py-4 text-sm font-semibold text-white hover:bg-[#08756D]">Analyse a Property — R1,495 equivalent <ArrowRight className="h-4 w-4" /></Link></div>
+        </div>
+      </section>
 
-      <footer className="border-t border-[#2A2D27]/8 bg-[#F7F4EE]"><div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 sm:px-10 sm:flex-row sm:items-center sm:justify-between"><img src="/images/eix-property-score-logo.svg" alt="EiXPropScore" className="h-10 w-auto" /><p className="text-xs text-[#4F524C]">EiXPropScore™ — Evidence-based property decision intelligence for South Africa.</p></div></footer>
+      <footer className="border-t border-[#2A2D27]/8 bg-[#F7F4EE]"><div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 sm:flex-row sm:items-center sm:justify-between"><img src="/images/eix-property-score-logo.svg" alt="EiXPropScore" className="h-10 w-auto" /><p className="text-xs text-[#4F524C]">EiXPropScore™ — Evidence-based property decision intelligence for South Africa.</p></div></footer>
     </main>
   );
 }
