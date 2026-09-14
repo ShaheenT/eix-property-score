@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { MobileHomeNav } from '@/components/mobile-home-nav';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -38,6 +39,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-midnight text-white antialiased`}>
         {children}
+        <MobileHomeNav />
       </body>
     </html>
   );
