@@ -51,6 +51,22 @@ test('provider HTTP boundary rejects private and loopback destinations', async (
   }
 });
 
+test('provider HTTP boundary rejects explicit non-JSON responses', async () => {
+  globalThis.fetch = async () => new Response('<html>blocked</html>', {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  });
+
+  await assert.rejects(
+    () => providerFetch('https://provider.example/geocode', {
+      allowedHosts: ['provider.example'],
+      userAgent: 'EiXPropScore-test',
+      parse: async (response) => response.json(),
+    }),
+    (error: unknown) => error instanceof ProviderHttpError && error.code === 'INVALID_CONTENT',
+  );
+});
+
 test('configured provider validates geocoding coordinates and confidence bounds', async () => {
   globalThis.fetch = async () => new Response(JSON.stringify({
     latitude: -33.9249,
