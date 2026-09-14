@@ -320,3 +320,36 @@ test('rejects a Property24 1 m² land-size artefact', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test('extracts complete Private Property facts from T5586887 fixture', async () => {
+  const originalFetch = globalThis.fetch;
+  const fixture = readFileSync(
+    new URL('./fixtures/private-property/T5586887.html', import.meta.url),
+    'utf8'
+  );
+
+  globalThis.fetch = async () =>
+    new Response(fixture, {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    });
+
+  try {
+    const result = await extractPropertyFromUrl(
+      'https://www.privateproperty.co.za/for-sale/western-cape/cape-town/southern-suburbs/tokai/2-the-nest/16-weaver-bird-avenue/T5586887'
+    );
+
+    assert.equal(result.facts.askingPriceCents, 1050000000);
+    assert.match(result.facts.title ?? '', /3 Bedroom House in Tokai/);
+    assert.equal(result.facts.propertyType, 'House');
+    assert.equal(result.facts.bedrooms, 3);
+    assert.equal(result.facts.bathrooms, 3.5);
+    assert.equal(result.facts.garages, 1);
+    assert.equal(result.facts.landSizeM2, 365);
+    assert.equal(result.facts.floorSizeM2, 365);
+    assert.match(result.facts.address ?? '', /2 the nest, 16 weaver bird avenue/i);
+    assert.equal(result.source, 'private_property');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

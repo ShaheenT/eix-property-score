@@ -45,12 +45,13 @@ export async function POST(req: NextRequest) {
         submission_id: string;
         product: string;
         status: string;
+        amount_cents: number;
       } | null = null;
 
       if (paymentId) {
         const { data: exactPayment, error: paymentError } = await supabaseAdmin
           .from('payments')
-          .select('id, submission_id, product, status')
+          .select('id, submission_id, product, status, amount_cents')
           .eq('id', paymentId)
           .maybeSingle();
 
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
 
         const { data: legacyPayments, error: legacyPaymentError } = await supabaseAdmin
           .from('payments')
-          .select('id, submission_id, product, status')
+          .select('id, submission_id, product, status, amount_cents')
           .eq('submission_id', submission.id)
           .eq('product', 'standard_report')
           .eq('status', 'pending');
@@ -82,6 +83,35 @@ export async function POST(req: NextRequest) {
           );
         }
         payment = legacyPayments[0];
+      }
+
+      const expectedMerchantId = process.env.PAYFAST_MERCHANT_ID || '10030587';
+      if (params.merchant_id !== expectedMerchantId) {
+        console.error('[PayFast ITN] Merchant mismatch', {
+          expectedMerchantId,
+          receivedMerchantId: params.merchant_id || null,
+        });
+        return NextResponse.json(
+          { error: 'Payment merchant mismatch' },
+          { status: 400 },
+        );
+      }
+
+      const grossAmount = params.amount_gross || '';
+      const grossAmountCents = /^\d+(?:\.\d{1,2})?$/.test(grossAmount)
+        ? Math.round(Number(grossAmount) * 100)
+        : NaN;
+
+      if (!Number.isFinite(grossAmountCents) || grossAmountCents !== payment.amount_cents) {
+        console.error('[PayFast ITN] Amount mismatch', {
+          paymentId: payment.id,
+          expectedAmountCents: payment.amount_cents,
+          receivedAmountGross: grossAmount || null,
+        });
+        return NextResponse.json(
+          { error: 'Payment amount mismatch' },
+          { status: 400 },
+        );
       }
 
       if (payment.submission_id !== submission.id) {
