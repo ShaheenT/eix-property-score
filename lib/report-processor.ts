@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { calculateReport } from '@/lib/report-engine';
 import { calculateInvestorReport } from '@/lib/investor-report-engine';
 import { extractPropertyFromUrl } from '@/lib/secure-property-extractor';
+import { runPropertyIntelligence } from '@/lib/intelligence/property-intelligence';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
 
@@ -58,6 +59,8 @@ export async function processReport(submissionId: string, options: ProcessReport
       facts = extraction.facts;
       evidence = extraction.evidence;
     }
+
+    await runPropertyIntelligence(facts, { propertyId: submissionId, submissionId });
 
     const accessToken = queuedReport.access_token || randomUUID();
     const reportUrl = `${BASE_URL}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
