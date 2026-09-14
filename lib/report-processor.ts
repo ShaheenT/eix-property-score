@@ -2,7 +2,7 @@
 import { randomUUID } from 'crypto';
 import { calculateReport } from '@/lib/report-engine';
 import { calculateInvestorReport } from '@/lib/investor-report-engine';
-import { extractPropertyFromUrl } from '@/lib/property-extractor';
+import { extractPropertyFromUrl } from '@/lib/secure-property-extractor';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
 
@@ -46,17 +46,9 @@ export async function processReport(
       .eq('id', submissionId)
       .single();
 
-  if (submissionError || !submission) {
-    throw new Error('Submission not found');
-  }
-
-  if (!['paid', 'report_sent'].includes(submission.status)) {
-    throw new Error('Submission is not paid');
-  }
-
-  if (!['Buy to Live', 'Rental', 'Flip'].includes(submission.goal)) {
-    throw new Error('Invalid submission goal');
-  }
+  if (submissionError || !submission) throw new Error('Submission not found');
+  if (!['paid', 'report_sent'].includes(submission.status)) throw new Error('Submission is not paid');
+  if (!['Buy to Live', 'Rental', 'Flip'].includes(submission.goal)) throw new Error('Invalid submission goal');
 
   const { data: queuedReport, error: reportError } =
     await supabaseAdmin
@@ -67,26 +59,9 @@ export async function processReport(
       .maybeSingle();
 
   if (reportError) throw reportError;
-
-  if (!queuedReport) {
-    throw new Error(`Report record not found: ${reportType}`);
-  }
-
-  if (queuedReport.status === 'sent') {
-    return {
-      status: 'already_sent',
-      reportId: queuedReport.id,
-      reportType,
-    };
-  }
-
-  if (queuedReport.status === 'processing') {
-    return {
-      status: 'processing',
-      reportId: queuedReport.id,
-      reportType,
-    };
-  }
+  if (!queuedReport) throw new Error(`Report record not found: ${reportType}`);
+  if (queuedReport.status === 'sent') return { status: 'already_sent', reportId: queuedReport.id, reportType };
+  if (queuedReport.status === 'processing') return { status: 'processing', reportId: queuedReport.id, reportType };
 
   const { data: claimed } = await supabaseAdmin
     .from('reports')
@@ -102,12 +77,7 @@ export async function processReport(
       .select('id, status')
       .eq('id', queuedReport.id)
       .single();
-
-    return {
-      status: current?.status || 'processing',
-      reportId: queuedReport.id,
-      reportType,
-    };
+    return { status: current?.status || 'processing', reportId: queuedReport.id, reportType };
   }
 
   try {
@@ -122,73 +92,38 @@ export async function processReport(
           .eq('submission_id', submissionId)
           .eq('report_type', 'standard_report')
           .maybeSingle();
-
       if (standardReportError) throw standardReportError;
 
-      if (
-        standardReport &&
-        hasPersistedPropertyEvidence(
-          standardReport.property_facts,
-          standardReport.property_evidence,
-        )
-      ) {
+      if (standardReport && hasPersistedPropertyEvidence(standardReport.property_facts, standardReport.property_evidence)) {
         facts = standardReport.property_facts;
         evidence = standardReport.property_evidence as PropertyEvidence[];
       } else {
-        const extraction = await extractPropertyFromUrl(
-          submission.listing_url,
-        );
-
-        if (extraction.status !== 'extracted') {
-          const detail =
-            extraction.errors?.filter(Boolean).join('; ') ||
-            'No extractor error detail was returned.';
-
-          throw new Error(
-            `Property extraction failed: ${extraction.status}: ${detail}`,
-          );
+        const extraction = await extractPropertyFromUrl(submission.listing_url);
+        if (extraction.status !== 'extracted' || extraction.metadata?.reportEligible === false) {
+          throw new Error(`Property extraction failed: ${extraction.status}: ${extraction.errors?.filter(Boolean).join('; ') || 'Evidence gate blocked report generation.'}`);
         }
-
         facts = extraction.facts;
         evidence = extraction.evidence;
       }
     } else {
-      const extraction = await extractPropertyFromUrl(
-        submission.listing_url,
-      );
-
-      if (extraction.status !== 'extracted') {
-        const detail =
-          extraction.errors?.filter(Boolean).join('; ') ||
-          'No extractor error detail was returned.';
-
-        throw new Error(
-          `Property extraction failed: ${extraction.status}: ${detail}`,
-        );
+      const extraction = await extractPropertyFromUrl(submission.listing_url);
+      if (extraction.status !== 'extracted' || extraction.metadata?.reportEligible === false) {
+        throw new Error(`Property extraction failed: ${extraction.status}: ${extraction.errors?.filter(Boolean).join('; ') || 'Evidence gate blocked report generation.'}`);
       }
-
       facts = extraction.facts;
       evidence = extraction.evidence;
     }
 
-    const accessToken =
-      queuedReport.access_token || randomUUID();
-
-    const reportUrl =
-      `${BASE_URL}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
+    const accessToken = queuedReport.access_token || randomUUID();
+    const reportUrl = `${BASE_URL}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
 
     if (reportType === 'standard_report') {
-      const goal = submission.goal as Goal;
-
       const result = calculateReport({
         facts,
         evidence,
-        goal,
+        goal: submission.goal as Goal,
         buyerProfile: {
-          buyerType:
-            submission.buyer_type === 'international'
-              ? 'international'
-              : 'south_african',
+          buyerType: submission.buyer_type === 'international' ? 'international' : 'south_african',
           buyerCountry: submission.buyer_country ?? null,
           buyerPurpose: submission.buyer_purpose ?? null,
           buyerBudget: submission.buyer_budget ?? null,
@@ -198,81 +133,30 @@ export async function processReport(
       const { error: persistError } = await supabaseAdmin
         .from('reports')
         .update({
-          status: 'completed',
-          investment_score: result.investmentScore,
-          ai_confidence: result.aiConfidence,
-          property_facts: facts,
-          property_evidence: evidence,
-          score_breakdown: result.scoreBreakdown,
-          assumptions: result.assumptions,
-          limitations: result.limitations,
-          rental_yield_percent: result.rentalYieldPercent,
-          bond_monthly_payment_cents:
-            result.bondMonthlyPaymentCents,
-          bond_loan_amount_cents:
-            result.bondLoanAmountCents,
-          risk_level: result.riskLevel,
-          recommendation: result.recommendation,
-          confidence_label: result.confidenceLabel,
-          access_token: accessToken,
-          processed_at: new Date().toISOString(),
-          ...(result.internationalBuyerIntelligence
-            ? {
-                international_buyer_analysis:
-                  result.internationalBuyerIntelligence,
-              }
-            : {}),
+          status: 'completed', investment_score: result.investmentScore, ai_confidence: result.aiConfidence,
+          property_facts: facts, property_evidence: evidence, score_breakdown: result.scoreBreakdown,
+          assumptions: result.assumptions, limitations: result.limitations, rental_yield_percent: result.rentalYieldPercent,
+          bond_monthly_payment_cents: result.bondMonthlyPaymentCents, bond_loan_amount_cents: result.bondLoanAmountCents,
+          risk_level: result.riskLevel, recommendation: result.recommendation, confidence_label: result.confidenceLabel,
+          access_token: accessToken, processed_at: new Date().toISOString(),
+          ...(result.internationalBuyerIntelligence ? { international_buyer_analysis: result.internationalBuyerIntelligence } : {}),
         })
         .eq('id', queuedReport.id);
-
       if (persistError) throw persistError;
     } else if (reportType === 'investor_report_pro') {
-      const result = calculateInvestorReport({
-        facts,
-        evidence,
-        // Comparable discovery is intentionally not fabricated. The current
-        // extraction contract supplies only the subject property; a future
-        // market-data adapter can provide verified comparable listings here.
-        comparables: [],
-      });
-
+      const result = calculateInvestorReport({ facts, evidence, comparables: [] });
       const { error: persistError } = await supabaseAdmin
         .from('reports')
-        .update({
-          status: 'completed',
-          property_facts: facts,
-          property_evidence: evidence,
-          investor_analysis: result,
-          assumptions: result.assumptions,
-          limitations: result.limitations,
-          access_token: accessToken,
-          processed_at: new Date().toISOString(),
-        })
+        .update({ status: 'completed', property_facts: facts, property_evidence: evidence, investor_analysis: result, assumptions: result.assumptions, limitations: result.limitations, access_token: accessToken, processed_at: new Date().toISOString() })
         .eq('id', queuedReport.id);
-
       if (persistError) throw persistError;
     } else {
-      throw new Error(
-        `Unsupported report type: ${reportType}`,
-      );
+      throw new Error(`Unsupported report type: ${reportType}`);
     }
 
-    return {
-      status: 'completed',
-      reportId: queuedReport.id,
-      reportType,
-      reportUrl,
-      customer: submission.customer,
-    };
+    return { status: 'completed', reportId: queuedReport.id, reportType, reportUrl, customer: submission.customer };
   } catch (error) {
-    await supabaseAdmin
-      .from('reports')
-      .update({
-        status: 'failed',
-        processed_at: new Date().toISOString(),
-      })
-      .eq('id', queuedReport.id);
-
+    await supabaseAdmin.from('reports').update({ status: 'failed', processed_at: new Date().toISOString() }).eq('id', queuedReport.id);
     throw error;
   }
 }
