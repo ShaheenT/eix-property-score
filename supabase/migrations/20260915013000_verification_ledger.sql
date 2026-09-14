@@ -37,5 +37,17 @@ CREATE INDEX IF NOT EXISTS verification_ledgers_ledger_id_idx
 
 ALTER TABLE public.verification_ledgers ENABLE ROW LEVEL SECURITY;
 
+CREATE OR REPLACE FUNCTION public.allocate_eix_verification_ledger_id()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT format('EIX-%s-%s', EXTRACT(YEAR FROM now())::int, lpad(nextval('public.eix_verification_ledger_number_seq')::text, 6, '0'));
+$$;
+
+REVOKE ALL ON FUNCTION public.allocate_eix_verification_ledger_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.allocate_eix_verification_ledger_id() TO service_role;
+
 COMMENT ON TABLE public.verification_ledgers IS 'Cryptographic verification records for completed EiXPropScore™ reports.';
 COMMENT ON COLUMN public.verification_ledgers.report_hash IS 'SHA-256 fingerprint of the canonical report snapshot.';
