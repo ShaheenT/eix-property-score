@@ -6,6 +6,8 @@ import { buildViewIntelligence, type ViewInputs } from './view-engine';
 import { buildMunicipalIntelligence, type MunicipalInputs } from './municipal-engine';
 import { buildLandIntelligence, type LandInputs } from './land-engine';
 import { buildRelocationIntelligence, type RelocationInputs } from './relocation-engine';
+import { buildInvestmentIntelligence, type InvestmentInputs } from './investment-engine';
+import { buildFutureRiskRadar, type FutureRiskInput } from './future-risk-engine';
 import { buildDealBreakers } from './dealbreaker-engine';
 import type { IntelligenceContext, IntelligenceReport } from './types';
 
@@ -17,6 +19,8 @@ export interface IntelligenceInputs {
   municipal?: MunicipalInputs;
   land?: LandInputs;
   relocation?: RelocationInputs;
+  investment?: InvestmentInputs;
+  futureRisk?: FutureRiskInput;
 }
 
 export function runIntelligence(context: IntelligenceContext, input: IntelligenceInputs = {}): IntelligenceReport {
@@ -32,6 +36,8 @@ export function runIntelligence(context: IntelligenceContext, input: Intelligenc
   const relocation = buildRelocationIntelligence(context, input.relocation ?? {
     nearestUniversity: input.services?.universities?.[0] ?? null,
   });
+  const investment = buildInvestmentIntelligence(context, input.investment);
+  const futureRiskRadar = buildFutureRiskRadar(context, input.futureRisk);
   const riskSignals = buildDealBreakers(context, {
     waterConnection: land.waterConnection,
     buildingPlans: municipal.buildingPlans,
@@ -49,8 +55,10 @@ export function runIntelligence(context: IntelligenceContext, input: Intelligenc
     safety.emergencyAccessScore,
     land.developmentReadiness,
     relocation.relocationScore,
+    investment.pricePerM2,
+    investment.askingPriceSignal,
   ];
-  const scored = allSignals.filter((signal) => signal.value != null) as Array<{ value: number }>;
+  const scored = allSignals.filter((signal) => signal.value != null);
   const trustValues = allSignals.map((signal) => signal.confidence).filter((v) => v > 0);
   const trustIndex = trustValues.length ? clampScore(trustValues.reduce((a, b) => a + b, 0) / trustValues.length) : 0;
 
@@ -65,6 +73,8 @@ export function runIntelligence(context: IntelligenceContext, input: Intelligenc
     municipal,
     land,
     relocation,
+    investment,
+    futureRiskRadar,
     riskSignals,
   };
 }
