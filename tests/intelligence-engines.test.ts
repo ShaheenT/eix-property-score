@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildAreaIntelligence } from '@/lib/intelligence/area-engine';
 import { buildDealBreakers } from '@/lib/intelligence/dealbreaker-engine';
+import { buildInvestmentIntelligence } from '@/lib/intelligence/investment-engine';
 import { buildLandIntelligence } from '@/lib/intelligence/land-engine';
 import { buildMunicipalIntelligence } from '@/lib/intelligence/municipal-engine';
 import { buildRelocationIntelligence } from '@/lib/intelligence/relocation-engine';
@@ -42,6 +43,21 @@ test('relocation engine identifies university proximity without claiming rental 
   const result = buildRelocationIntelligence({}, { nearestUniversity: { name: 'Test University', distanceKm: 2 } });
   assert.equal(result.studentRentalPotential.value, 'high');
   assert.match(result.studentRentalPotential.evidence[0]?.notes ?? '', /not a rental valuation/);
+});
+
+test('investment engine calculates price per land m2 and refuses unsupported market comparison', () => {
+  const result = buildInvestmentIntelligence({ askingPriceCents: 100_000_000, landSizeM2: 500 }, {});
+  assert.equal(result.pricePerM2.value, 200_000);
+  assert.equal(result.askingPriceSignal.status, 'unknown');
+});
+
+test('orchestrator integrates investment and future risk radar', () => {
+  const intelligence = runIntelligence({ askingPriceCents: 10_000_000, landSizeM2: 100 }, {
+    investment: { comparablePricePerM2: 80_000 },
+    futureRisk: { floodRisk: 'high' },
+  });
+  assert.equal(intelligence.investment.pricePerM2.value, 100_000);
+  assert.ok(intelligence.futureRiskRadar.signals.some((signal) => signal.key === 'future.flood'));
 });
 
 test('deal breakers surface confirmation items and geographic context', () => {
