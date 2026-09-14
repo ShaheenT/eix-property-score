@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, ArrowRight, Sparkles, Lock, Globe2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,10 @@ export function LeadForm() {
   const handleChange = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
   const price = form.buyer_type === 'international' ? INTERNATIONAL_PRICE : STANDARD_PRICE;
   const priceLabel = form.buyer_type === 'international' ? 'R1,495 equivalent' : 'R149';
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('eix-buyer-type-change', { detail: form.buyer_type }));
+  }, [form.buyer_type]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); if (submitting) return;
