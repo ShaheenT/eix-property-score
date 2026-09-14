@@ -6,6 +6,9 @@ import { validatePropertyInput } from '@/lib/property-input';
 const ALLOWED_GOALS = new Set(['Buy to Live', 'Rental', 'Flip']);
 const ALLOWED_PRODUCTS = new Set(['standard_report', 'investor_report_pro']);
 const ALLOWED_BUYER_TYPES = new Set(['south_african', 'international']);
+const STANDARD_REPORT_PRICE_ZAR = 149;
+const INTERNATIONAL_BUYER_PRICE_ZAR = 1495;
+const INVESTOR_REPORT_PRO_PRICE_ZAR = 349;
 
 function isValidEmail(value: unknown): value is string { return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()); }
 function cleanString(value: unknown, maxLength: number): string | null { if (typeof value !== 'string') return null; const trimmed = value.trim(); if (!trimmed || trimmed.length > maxLength) return null; return trimmed; }
@@ -85,15 +88,23 @@ export async function POST(req: NextRequest) {
       if (existingProPayment) return NextResponse.json({ error: existingProPayment.status === 'completed' ? 'Investor Report Pro has already been purchased for this property.' : 'Investor Report Pro checkout is already pending for this property.' }, { status: 409 });
     }
 
-    const amount = prod === 'investor_report_pro' ? 349 : 149;
-    const itemName = prod === 'investor_report_pro' ? 'EiXPropScore™ Investor Report Pro' : 'EiXPropScore™ Founding Beta';
+    const amount = prod === 'investor_report_pro'
+      ? INVESTOR_REPORT_PRO_PRICE_ZAR
+      : buyerType === 'international'
+        ? INTERNATIONAL_BUYER_PRICE_ZAR
+        : STANDARD_REPORT_PRICE_ZAR;
+    const itemName = prod === 'investor_report_pro'
+      ? 'EiXPropScore™ Investor Report Pro'
+      : buyerType === 'international'
+        ? 'EiXPropScore™ International Buyer Intelligence'
+        : 'EiXPropScore™ Founding Beta';
     const { data: payment, error: paymentError } = await supabaseAdmin.from('payments').insert({ submission_id: submission.id, customer_id: customer.id, amount_cents: amount * 100, product: prod, status: 'pending' }).select('id').single();
     if (paymentError) throw paymentError;
     const { error: paymentReferenceError } = await supabaseAdmin.from('payments').update({ payment_reference: payment.id }).eq('id', payment.id);
     if (paymentReferenceError) throw paymentReferenceError;
 
     const { url } = createPayFastPaymentLink({ amount, itemName, submissionId: submission.id, paymentId: payment.id, customerEmail: customer.email, customerName: customer.name, product: prod });
-    return NextResponse.json({ checkout_url: url, submission_id: submission.id, payment_id: payment.id, property: { kind: propertyInput?.kind ?? 'listing', source: propertyInput?.source ?? submission.source_platform, source_label: propertyInput?.sourceLabel ?? submission.source_platform } });
+    return NextResponse.json({ checkout_url: url, submission_id: submission.id, payment_id: payment.id, amount_zar: amount, buyer_type: buyerType, property: { kind: propertyInput?.kind ?? 'listing', source: propertyInput?.source ?? submission.source_platform, source_label: propertyInput?.sourceLabel ?? submission.source_platform } });
   } catch (err) {
     console.error('[Checkout] Unexpected error', err);
     const message = err instanceof Error ? `${err.name}: ${err.message}` : 'Unknown error';
