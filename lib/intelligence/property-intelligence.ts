@@ -36,6 +36,7 @@ function mapProviderInputs(nearby: NearbyPlace[]): IntelligenceInputs {
   const pharmacy = nearest(nearby, 'pharmacy');
   const informalSettlement = nearest(nearby, 'informal_settlement');
   const university = nearest(nearby, 'university');
+  const internationalSchool = nearest(nearby, 'international_school');
 
   return {
     area: {
@@ -57,6 +58,7 @@ function mapProviderInputs(nearby: NearbyPlace[]): IntelligenceInputs {
     },
     relocation: {
       nearestUniversity: university ? { name: university.name, distanceKm: university.distanceKm } : null,
+      internationalSchoolDistanceKm: internationalSchool?.distanceKm ?? null,
     },
   };
 }
