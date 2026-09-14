@@ -24,7 +24,7 @@ function nearest(nearby: NearbyPlace[], category: NearbyPlace['category']): Near
     .sort((a, b) => a.distanceKm - b.distanceKm)[0] ?? null;
 }
 
-function mapProviderInputs(nearby: NearbyPlace[]): IntelligenceInputs {
+export function mapProviderInputs(nearby: NearbyPlace[]): IntelligenceInputs {
   const hospitals = nearby.filter((place) => place.category === 'hospital').map(toServicePlace);
   const policeStations = nearby.filter((place) => place.category === 'police').map(toServicePlace);
   const shoppingCentres = nearby.filter((place) => place.category === 'shopping_centre').map(toServicePlace);
