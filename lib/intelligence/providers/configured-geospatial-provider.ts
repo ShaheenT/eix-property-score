@@ -13,11 +13,25 @@ interface NearbyPayload {
   places?: Array<{
     id?: string;
     name?: string;
-    category?: PoiCategory;
+    category?: unknown;
     latitude?: number;
     longitude?: number;
     distanceKm?: number;
   }>;
+}
+
+const POI_CATEGORIES: readonly PoiCategory[] = [
+  'hospital',
+  'police',
+  'shopping_centre',
+  'pharmacy',
+  'university',
+  'international_school',
+  'informal_settlement',
+];
+
+function isPoiCategory(value: unknown): value is PoiCategory {
+  return typeof value === 'string' && POI_CATEGORIES.includes(value as PoiCategory);
 }
 
 function validCoordinate(latitude: number, longitude: number): boolean {
@@ -83,7 +97,7 @@ export class ConfiguredGeospatialProvider implements GeospatialProvider {
       const latitude = Number(place.latitude);
       const longitude = Number(place.longitude);
       const distanceKm = Number(place.distanceKm);
-      if (!place.id || !place.name || !place.category || !validCoordinate(latitude, longitude) || !Number.isFinite(distanceKm) || distanceKm < 0 || distanceKm > radiusKm) return [];
+      if (!place.id || !place.name || !isPoiCategory(place.category) || !validCoordinate(latitude, longitude) || !Number.isFinite(distanceKm) || distanceKm < 0 || distanceKm > radiusKm) return [];
       return [{
         id: place.id,
         name: place.name,
