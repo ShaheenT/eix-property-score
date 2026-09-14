@@ -53,7 +53,7 @@ export function PropertySourceDetector({
         value={value}
         onChange={(e) => handleInput(e.target.value)}
         placeholder="Paste a Property24, Private Property, Facebook or agency link—or enter the address"
-        className="flex h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white ring-offset-background placeholder:text-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
+        className="flex h-12 w-full rounded-xl border border-[#2A2D27]/12 bg-white px-4 py-2 text-sm text-[#20231F] shadow-none placeholder:text-[#92958D] ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E847B]/30"
       />
       {detected && (
         <div className="mt-2 flex items-center gap-2 animate-fade-in">
