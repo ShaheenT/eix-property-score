@@ -3,6 +3,7 @@ import type { Coordinates, IntelligenceEvidence } from '../types';
 import { evidence } from '../evidence';
 import { getGeospatialProvider, getProviderRuntimeConfig } from './index';
 import type { NearbyPlace } from './provider-types';
+import { withProviderCache } from './provider-cache';
 
 export interface ProviderEnrichment {
   coordinates: Coordinates | null;
@@ -23,9 +24,16 @@ export async function enrichPropertyFromProviders(facts: PropertyFacts): Promise
 
   const address = buildAddress(facts);
   if (!address) return { coordinates: null, coordinateEvidence: [], nearby: [] };
+  const config = getProviderRuntimeConfig();
 
   try {
-    const result = await provider.geocode(address);
+    const result = await withProviderCache(
+      provider.name,
+      'geocode',
+      { address },
+      config.cacheTtlSeconds,
+      () => provider.geocode(address),
+    );
     if (!result) return { coordinates: null, coordinateEvidence: [], nearby: [] };
 
     const coordinateEvidence = [evidence(
@@ -38,14 +46,15 @@ export async function enrichPropertyFromProviders(facts: PropertyFacts): Promise
       'Coordinates are provider-derived and must not be treated as a survey boundary or exact cadastral position.',
     )];
 
-    const config = getProviderRuntimeConfig();
     let nearby: NearbyPlace[] = [];
     if (config.geospatialProvider !== 'nominatim') {
-      nearby = await provider.nearby(
-        result.coordinates,
-        ['hospital', 'police', 'shopping_centre', 'pharmacy', 'university', 'international_school', 'informal_settlement'],
-        Math.min(config.maxRadiusKm, 25),
-        config.maxResults,
+      const categories = ['hospital', 'police', 'shopping_centre', 'pharmacy', 'university', 'international_school', 'informal_settlement'] as const;
+      nearby = await withProviderCache(
+        provider.name,
+        'nearby',
+        { coordinates: result.coordinates, categories, radiusKm: Math.min(config.maxRadiusKm, 25), limit: config.maxResults },
+        config.cacheTtlSeconds,
+        () => provider.nearby(result.coordinates, categories, Math.min(config.maxRadiusKm, 25), config.maxResults),
       );
     }
 
