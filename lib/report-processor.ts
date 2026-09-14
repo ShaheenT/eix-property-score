@@ -1,4 +1,3 @@
-
 import { randomUUID } from 'crypto';
 import { calculateReport } from '@/lib/report-engine';
 import { calculateInvestorReport } from '@/lib/investor-report-engine';
@@ -37,9 +36,14 @@ export async function processReport(submissionId: string, options: ProcessReport
     let facts: PropertyFacts;
     let evidence: PropertyEvidence[];
     if (reportType === 'investor_report_pro') {
-      const { data: standardReport, error: standardReportError } = await supabaseAdmin.from('reports').select('property_facts, property_evidence').eq('submission_id', submissionId).eq('report_type', 'standard_report').maybeSingle();
+      const { data: standardReport, error: standardReportError } = await supabaseAdmin
+        .from('reports')
+        .select('status, property_facts, property_evidence')
+        .eq('submission_id', submissionId)
+        .eq('report_type', 'standard_report')
+        .maybeSingle();
       if (standardReportError) throw standardReportError;
-      if (standardReport && hasPersistedPropertyEvidence(standardReport.property_facts, standardReport.property_evidence)) {
+      if (standardReport?.status === 'completed' && hasPersistedPropertyEvidence(standardReport.property_facts, standardReport.property_evidence)) {
         facts = standardReport.property_facts;
         evidence = standardReport.property_evidence as PropertyEvidence[];
       } else {
