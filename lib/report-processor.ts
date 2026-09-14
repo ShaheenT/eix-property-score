@@ -3,6 +3,7 @@ import { calculateReport } from '@/lib/report-engine';
 import { calculateInvestorReport } from '@/lib/investor-report-engine';
 import { extractPropertyFromUrl } from '@/lib/secure-property-extractor';
 import { runPropertyIntelligence } from '@/lib/intelligence/property-intelligence';
+import { createVerificationLedger } from '@/lib/verification/create-ledger';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
 
@@ -60,20 +61,24 @@ export async function processReport(submissionId: string, options: ProcessReport
       evidence = extraction.evidence;
     }
 
-    await runPropertyIntelligence(facts, { propertyId: submissionId, submissionId });
+    const intelligence = await runPropertyIntelligence(facts, { propertyId: submissionId, submissionId });
+    const intelligenceRunId = intelligence.runId;
+    const intelligenceTrustIndex = intelligence.report.trustIndex;
 
     const accessToken = queuedReport.access_token || randomUUID();
     const reportUrl = `${BASE_URL}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
     if (reportType === 'standard_report') {
       const result = calculateReport({ facts, evidence, goal: submission.goal as Goal, buyerProfile: { buyerType: submission.buyer_type === 'international' ? 'international' : 'south_african', buyerCountry: submission.buyer_country ?? null, buyerPurpose: submission.buyer_purpose ?? null, buyerBudget: submission.buyer_budget ?? null } });
-      const { error: persistError } = await supabaseAdmin.from('reports').update({ status: 'completed', investment_score: result.investmentScore, ai_confidence: result.aiConfidence, property_facts: facts, property_evidence: evidence, score_breakdown: result.scoreBreakdown, assumptions: result.assumptions, limitations: result.limitations, rental_yield_percent: result.rentalYieldPercent, bond_monthly_payment_cents: result.bondMonthlyPaymentCents, bond_loan_amount_cents: result.bondLoanAmountCents, risk_level: result.riskLevel, recommendation: result.recommendation, confidence_label: result.confidenceLabel, access_token: accessToken, processed_at: new Date().toISOString(), ...(result.internationalBuyerIntelligence ? { international_buyer_analysis: result.internationalBuyerIntelligence } : {}) }).eq('id', queuedReport.id);
+      const { error: persistError } = await supabaseAdmin.from('reports').update({ status: 'completed', investment_score: result.investmentScore, ai_confidence: result.aiConfidence, property_facts: facts, property_evidence: evidence, score_breakdown: result.scoreBreakdown, assumptions: result.assumptions, limitations: result.limitations, rental_yield_percent: result.rentalYieldPercent, bond_monthly_payment_cents: result.bondMonthlyPaymentCents, bond_loan_amount_cents: result.bondLoanAmountCents, risk_level: result.riskLevel, recommendation: result.recommendation, confidence_label: result.confidenceLabel, access_token: accessToken, processed_at: new Date().toISOString(), intelligence_run_id: intelligenceRunId, intelligence_trust_index: intelligenceTrustIndex, ...(result.internationalBuyerIntelligence ? { international_buyer_analysis: result.internationalBuyerIntelligence } : {}) }).eq('id', queuedReport.id);
       if (persistError) throw persistError;
     } else if (reportType === 'investor_report_pro') {
       const result = calculateInvestorReport({ facts, evidence, comparables: [] });
-      const { error: persistError } = await supabaseAdmin.from('reports').update({ status: 'completed', property_facts: facts, property_evidence: evidence, investor_analysis: result, assumptions: result.assumptions, limitations: result.limitations, access_token: accessToken, processed_at: new Date().toISOString() }).eq('id', queuedReport.id);
+      const { error: persistError } = await supabaseAdmin.from('reports').update({ status: 'completed', property_facts: facts, property_evidence: evidence, investor_analysis: result, assumptions: result.assumptions, limitations: result.limitations, access_token: accessToken, processed_at: new Date().toISOString(), intelligence_run_id: intelligenceRunId, intelligence_trust_index: intelligenceTrustIndex }).eq('id', queuedReport.id);
       if (persistError) throw persistError;
     } else throw new Error(`Unsupported report type: ${reportType}`);
-    return { status: 'completed', reportId: queuedReport.id, reportType, reportUrl, customer: submission.customer };
+
+    const ledger = await createVerificationLedger(queuedReport.id);
+    return { status: 'completed', reportId: queuedReport.id, reportType, reportUrl, ledgerId: ledger.ledger_id, reportHash: ledger.report_hash, customer: submission.customer };
   } catch (error) {
     await supabaseAdmin.from('reports').update({ status: 'failed', processed_at: new Date().toISOString() }).eq('id', queuedReport.id);
     throw error;
