@@ -14,6 +14,9 @@ import type { PropertySource } from '@/lib/property-source';
 type Goal = 'Buy to Live' | 'Rental' | 'Flip';
 type BuyerType = 'south_african' | 'international';
 
+const STANDARD_PRICE = 149;
+const INTERNATIONAL_PRICE = 1495;
+
 function isValidEmail(value: string): boolean { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()); }
 function normaliseWhatsApp(value: string): string | null { const digits = value.replace(/\D/g, ''); if (digits.length < 8 || digits.length > 15) return null; return value.trim().startsWith('+') ? `+${digits}` : `+${digits}`; }
 
@@ -23,6 +26,8 @@ export function LeadForm() {
   const [form, setForm] = useState({ name: '', email: '', whatsapp: '', listing_url: '', goal: '' as Goal | '', buyer_type: 'south_african' as BuyerType, buyer_country: '', buyer_purpose: '', buyer_budget: '' });
   const [detectedSource, setDetectedSource] = useState<PropertySource | null>(null);
   const handleChange = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  const price = form.buyer_type === 'international' ? INTERNATIONAL_PRICE : STANDARD_PRICE;
+  const priceLabel = form.buyer_type === 'international' ? 'R1,495 equivalent' : 'R149';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); if (submitting) return;
@@ -46,7 +51,7 @@ export function LeadForm() {
   const inputClass = 'w-full min-w-0 rounded-xl border border-[#2A2D27]/12 bg-white px-4 py-3.5 text-[#20231F] shadow-none placeholder:text-[#92958D] focus-visible:ring-[#0E847B]/30';
   return (
     <form onSubmit={handleSubmit} className="min-w-0 rounded-[2rem] border border-[#2A2D27]/10 bg-[#FFFDF8] p-6 shadow-[0_20px_60px_rgba(42,45,39,.08)] sm:p-7" noValidate>
-      <div className="mb-6 flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F7F5] ring-1 ring-[#0E847B]/15"><Sparkles className="h-4 w-4 text-[#0E847B]" /></div><div><h3 className="text-base font-semibold">Analyse This Property — R149</h3><p className="text-xs text-[#6A6D66]">EiXPropScore™ Founding Beta · evidence-based report within 24 hours</p></div></div>
+      <div className="mb-6 flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F7F5] ring-1 ring-[#0E847B]/15"><Sparkles className="h-4 w-4 text-[#0E847B]" /></div><div><h3 className="text-base font-semibold">Analyse This Property — {priceLabel}</h3><p className="text-xs text-[#6A6D66]">{form.buyer_type === 'international' ? 'International Buyer Intelligence · evidence-based report within 24 hours' : 'EiXPropScore™ Founding Beta · evidence-based report within 24 hours'}</p></div></div>
       <div className="space-y-4">
         <div className="space-y-2"><Label className="text-[#4B4E47]">Full Name <span className="text-[#0E847B]">*</span></Label><Input required value={form.name} onChange={(e) => handleChange('name', e.target.value)} placeholder="e.g. Thabo Mokoena" className={inputClass} autoComplete="name" /></div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><div className="space-y-2"><Label className="text-[#4B4E47]">Email <span className="text-[#0E847B]">*</span></Label><Input required type="email" value={form.email} onChange={(e) => handleChange('email', e.target.value)} placeholder="you@email.com" className={inputClass} autoComplete="email" /></div><div className="space-y-2"><Label className="text-[#4B4E47]">WhatsApp <span className="text-[#0E847B]">*</span></Label><Input required inputMode="tel" value={form.whatsapp} onChange={(e) => handleChange('whatsapp', e.target.value)} placeholder="+44 7700 900123" className={inputClass} autoComplete="tel" /></div></div>
@@ -56,8 +61,8 @@ export function LeadForm() {
         <div className="space-y-2"><Label className="text-[#4B4E47]">Property Listing URL or Address <span className="text-[#0E847B]">*</span></Label><PropertySourceDetector value={form.listing_url} onChange={(v) => handleChange('listing_url', v)} onSourceDetected={setDetectedSource} /><div className="pt-1"><SupportedPlatforms /></div></div>
         <div className="space-y-2"><Label className="text-[#4B4E47]">What are you trying to decide? <span className="text-[#0E847B]">*</span></Label><Select value={form.goal} onValueChange={(v) => handleChange('goal', v)}><SelectTrigger className="w-full rounded-xl border-[#2A2D27]/12 bg-white py-3.5 text-[#20231F]"><SelectValue placeholder="Choose your property goal" /></SelectTrigger><SelectContent><SelectItem value="Buy to Live">Buy to Live</SelectItem><SelectItem value="Rental">Rental Investment</SelectItem><SelectItem value="Flip">Flip / Resell</SelectItem></SelectContent></Select></div>
         {detectedSource && <div className="rounded-xl border border-[#2A2D27]/8 bg-[#F8F5EF] p-3"><ConfidenceMeter value={detectedSource === 'property24' ? 95 : detectedSource === 'private_property' ? 82 : detectedSource === 'agency' ? 75 : detectedSource === 'facebook' ? 68 : 45} size="sm" /></div>}
-        <button type="submit" disabled={submitting} className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#0E847B] py-4 text-center text-sm font-semibold text-white hover:bg-[#08756D] disabled:cursor-wait disabled:opacity-60 sm:text-base">{submitting ? <><Loader2 className="h-5 w-5 animate-spin" /><span>Opening secure checkout…</span></> : <><Lock className="h-4 w-4 opacity-80" /><span>Analyse My Property — R149</span><ArrowRight className="ml-1 h-5 w-5" /></>}</button>
-        <p className="text-center text-[11px] leading-5 text-[#777970]">Secure checkout via PayFast. Your evidence-based report is delivered to your email and WhatsApp within 24 hours.</p>
+        <button type="submit" disabled={submitting} className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#0E847B] py-4 text-center text-sm font-semibold text-white hover:bg-[#08756D] disabled:cursor-wait disabled:opacity-60 sm:text-base">{submitting ? <><Loader2 className="h-5 w-5 animate-spin" /><span>Opening secure checkout…</span></> : <><Lock className="h-4 w-4 opacity-80" /><span>Analyse My Property — {priceLabel}</span><ArrowRight className="ml-1 h-5 w-5" /></>}</button>
+        <p className="text-center text-[11px] leading-5 text-[#777970]">Secure checkout via PayFast. {form.buyer_type === 'international' ? `International Buyer Intelligence is priced at R${price.toLocaleString('en-ZA')} in ZAR; your payment provider may display the converted amount in your local currency.` : 'Your evidence-based report is delivered to your email and WhatsApp within 24 hours.'}</p>
       </div>
     </form>
   );
