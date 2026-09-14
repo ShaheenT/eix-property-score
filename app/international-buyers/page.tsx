@@ -50,7 +50,7 @@ export default function InternationalBuyersPage() {
       </nav>
 
       <section className="relative min-h-[720px] overflow-hidden bg-[#6E756B] text-white sm:min-h-[760px]">
-        <img src="https://unsplash.com/photos/vJmJtm7AhJE/download?force=true&w=2200" alt="Cape Winelands home, vineyard and mountain landscape" className="absolute inset-0 h-full w-full object-cover opacity-90" />
+        <img src="/images/winelands/winelands-hero.jpg" alt="Cape Winelands home, vineyard and mountain landscape" className="absolute inset-0 h-full w-full object-cover opacity-90" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#273028]/72 via-[#273028]/28 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#273028]/55 via-transparent to-transparent" />
         <div className="relative mx-auto flex min-h-[720px] max-w-7xl items-end px-6 pb-16 pt-32 sm:min-h-[760px] sm:px-10 sm:pb-20">
