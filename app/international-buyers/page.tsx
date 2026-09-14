@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Check, Globe2, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Globe2, ShieldCheck, Sparkles } from 'lucide-react';
 
 const focusAreas = [
   ['Property evidence', 'What the listing supports, what is calculated, and what still needs verification.'],
@@ -39,11 +39,15 @@ export default function InternationalBuyersPage() {
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Link href="/#form" className="group inline-flex items-center gap-2 rounded-xl bg-[#0E847B] px-6 py-4 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(14,132,123,.18)] hover:bg-[#08756D]">
-                Analyse a Property <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                Analyse a Property — R1,495 equivalent <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link href="/" className="inline-flex items-center rounded-xl border border-[#2A2D27]/10 bg-white px-6 py-4 text-sm font-semibold hover:bg-[#FCFAF6]">
                 Explore EiXPropScore™
               </Link>
+            </div>
+            <div className="mt-6 rounded-2xl bg-white/80 p-5 ring-1 ring-[#2A2D27]/8 sm:max-w-xl">
+              <p className="text-2xl font-bold tracking-tight">R1,495 equivalent</p>
+              <p className="mt-1 text-sm leading-6 text-[#5F625B]">One property · International Buyer Intelligence · priced in ZAR, with your payment provider handling local-currency conversion where supported.</p>
             </div>
           </div>
         </div>
@@ -84,8 +88,8 @@ export default function InternationalBuyersPage() {
             </div>
             <div className="rounded-[2rem] bg-[#FFFDF8] p-7 shadow-[0_20px_60px_rgba(42,45,39,.08)] ring-1 ring-[#2A2D27]/8">
               <Sparkles className="h-6 w-6 text-[#0E847B]" />
-              <p className="mt-5 text-lg font-semibold">Start with any South African property.</p>
-              <p className="mt-2 text-sm leading-6 text-[#3E413B]">Paste the listing URL or property address and choose the buyer profile that best describes the decision.</p>
+              <p className="mt-5 text-lg font-semibold">International Buyer Intelligence · R1,495 equivalent</p>
+              <p className="mt-2 text-sm leading-6 text-[#3E413B]">One property, with international buyer context, acquisition intelligence, lifestyle indicators, evidence gaps and due-diligence questions. The canonical price is R1,495 in ZAR; local-currency conversion depends on the payment provider.</p>
               <Link href="/#form" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#0E847B]">Analyse a property <ArrowRight className="h-4 w-4" /></Link>
             </div>
           </div>
