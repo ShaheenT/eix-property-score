@@ -9,12 +9,13 @@ const BASE_URL =
   'https://eix-property-score-beta.vercel.app';
 
 export async function GET(req: NextRequest) {
-  const submissionId = req.nextUrl.searchParams.get('submission_id')?.trim() || '';
+  const submissionIdParam = req.nextUrl.searchParams.get('submission_id')?.trim() || '';
+  const paymentIdParam = req.nextUrl.searchParams.get('payment_id')?.trim() || '';
   const requestedReportType =
     req.nextUrl.searchParams.get('report_type')?.trim() || 'standard_report';
 
-  if (!submissionId) {
-    return NextResponse.json({ error: 'submission_id is required' }, { status: 400 });
+  if (!submissionIdParam && !paymentIdParam) {
+    return NextResponse.json({ error: 'submission_id or payment_id is required' }, { status: 400 });
   }
 
   if (
@@ -27,6 +28,33 @@ export async function GET(req: NextRequest) {
   const reportType = requestedReportType as ReportType;
 
   try {
+    let submissionId = submissionIdParam;
+
+    const { data: submissionById, error: submissionLookupError } = submissionId
+      ? await supabaseAdmin
+          .from('property_submissions')
+          .select('id, status')
+          .eq('id', submissionId)
+          .maybeSingle()
+      : { data: null, error: null };
+
+    if (submissionLookupError) throw submissionLookupError;
+
+    if (!submissionById && paymentIdParam) {
+      const { data: payment, error: paymentLookupError } = await supabaseAdmin
+        .from('payments')
+        .select('submission_id')
+        .eq('id', paymentIdParam)
+        .maybeSingle();
+
+      if (paymentLookupError) throw paymentLookupError;
+      if (payment?.submission_id) submissionId = payment.submission_id;
+    }
+
+    if (!submissionId) {
+      return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+    }
+
     const { data: submission, error: submissionError } = await supabaseAdmin
       .from('property_submissions')
       .select('id, status')
@@ -38,7 +66,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!['paid', 'report_sent'].includes(submission.status)) {
-      return NextResponse.json({ status: 'awaiting_payment', reportType });
+      return NextResponse.json({ status: 'awaiting_payment', reportType, submissionId });
     }
 
     if (reportType === 'investor_report_pro') {
@@ -53,7 +81,7 @@ export async function GET(req: NextRequest) {
       if (proPaymentError) throw proPaymentError;
 
       if (!proPayment) {
-        return NextResponse.json({ status: 'awaiting_payment', reportType });
+        return NextResponse.json({ status: 'awaiting_payment', reportType, submissionId });
       }
     }
 
@@ -67,13 +95,13 @@ export async function GET(req: NextRequest) {
     if (reportError) throw reportError;
 
     if (!report) {
-      return NextResponse.json({ status: 'queued', reportType });
+      return NextResponse.json({ status: 'queued', reportType, submissionId });
     }
 
     if (report.status === 'completed' || report.status === 'sent') {
       const reportUrl =
         `${BASE_URL}/report/${report.id}?token=${encodeURIComponent(report.access_token || '')}`;
-      return NextResponse.json({ status: 'completed', reportType, reportUrl });
+      return NextResponse.json({ status: 'completed', reportType, submissionId, reportUrl });
     }
 
     if (report.status === 'failed' || report.status === 'queued') {
@@ -83,6 +111,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({
             status: 'completed',
             reportType,
+            submissionId,
             reportUrl: result.reportUrl,
           });
         }
@@ -91,11 +120,11 @@ export async function GET(req: NextRequest) {
       }
 
       if (report.status === 'failed') {
-        return NextResponse.json({ status: 'failed', reportType }, { status: 500 });
+        return NextResponse.json({ status: 'failed', reportType, submissionId }, { status: 500 });
       }
     }
 
-    return NextResponse.json({ status: report.status, reportType });
+    return NextResponse.json({ status: report.status, reportType, submissionId });
   } catch (error) {
     console.error('[Report Status]', error);
     return NextResponse.json(
