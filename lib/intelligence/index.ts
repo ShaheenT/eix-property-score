@@ -11,3 +11,5 @@ export * from './investment-engine';
 export * from './future-risk-engine';
 export * from './dealbreaker-engine';
 export * from './orchestrator';
+export * from './persistence';
+export * from './property-intelligence';
