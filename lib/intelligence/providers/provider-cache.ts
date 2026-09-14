@@ -13,6 +13,7 @@ export async function withProviderCache<T>(
   loader: () => Promise<T>,
 ): Promise<T> {
   const queryHash = hash(JSON.stringify({ operation, input }));
+  const cacheKey = `${provider}:${operation}:${queryHash}`;
   const now = new Date();
 
   const cached = await supabaseAdmin
@@ -29,15 +30,15 @@ export async function withProviderCache<T>(
 
   const value = await loader();
 
-  // Do not cache null/undefined responses. This keeps an unsuccessful lookup
-  // from becoming a long-lived "known empty" result while preserving the
-  // non-null response_json database contract.
+  // Do not cache null/undefined responses. This preserves the non-null
+  // response_json contract and avoids turning provider misses into durable data.
   if (value == null) return value;
 
   const expiresAt = new Date(now.getTime() + Math.max(60, ttlSeconds) * 1000).toISOString();
 
   await supabaseAdmin.from('property_intelligence_provider_cache').upsert(
     {
+      cache_key: cacheKey,
       provider,
       operation,
       query_hash: queryHash,
