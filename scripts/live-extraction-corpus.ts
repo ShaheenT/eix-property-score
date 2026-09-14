@@ -1,4 +1,5 @@
 import { EXTRACTION_CORPUS } from '@/tests/fixtures/extraction-corpus';
+import { EXPECTED_CORE_FACTS } from '@/tests/fixtures/extraction-expected-facts';
 import { extractListingId, identifySource, runSecureExtraction } from '@/lib/secure-extraction-engine';
 
 const failures: string[] = [];
@@ -36,20 +37,20 @@ for (const item of EXTRACTION_CORPUS) {
       failures.push(`${item.name}: extracted result is missing core commercial/property identity facts`);
     }
 
-    console.log(JSON.stringify({
-      name: item.name,
-      source,
-      listingId: identity,
-      status: result.status,
-      reportEligible: result.metadata?.reportEligible ?? false,
-      evidenceCompleteness: result.metadata?.evidenceCompleteness ?? 0,
-      conflicts: result.metadata?.conflicts.length ?? 0,
-      title: facts.title,
-      propertyType: facts.propertyType,
-      askingPriceCents: facts.askingPriceCents,
-      bedrooms: facts.bedrooms,
-      bathrooms: facts.bathrooms,
-    }));
+    const expected = EXPECTED_CORE_FACTS[item.name];
+    if (result.status === 'extracted' && expected) {
+      if (expected.titleContains && !facts.title?.toLowerCase().includes(expected.titleContains.toLowerCase())) {
+        failures.push(`${item.name}: title mismatch; expected to contain ${JSON.stringify(expected.titleContains)}, got ${JSON.stringify(facts.title)}`);
+      }
+      if (expected.propertyType && facts.propertyType !== expected.propertyType) failures.push(`${item.name}: property type expected ${expected.propertyType}, got ${facts.propertyType ?? 'null'}`);
+      if (expected.askingPriceCents !== undefined && facts.askingPriceCents !== expected.askingPriceCents) failures.push(`${item.name}: asking price expected ${expected.askingPriceCents}, got ${facts.askingPriceCents ?? 'null'}`);
+      if (expected.bedrooms !== undefined && facts.bedrooms !== expected.bedrooms) failures.push(`${item.name}: bedrooms expected ${expected.bedrooms}, got ${facts.bedrooms ?? 'null'}`);
+      if (expected.bathrooms !== undefined && facts.bathrooms !== expected.bathrooms) failures.push(`${item.name}: bathrooms expected ${expected.bathrooms}, got ${facts.bathrooms ?? 'null'}`);
+      if (expected.landSizeM2 !== undefined && facts.landSizeM2 !== expected.landSizeM2) failures.push(`${item.name}: land size expected ${expected.landSizeM2}, got ${facts.landSizeM2 ?? 'null'}`);
+      if (expected.floorSizeM2 !== undefined && facts.floorSizeM2 !== expected.floorSizeM2) failures.push(`${item.name}: floor size expected ${expected.floorSizeM2}, got ${facts.floorSizeM2 ?? 'null'}`);
+    }
+
+    console.log(JSON.stringify({ name: item.name, source, listingId: identity, status: result.status, reportEligible: result.metadata?.reportEligible ?? false, evidenceCompleteness: result.metadata?.evidenceCompleteness ?? 0, conflicts: result.metadata?.conflicts.length ?? 0, title: facts.title, propertyType: facts.propertyType, askingPriceCents: facts.askingPriceCents, bedrooms: facts.bedrooms, bathrooms: facts.bathrooms, landSizeM2: facts.landSizeM2, floorSizeM2: facts.floorSizeM2 }));
   } catch (error) {
     failures.push(`${item.name}: runner failed: ${error instanceof Error ? error.message : String(error)}`);
   }
