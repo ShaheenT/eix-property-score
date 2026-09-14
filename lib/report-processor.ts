@@ -1,3 +1,4 @@
+
 import { randomUUID } from 'crypto';
 import { calculateReport } from '@/lib/report-engine';
 import { calculateInvestorReport } from '@/lib/investor-report-engine';
@@ -40,7 +41,7 @@ export async function processReport(
     await supabaseAdmin
       .from('property_submissions')
       .select(
-        'id, listing_url, status, goal, customer:customers(name, email)',
+        'id, listing_url, status, goal, buyer_type, buyer_country, buyer_purpose, buyer_budget, customer:customers(name, email)',
       )
       .eq('id', submissionId)
       .single();
@@ -72,11 +73,19 @@ export async function processReport(
   }
 
   if (queuedReport.status === 'sent') {
-    return { status: 'already_sent', reportId: queuedReport.id, reportType };
+    return {
+      status: 'already_sent',
+      reportId: queuedReport.id,
+      reportType,
+    };
   }
 
   if (queuedReport.status === 'processing') {
-    return { status: 'processing', reportId: queuedReport.id, reportType };
+    return {
+      status: 'processing',
+      reportId: queuedReport.id,
+      reportType,
+    };
   }
 
   const { data: claimed } = await supabaseAdmin
@@ -126,40 +135,64 @@ export async function processReport(
         facts = standardReport.property_facts;
         evidence = standardReport.property_evidence as PropertyEvidence[];
       } else {
-        const extraction = await extractPropertyFromUrl(submission.listing_url);
+        const extraction = await extractPropertyFromUrl(
+          submission.listing_url,
+        );
 
         if (extraction.status !== 'extracted') {
-          const detail = extraction.errors?.filter(Boolean).join('; ') ||
+          const detail =
+            extraction.errors?.filter(Boolean).join('; ') ||
             'No extractor error detail was returned.';
-          throw new Error(`Property extraction failed: ${extraction.status}: ${detail}`);
+
+          throw new Error(
+            `Property extraction failed: ${extraction.status}: ${detail}`,
+          );
         }
 
         facts = extraction.facts;
         evidence = extraction.evidence;
       }
     } else {
-      const extraction = await extractPropertyFromUrl(submission.listing_url);
+      const extraction = await extractPropertyFromUrl(
+        submission.listing_url,
+      );
 
       if (extraction.status !== 'extracted') {
-        const detail = extraction.errors?.filter(Boolean).join('; ') ||
+        const detail =
+          extraction.errors?.filter(Boolean).join('; ') ||
           'No extractor error detail was returned.';
-        throw new Error(`Property extraction failed: ${extraction.status}: ${detail}`);
+
+        throw new Error(
+          `Property extraction failed: ${extraction.status}: ${detail}`,
+        );
       }
 
       facts = extraction.facts;
       evidence = extraction.evidence;
     }
 
-    const accessToken = queuedReport.access_token || randomUUID();
+    const accessToken =
+      queuedReport.access_token || randomUUID();
+
     const reportUrl =
       `${BASE_URL}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
 
     if (reportType === 'standard_report') {
       const goal = submission.goal as Goal;
+
       const result = calculateReport({
         facts,
         evidence,
         goal,
+        buyerProfile: {
+          buyerType:
+            submission.buyer_type === 'international'
+              ? 'international'
+              : 'south_african',
+          buyerCountry: submission.buyer_country ?? null,
+          buyerPurpose: submission.buyer_purpose ?? null,
+          buyerBudget: submission.buyer_budget ?? null,
+        },
       });
 
       const { error: persistError } = await supabaseAdmin
@@ -174,13 +207,21 @@ export async function processReport(
           assumptions: result.assumptions,
           limitations: result.limitations,
           rental_yield_percent: result.rentalYieldPercent,
-          bond_monthly_payment_cents: result.bondMonthlyPaymentCents,
-          bond_loan_amount_cents: result.bondLoanAmountCents,
+          bond_monthly_payment_cents:
+            result.bondMonthlyPaymentCents,
+          bond_loan_amount_cents:
+            result.bondLoanAmountCents,
           risk_level: result.riskLevel,
           recommendation: result.recommendation,
           confidence_label: result.confidenceLabel,
           access_token: accessToken,
           processed_at: new Date().toISOString(),
+          ...(result.internationalBuyerIntelligence
+            ? {
+                international_buyer_analysis:
+                  result.internationalBuyerIntelligence,
+              }
+            : {}),
         })
         .eq('id', queuedReport.id);
 
@@ -211,7 +252,9 @@ export async function processReport(
 
       if (persistError) throw persistError;
     } else {
-      throw new Error(`Unsupported report type: ${reportType}`);
+      throw new Error(
+        `Unsupported report type: ${reportType}`,
+      );
     }
 
     return {

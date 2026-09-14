@@ -33,7 +33,7 @@ export default async function CustomerReportPage({
 
   const { data: report } = await supabaseAdmin
     .from('reports')
-    .select('id, status, report_type, investment_score, ai_confidence, property_facts, property_evidence, score_breakdown, assumptions, limitations, rental_yield_percent, bond_monthly_payment_cents, bond_loan_amount_cents, risk_level, recommendation, confidence_label, access_token, processed_at, investor_analysis')
+    .select('id, status, report_type, investment_score, ai_confidence, property_facts, property_evidence, score_breakdown, assumptions, limitations, rental_yield_percent, bond_monthly_payment_cents, bond_loan_amount_cents, risk_level, recommendation, confidence_label, access_token, processed_at, investor_analysis, international_buyer_analysis')
     .eq('id', id)
     .eq('access_token', token)
     .single();
@@ -46,6 +46,8 @@ export default async function CustomerReportPage({
   const assumptions = Array.isArray(report.assumptions) ? report.assumptions : [];
   const isPro = report.report_type === 'investor_report_pro';
   const investor = (report.investor_analysis || {}) as Record<string, any>;
+  const internationalBuyer =
+    (report.international_buyer_analysis || null) as Record<string, any> | null;
 
   const verifiedFacts: Array<[string, string]> = [
     ['Asking Price', currency(typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null)],
@@ -101,6 +103,180 @@ export default async function CustomerReportPage({
           </div>
           <p className="mt-5 text-xs text-white/40">Evidence records attached: {evidence.length}</p>
         </section>
+
+        {internationalBuyer?.profile?.buyerType === 'international' && (
+          <section className="mt-6 glass rounded-2xl p-6">
+            <h2 className="text-lg font-bold">International Buyer Intelligence</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/60">
+              Evidence-led intelligence for international purchasers. This section
+              does not constitute legal, tax, immigration or formal valuation advice.
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Buyer Country</p>
+                <p className="mt-1 font-semibold">
+                  {text(internationalBuyer.profile?.buyerCountry)}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Purpose</p>
+                <p className="mt-1 font-semibold">
+                  {text(internationalBuyer.profile?.buyerPurpose)}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Budget</p>
+                <p className="mt-1 font-semibold">
+                  {text(internationalBuyer.profile?.buyerBudget)}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Market Position</p>
+                <p className="mt-1 font-semibold">
+                  {text(internationalBuyer.marketPosition)}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Purchase Price</p>
+                <p className="mt-1 font-semibold">
+                  {currency(
+                    typeof internationalBuyer.acquisitionSnapshot?.purchasePriceCents === 'number'
+                      ? internationalBuyer.acquisitionSnapshot.purchasePriceCents
+                      : null,
+                  )}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Transfer Duty</p>
+                <p className="mt-1 font-semibold">
+                  {currency(
+                    typeof internationalBuyer.acquisitionSnapshot?.transferDutyCents === 'number'
+                      ? internationalBuyer.acquisitionSnapshot.transferDutyCents
+                      : null,
+                  )}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Known Upfront Cash</p>
+                <p className="mt-1 font-semibold">
+                  {currency(
+                    typeof internationalBuyer.acquisitionSnapshot?.knownUpfrontCashRequiredCents === 'number'
+                      ? internationalBuyer.acquisitionSnapshot.knownUpfrontCashRequiredCents
+                      : null,
+                  )}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase text-white/40">Monthly Bond</p>
+                <p className="mt-1 font-semibold">
+                  {currency(
+                    typeof internationalBuyer.acquisitionSnapshot?.bondMonthlyPaymentCents === 'number'
+                      ? internationalBuyer.acquisitionSnapshot.bondMonthlyPaymentCents
+                      : null,
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold">Lifestyle Indicators</h3>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase text-white/40">Fibre</p>
+                  <p className="mt-1 font-semibold">
+                    {yesNo(internationalBuyer.lifestyleIndicators?.fibre)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase text-white/40">Solar</p>
+                  <p className="mt-1 font-semibold">
+                    {yesNo(internationalBuyer.lifestyleIndicators?.solar)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase text-white/40">Backup Power</p>
+                  <p className="mt-1 font-semibold">
+                    {yesNo(internationalBuyer.lifestyleIndicators?.batteryBackup)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase text-white/40">Pool</p>
+                  <p className="mt-1 font-semibold">
+                    {yesNo(internationalBuyer.lifestyleIndicators?.pool)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase text-white/40">Garden</p>
+                  <p className="mt-1 font-semibold">
+                    {yesNo(internationalBuyer.lifestyleIndicators?.garden)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase text-white/40">Parking</p>
+                  <p className="mt-1 font-semibold">
+                    {text(internationalBuyer.lifestyleIndicators?.parking)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {Array.isArray(internationalBuyer.evidenceGaps) &&
+              internationalBuyer.evidenceGaps.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-semibold">Evidence Gaps</h3>
+                  <ul className="mt-3 space-y-2 text-sm text-white/60">
+                    {internationalBuyer.evidenceGaps.map((item: unknown) => (
+                      <li key={String(item)}>• {String(item)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {Array.isArray(internationalBuyer.dueDiligenceQuestions) &&
+              internationalBuyer.dueDiligenceQuestions.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-semibold">
+                    International Buyer Due Diligence
+                  </h3>
+                  <ul className="mt-3 space-y-2 text-sm text-white/60">
+                    {internationalBuyer.dueDiligenceQuestions.map((item: unknown) => (
+                      <li key={String(item)}>• {String(item)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {Array.isArray(internationalBuyer.limitations) &&
+              internationalBuyer.limitations.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-semibold">
+                    International Buyer Limitations
+                  </h3>
+                  <ul className="mt-3 space-y-2 text-sm text-white/40">
+                    {internationalBuyer.limitations.map((item: unknown) => (
+                      <li key={String(item)}>• {String(item)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+          </section>
+        )}
 
         {isPro ? <>
           <section className="mt-6 glass rounded-2xl p-6">

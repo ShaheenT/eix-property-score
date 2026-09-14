@@ -1,3 +1,4 @@
+
 import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
 import {
   calculateAcquisitionIntelligence,
@@ -13,6 +14,11 @@ import {
   type DecisionResult,
 } from '@/lib/decision-engine';
 import type { ComparableProperty } from '@/lib/property24-comparables';
+import {
+  calculateInternationalBuyerIntelligence,
+  type InternationalBuyerIntelligence,
+  type InternationalBuyerProfile,
+} from '@/lib/international-buyer-intelligence';
 
 export interface ReportEngineInput {
   facts: PropertyFacts;
@@ -20,6 +26,7 @@ export interface ReportEngineInput {
   goal: 'Buy to Live' | 'Rental' | 'Flip';
   comparables?: ComparableProperty[];
   constraints?: DecisionConstraints;
+  buyerProfile?: InternationalBuyerProfile;
 }
 
 export interface ReportEngineOutput {
@@ -45,6 +52,7 @@ export interface ReportEngineOutput {
 
   marketIntelligence: MarketIntelligence;
   acquisitionIntelligence: AcquisitionIntelligence;
+  internationalBuyerIntelligence: InternationalBuyerIntelligence | null;
   decision: DecisionResult;
 }
 
@@ -180,6 +188,17 @@ export function calculateReport(
     input.comparables ?? [],
   );
 
+  const internationalBuyerIntelligence =
+    input.buyerProfile?.buyerType === 'international'
+      ? calculateInternationalBuyerIntelligence({
+          profile: input.buyerProfile,
+          facts: input.facts,
+          evidence: input.evidence,
+          market: marketIntelligence,
+          acquisition: acquisitionIntelligence,
+        })
+      : null;
+
   const decision = evaluateDecision(
     mapGoal(input.goal),
     input.facts,
@@ -244,6 +263,7 @@ export function calculateReport(
 
     marketIntelligence,
     acquisitionIntelligence,
+    internationalBuyerIntelligence,
     decision,
   };
 }
