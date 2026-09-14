@@ -1,6 +1,6 @@
 create table if not exists public.property_intelligence_provider_cache (
-  id uuid primary key default gen_random_uuid(),
   cache_key text primary key,
+  id uuid unique not null default gen_random_uuid(),
   provider text not null,
   operation text not null,
   query_hash text not null,
