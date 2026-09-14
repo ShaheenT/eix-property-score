@@ -19,6 +19,12 @@ function isBlockedHostname(hostname: string): boolean {
   return false;
 }
 
+function isJsonContentType(contentType: string | null): boolean {
+  if (!contentType) return true;
+  const normalized = contentType.toLowerCase().split(';', 1)[0].trim();
+  return normalized === 'application/json' || normalized.endsWith('+json');
+}
+
 export async function providerFetch<T>(
   rawUrl: string,
   options: {
@@ -40,7 +46,7 @@ export async function providerFetch<T>(
     throw new ProviderHttpError('Provider URL is not permitted.', 'BLOCKED_HOST');
   }
 
-  const allowed = options.allowedHosts.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
+  const allowed = options.allowedHosts.some((host) => url.hostname.toLowerCase() === host.toLowerCase() || url.hostname.toLowerCase().endsWith(`.${host.toLowerCase()}`));
   if (!allowed) throw new ProviderHttpError('Provider hostname is not allowlisted.', 'BLOCKED_HOST');
 
   const controller = new AbortController();
@@ -59,6 +65,9 @@ export async function providerFetch<T>(
     });
 
     if (!response.ok) throw new ProviderHttpError(`Provider returned HTTP ${response.status}.`, 'HTTP_ERROR');
+    if (!isJsonContentType(response.headers.get('content-type'))) {
+      throw new ProviderHttpError('Provider returned a non-JSON response.', 'INVALID_CONTENT');
+    }
 
     const contentLength = Number(response.headers.get('content-length') ?? 0);
     if (contentLength > (options.maxBytes ?? DEFAULT_MAX_BYTES)) {
