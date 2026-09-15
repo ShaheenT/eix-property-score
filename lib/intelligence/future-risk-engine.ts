@@ -1,5 +1,5 @@
 import { calculatedSignal, unknownSignal } from './evidence';
-import type { IntelligenceContext, RiskSignal } from './types';
+import type { IntelligenceContext, FutureRiskRadar, RiskSignal } from './types';
 
 export interface FutureRiskInput {
   plannedRoadProjects?: Array<{ name: string; status: string }> | null;
@@ -10,10 +10,6 @@ export interface FutureRiskInput {
   coastalErosionRisk?: 'low' | 'moderate' | 'high' | null;
 }
 
-export interface FutureRiskRadar {
-  signals: RiskSignal[];
-  confidence: number;
-}
 
 export function buildFutureRiskRadar(_context: IntelligenceContext, input: FutureRiskInput = {}): FutureRiskRadar {
   const signals: RiskSignal[] = [];

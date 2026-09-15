@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mapProviderInputs } from '@/lib/intelligence/property-intelligence';
+import { mapProviderInputs } from '@/lib/intelligence/provider-inputs';
 import { ConfiguredGeospatialProvider } from '@/lib/intelligence/providers/configured-geospatial-provider';
 import { ProviderHttpError, providerFetch } from '@/lib/intelligence/providers/secure-http';
 

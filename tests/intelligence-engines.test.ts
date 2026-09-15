@@ -42,17 +42,17 @@ test('land engine scores development readiness only from supplied signals', () =
 test('relocation engine identifies university proximity without claiming rental valuation', () => {
   const result = buildRelocationIntelligence({}, { nearestUniversity: { name: 'Test University', distanceKm: 2 } });
   assert.equal(result.studentRentalPotential.value, 'high');
-  assert.match(result.studentRentalPotential.evidence[0]?.notes ?? '', /not a rental valuation/);
+  assert.match(result.studentRentalPotential.evidence[0]?.claim ?? '', /not a rental valuation/);
 });
 
 test('investment engine calculates price per land m2 and refuses unsupported market comparison', () => {
-  const result = buildInvestmentIntelligence({ askingPriceCents: 100_000_000, landSizeM2: 500 }, {});
+  const result = buildInvestmentIntelligence({ askingPriceCents: 10_000_000_000, landSizeM2: 500 }, {});
   assert.equal(result.pricePerM2.value, 200_000);
   assert.equal(result.askingPriceSignal.status, 'unknown');
 });
 
 test('orchestrator integrates investment and future risk radar', () => {
-  const intelligence = runIntelligence({ askingPriceCents: 10_000_000, landSizeM2: 100 }, {
+  const intelligence = runIntelligence({ askingPriceCents: 1_000_000_000, landSizeM2: 100 }, {
     investment: { comparablePricePerM2: 80_000 },
     futureRisk: { floodRisk: 'high' },
   });

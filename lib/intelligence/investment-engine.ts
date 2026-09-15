@@ -1,10 +1,6 @@
 import { calculatedSignal, unknownSignal } from './evidence';
-import type { IntelligenceContext, IntelligenceSignal } from './types';
+import type { IntelligenceContext, IntelligenceSignal, InvestmentIntelligence } from './types';
 
-export interface InvestmentIntelligence {
-  pricePerM2: IntelligenceSignal<number>;
-  askingPriceSignal: IntelligenceSignal<number>;
-}
 
 export interface InvestmentInputs {
   comparablePricePerM2?: number | null;

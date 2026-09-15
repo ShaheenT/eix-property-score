@@ -104,7 +104,7 @@ const market: MarketIntelligence = {
   marketPosition: 'Above Comparable Median',
   methodology: 'active_asking_price',
   disclaimer:
-    'Active asking-price comparison â€” not a valuation.',
+    'Active asking-price comparison — not a valuation.',
 };
 
 const acquisition: AcquisitionIntelligence = {

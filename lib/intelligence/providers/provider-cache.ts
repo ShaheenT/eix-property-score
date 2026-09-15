@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { supabaseAdmin } from '@/lib/supabase';
 
 function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex');
@@ -12,6 +11,7 @@ export async function withProviderCache<T>(
   ttlSeconds: number,
   loader: () => Promise<T>,
 ): Promise<T> {
+  const { supabaseAdmin } = await import('@/lib/supabase');
   const queryHash = hash(JSON.stringify({ operation, input }));
   const cacheKey = `${provider}:${operation}:${queryHash}`;
   const now = new Date();
