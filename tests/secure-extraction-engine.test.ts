@@ -84,3 +84,48 @@ test('does not treat search pages as property listings by URL identity', async (
     assert.equal(result.metadata.reportEligible, false);
   }
 });
+
+test('accepts a Property24 listing when the provider returns HTTP 404 with valid listing HTML', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      `<!doctype html>
+      <html>
+        <head>
+          <title>3 Bedroom House for sale in Steenberg Golf Estate - P24-117227369</title>
+        </head>
+        <body>
+          <h1>3 Bedroom House for sale in Steenberg Golf Estate</h1>
+          <div>R 30,000,000</div>
+          <div>3 Bedroom</div>
+          <div>2 Bathroom</div>
+          <div>Steenberg Golf Estate</div>
+          <div>117227369</div>
+        </body>
+      </html>`,
+      {
+        status: 404,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+        },
+      },
+    );
+
+  try {
+    const result = await runSecureExtraction(
+      'https://www.property24.com/for-sale/steenberg-golf-estate/cape-town/western-cape/15183/117227369',
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.source, 'property24');
+    assert.equal(result.metadata?.pageType, 'property_listing');
+    assert.equal(result.metadata?.listingId, '117227369');
+    assert.equal(result.metadata?.reportEligible, true);
+    assert.equal(result.facts.bedrooms, 3);
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.askingPriceCents, 3_000_000_000);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
