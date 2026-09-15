@@ -5,10 +5,16 @@ on:
     branches:
       - main
       - feature/international-buyer-intelligence
+      - feature/secure-extraction-engine
+      - feature/intelligence-os-foundation
+      - feature/intelligence-provider-layer-v2
   pull_request:
     branches:
       - main
       - feature/international-buyer-intelligence
+      - feature/secure-extraction-engine
+      - feature/intelligence-os-foundation
+      - feature/intelligence-provider-layer-v2
 
 jobs:
   quality:

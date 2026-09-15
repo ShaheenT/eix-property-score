@@ -26,73 +26,32 @@ export async function persistIntelligenceReport(
 ): Promise<string | null> {
   if (!options.submissionId) return null;
 
-  const { data: run, error: runError } = await supabaseAdmin
-    .from('property_intelligence_runs')
-    .insert({
-      submission_id: options.submissionId,
-      extraction_run_id: options.extractionRunId ?? null,
-      engine_version: report.engineVersion,
-      trust_index: report.trustIndex,
-      status: report.riskSignals.some((signal) => signal.severity === 'critical') ? 'partial' : 'completed',
-      generated_at: report.generatedAt,
-    })
-    .select('id')
-    .single();
+  const signals = collectSignals(report);
+  const payload = {
+    submissionId: options.submissionId,
+    extractionRunId: options.extractionRunId ?? null,
+    engineVersion: report.engineVersion,
+    trustIndex: report.trustIndex,
+    status: report.riskSignals.some((signal) => signal.severity === 'critical') ? 'partial' : 'completed',
+    generatedAt: report.generatedAt,
+    signals: signals.map((signal) => ({
+      key: signal.key,
+      label: signal.label,
+      value: signal.value,
+      status: signal.status,
+      confidence: signal.confidence,
+      evidence: signal.evidence,
+    })),
+    riskSignals: report.riskSignals,
+  };
 
-  if (runError || !run) throw new Error(`Intelligence run persistence failed: ${runError?.message ?? 'unknown database error'}`);
-
-  const signals = collectSignals(report).map((signal) => ({
-    run_id: run.id,
-    engine: signal.key.split('.')[0] ?? 'intelligence',
-    signal_key: signal.key,
-    label: signal.label,
-    value_json: signal.value,
-    status: signal.status,
-    confidence: signal.confidence,
-  }));
-
-  const signalIds = new Map<string, string>();
-  if (signals.length) {
-    const { data: rows, error: signalError } = await supabaseAdmin
-      .from('property_intelligence_signals')
-      .insert(signals)
-      .select('id, signal_key');
-    if (signalError) throw new Error(`Intelligence signal persistence failed: ${signalError.message}`);
-    rows?.forEach((row) => signalIds.set(row.signal_key, row.id));
-  }
-
-  const evidenceRows = collectSignals(report).flatMap((signal) => {
-    const signalId = signalIds.get(signal.key);
-    if (!signalId) return [];
-    return signal.evidence.map((item) => ({
-      signal_id: signalId,
-      evidence_key: item.id,
-      claim: item.claim,
-      evidence_type: item.evidenceType,
-      source: item.source,
-      source_url: item.sourceUrl ?? null,
-      confidence: item.confidence,
-      retrieved_at: item.retrievedAt,
-      notes: item.notes ?? null,
-    }));
+  const { data, error } = await supabaseAdmin.rpc('persist_property_intelligence_report', {
+    p_payload: payload,
   });
 
-  if (evidenceRows.length) {
-    const { error: evidenceError } = await supabaseAdmin.from('property_intelligence_evidence').insert(evidenceRows);
-    if (evidenceError) throw new Error(`Intelligence evidence persistence failed: ${evidenceError.message}`);
+  if (error || !data) {
+    throw new Error(`Intelligence run persistence failed: ${error?.message ?? 'unknown database error'}`);
   }
 
-  if (report.riskSignals.length) {
-    const { error: riskError } = await supabaseAdmin.from('property_risk_signals').insert(report.riskSignals.map((risk) => ({
-      run_id: run.id,
-      risk_key: risk.key,
-      severity: risk.severity,
-      title: risk.title,
-      description: risk.description,
-      evidence_json: risk.evidence,
-    })));
-    if (riskError) throw new Error(`Intelligence risk persistence failed: ${riskError.message}`);
-  }
-
-  return run.id;
+  return data as string;
 }
