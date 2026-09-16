@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { calculateReport } from '@/lib/report-engine';
 import { calculateInvestorReport } from '@/lib/investor-report-engine';
 import { extractPropertyFromUrl } from '@/lib/secure-property-extractor';
+import { discoverProperty24Comparables } from '@/lib/property24-comparable-discovery';
 import { runPropertyIntelligence } from '@/lib/intelligence/property-intelligence';
 import { createVerificationLedger } from '@/lib/verification/create-ledger';
 import { supabaseAdmin } from '@/lib/supabase';
@@ -11,8 +12,20 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eix-property-score
 type Goal = 'Buy to Live' | 'Rental' | 'Flip';
 export type ReportType = 'standard_report' | 'investor_report_pro';
 interface ProcessReportOptions { reportType?: ReportType; }
+
 function hasPersistedPropertyEvidence(facts: unknown, evidence: unknown): facts is PropertyFacts {
   return Boolean(facts && typeof facts === 'object' && evidence && Array.isArray(evidence) && Object.keys(facts).length > 0);
+}
+
+async function discoverComparablesSafely(listingUrl: string, facts: PropertyFacts) {
+  try {
+    return await Promise.race([
+      discoverProperty24Comparables(listingUrl, facts),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Comparable discovery timed out.')), 12_000)),
+    ]);
+  } catch {
+    return [];
+  }
 }
 
 export async function processReport(submissionId: string, options: ProcessReportOptions = {}) {
@@ -61,6 +74,7 @@ export async function processReport(submissionId: string, options: ProcessReport
       evidence = extraction.evidence;
     }
 
+    const comparables = await discoverComparablesSafely(submission.listing_url, facts);
     const intelligence = await runPropertyIntelligence(facts, { propertyId: submissionId, submissionId });
     const intelligenceRunId = intelligence.runId;
     const intelligenceTrustIndex = intelligence.report.trustIndex;
@@ -68,11 +82,11 @@ export async function processReport(submissionId: string, options: ProcessReport
     const accessToken = queuedReport.access_token || randomUUID();
     const reportUrl = `${BASE_URL}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
     if (reportType === 'standard_report') {
-      const result = calculateReport({ facts, evidence, goal: submission.goal as Goal, buyerProfile: { buyerType: submission.buyer_type === 'international' ? 'international' : 'south_african', buyerCountry: submission.buyer_country ?? null, buyerPurpose: submission.buyer_purpose ?? null, buyerBudget: submission.buyer_budget ?? null } });
+      const result = calculateReport({ facts, evidence, comparables, goal: submission.goal as Goal, buyerProfile: { buyerType: submission.buyer_type === 'international' ? 'international' : 'south_african', buyerCountry: submission.buyer_country ?? null, buyerPurpose: submission.buyer_purpose ?? null, buyerBudget: submission.buyer_budget ?? null } });
       const { error: persistError } = await supabaseAdmin.from('reports').update({ status: 'completed', investment_score: result.investmentScore, ai_confidence: result.aiConfidence, property_facts: facts, property_evidence: evidence, score_breakdown: result.scoreBreakdown, assumptions: result.assumptions, limitations: result.limitations, rental_yield_percent: result.rentalYieldPercent, bond_monthly_payment_cents: result.bondMonthlyPaymentCents, bond_loan_amount_cents: result.bondLoanAmountCents, risk_level: result.riskLevel, recommendation: result.recommendation, confidence_label: result.confidenceLabel, access_token: accessToken, processed_at: new Date().toISOString(), intelligence_run_id: intelligenceRunId, intelligence_trust_index: intelligenceTrustIndex, ...(result.internationalBuyerIntelligence ? { international_buyer_analysis: result.internationalBuyerIntelligence } : {}) }).eq('id', queuedReport.id);
       if (persistError) throw persistError;
     } else if (reportType === 'investor_report_pro') {
-      const result = calculateInvestorReport({ facts, evidence, comparables: [] });
+      const result = calculateInvestorReport({ facts, evidence, comparables });
       const { error: persistError } = await supabaseAdmin.from('reports').update({ status: 'completed', property_facts: facts, property_evidence: evidence, investor_analysis: result, assumptions: result.assumptions, limitations: result.limitations, access_token: accessToken, processed_at: new Date().toISOString(), intelligence_run_id: intelligenceRunId, intelligence_trust_index: intelligenceTrustIndex }).eq('id', queuedReport.id);
       if (persistError) throw persistError;
     } else throw new Error(`Unsupported report type: ${reportType}`);
