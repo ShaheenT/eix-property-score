@@ -16,12 +16,14 @@ const evidence: PropertyEvidence[] = [
   { field: 'floorSizeM2', value: '150', source: 'json_ld' }, { field: 'landSizeM2', value: '400', source: 'json_ld' },
 ];
 
-test('complete listing facts do not create an unsupported investment score', () => {
-  const result = calculateReport({ facts, evidence, goal: 'Rental' });
-  assert.equal(result.investmentScore, null);
+test('complete verified listing produces an evidence-backed EiX score even without comparables', () => {
+  const result = calculateReport({ facts, evidence, goal: 'Buy to Live' });
+  assert.ok(result.investmentScore !== null);
+  assert.ok(result.investmentScore <= 69);
   assert.equal(result.aiConfidence, 100);
   assert.equal(result.confidenceLabel, 'High');
-  assert.equal(result.recommendation, 'Insufficient Data');
+  assert.equal(result.scoreBreakdown.marketComparableCount, 0);
+  assert.ok(result.limitations.some((item) => item.includes('Market position is evidence-limited')));
 });
 
 test('does not fabricate rental yield without verified rent', () => {
@@ -57,60 +59,34 @@ test('report engine exposes acquisition intelligence as the authoritative bond s
     goal: 'Buy to Live',
   });
 
-  assert.equal(
-    result.bondLoanAmountCents,
-    result.acquisitionIntelligence.loanAmountCents,
-  );
-
-  assert.equal(
-    result.bondMonthlyPaymentCents,
-    result.acquisitionIntelligence.bondMonthlyPaymentCents,
-  );
-
-  assert.equal(
-    result.acquisitionIntelligence.purchasePriceCents,
-    facts.askingPriceCents,
-  );
+  assert.equal(result.bondLoanAmountCents, result.acquisitionIntelligence.loanAmountCents);
+  assert.equal(result.bondMonthlyPaymentCents, result.acquisitionIntelligence.bondMonthlyPaymentCents);
+  assert.equal(result.acquisitionIntelligence.purchasePriceCents, facts.askingPriceCents);
 });
 
 test('report engine exposes market intelligence and canonical decision', () => {
   const comparable: import('../lib/property24-comparables').ComparableProperty = {
     listingId: 'comparable-1',
-    sourceUrl:
-      'https://www.property24.com/for-sale/house/cape-town/comparable-1',
-    facts: {
-      ...facts,
-      title: 'Comparable',
-      askingPriceCents: 250000000,
-      floorSizeM2: 150,
-    },
+    sourceUrl: 'https://www.property24.com/for-sale/house/cape-town/comparable-1',
+    facts: { ...facts, title: 'Comparable', askingPriceCents: 250000000, floorSizeM2: 150 },
     evidence: [],
     similarity: 0.95,
   };
 
-  const result = calculateReport({
-    facts,
-    evidence,
-    goal: 'Buy to Live',
-    comparables: [comparable],
-  });
+  const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables: [comparable] });
 
   assert.equal(result.marketIntelligence.comparableCount, 1);
   assert.equal(result.decision.decision, 'NEGOTIATE');
   assert.equal(result.recommendation, 'Consider');
+  assert.equal(result.scoreBreakdown.marketComparableCount, 1);
+  assert.ok(result.scoreBreakdown.marketPosition > 0);
 });
 
 test('report engine can propagate a BUY decision from the decision engine', () => {
   const comparable: import('../lib/property24-comparables').ComparableProperty = {
     listingId: 'comparable-1',
-    sourceUrl:
-      'https://www.property24.com/for-sale/house/cape-town/comparable-1',
-    facts: {
-      ...facts,
-      title: 'Comparable',
-      askingPriceCents: 250000000,
-      floorSizeM2: 150,
-    },
+    sourceUrl: 'https://www.property24.com/for-sale/house/cape-town/comparable-1',
+    facts: { ...facts, title: 'Comparable', askingPriceCents: 250000000, floorSizeM2: 150 },
     evidence: [],
     similarity: 0.95,
   };
@@ -120,32 +96,29 @@ test('report engine can propagate a BUY decision from the decision engine', () =
     evidence,
     goal: 'Buy to Live',
     comparables: [comparable],
-    constraints: {
-      maxKnownUpfrontCashCents: 1000000000,
-    },
+    constraints: { maxKnownUpfrontCashCents: 1000000000 },
   });
 
   assert.equal(result.decision.decision, 'BUY');
   assert.equal(result.recommendation, 'Buy');
 });
 
-test('report engine does not recreate an investment score from market or acquisition data', () => {
-  const result = calculateReport({
-    facts,
-    evidence,
-    goal: 'Buy to Live',
-    comparables: [],
-  });
+test('score is bounded when market evidence is available', () => {
+  const comparable: import('../lib/property24-comparables').ComparableProperty = {
+    listingId: 'comparable-1',
+    sourceUrl: 'https://www.property24.com/for-sale/house/cape-town/comparable-1',
+    facts: { ...facts, title: 'Comparable', askingPriceCents: 200000000, floorSizeM2: 150 },
+    evidence: [],
+    similarity: 0.95,
+  };
 
-  assert.equal(result.investmentScore, null);
+  const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables: [comparable] });
+  assert.ok(result.investmentScore !== null);
+  assert.ok(result.investmentScore >= 0 && result.investmentScore <= 100);
 });
 
 test('report engine preserves insufficient-data decision for rental', () => {
-  const result = calculateReport({
-    facts,
-    evidence,
-    goal: 'Rental',
-  });
+  const result = calculateReport({ facts, evidence, goal: 'Rental' });
 
   assert.equal(result.decision.decision, 'INSUFFICIENT_DATA');
   assert.equal(result.recommendation, 'Insufficient Data');
