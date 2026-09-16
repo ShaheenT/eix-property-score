@@ -103,7 +103,7 @@ export async function discoverProperty24Comparables(subjectUrl: string, subject:
 
   if (listingUrls.length === 0) return [];
 
-  const extracted = await Promise.all(
+  const extracted: Array<ComparableProperty | null> = await Promise.all(
     listingUrls.slice(0, MAX_CANDIDATES).map(async (sourceUrl) => {
       try {
         const result = await extractPropertyFromUrl(sourceUrl);
