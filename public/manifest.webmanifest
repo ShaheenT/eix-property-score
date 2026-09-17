@@ -1,0 +1,20 @@
+{
+  "name": "EiX Property Score™",
+  "short_name": "EiX Property Score",
+  "description": "AI-powered South African property intelligence.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#05070a",
+  "theme_color": "#00E5A8",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/eixpropscorelogo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
