@@ -85,6 +85,53 @@ test('does not treat search pages as property listings by URL identity', async (
   }
 });
 
+test('preserves Property24 listing facts and primary image from labelled listing evidence', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      `<!doctype html>
+      <html>
+        <head>
+          <meta property="og:image" content="https://images.example.com/observatory-home.jpg" />
+          <title>2 Bedroom House for Sale in Observatory - P24-117638664</title>
+        </head>
+        <body>
+          <h1>2 Bedroom House for Sale in Observatory</h1>
+          <div>R 3,550,000</div>
+          <div>2 Bedroom</div>
+          <div>2 Bathroom</div>
+          <div>Property Overview</div>
+          <div>Street Address 53 Lytton Street, Observatory, Cape Town Listing Date 18 Sep 2026</div>
+          <div>Floor Size 91 m²</div>
+          <div>Erf Size 208 m²</div>
+          <div>Rates and Taxes R 1,180</div>
+          <div>Parking 2</div>
+          <div>Description Newly renovated home with wood floors, updated kitchen finishes, private low-maintenance garden, fibre connectivity and two parking spaces.</div>
+          <div>117638664</div>
+        </body>
+      </html>`,
+      { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } },
+    );
+
+  try {
+    const result = await runSecureExtraction(
+      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117638664',
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.facts.address, '53 Lytton Street, Observatory, Cape Town');
+    assert.equal(result.facts.floorSizeM2, 91);
+    assert.equal(result.facts.landSizeM2, 208);
+    assert.equal(result.facts.ratesAndTaxesCents, 118000);
+    assert.equal(result.facts.parking, 2);
+    assert.match(result.facts.description ?? '', /newly renovated/i);
+    assert.equal(result.facts.primaryImageUrl, 'https://images.example.com/observatory-home.jpg');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('accepts a Property24 listing when the provider returns HTTP 404 with valid listing HTML', async () => {
   const originalFetch = globalThis.fetch;
 

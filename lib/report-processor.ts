@@ -11,7 +11,7 @@ import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eix-property-score-beta.vercel.app';
 type Goal = 'Buy to Live' | 'Rental' | 'Flip';
 export type ReportType = 'standard_report' | 'investor_report_pro';
-interface ProcessReportOptions { reportType?: ReportType; }
+interface ProcessReportOptions { reportType?: ReportType; baseUrl?: string; }
 
 function hasPersistedPropertyEvidence(facts: unknown, evidence: unknown): facts is PropertyFacts {
   return Boolean(facts && typeof facts === 'object' && evidence && Array.isArray(evidence) && Object.keys(facts).length > 0);
@@ -30,16 +30,23 @@ async function discoverComparablesSafely(listingUrl: string, facts: PropertyFact
 
 export async function processReport(submissionId: string, options: ProcessReportOptions = {}) {
   const reportType = options.reportType || 'standard_report';
+  const callbackBaseUrl = options.baseUrl || BASE_URL;
   const { data: submission, error: submissionError } = await supabaseAdmin.from('property_submissions').select('id, listing_url, status, goal, buyer_type, buyer_country, buyer_purpose, buyer_budget, customer:customers(name, email)').eq('id', submissionId).single();
   if (submissionError || !submission) throw new Error('Submission not found');
   if (!['paid', 'report_sent'].includes(submission.status)) throw new Error('Submission is not paid');
   if (!['Buy to Live', 'Rental', 'Flip'].includes(submission.goal)) throw new Error('Invalid submission goal');
 
-  const { data: queuedReport, error: reportError } = await supabaseAdmin.from('reports').select('id, status, report_type, access_token').eq('submission_id', submissionId).eq('report_type', reportType).maybeSingle();
+  const { data: queuedReport, error: reportError } = await supabaseAdmin.from('reports').select('id, status, report_type, access_token, updated_at').eq('submission_id', submissionId).eq('report_type', reportType).maybeSingle();
   if (reportError) throw reportError;
   if (!queuedReport) throw new Error(`Report record not found: ${reportType}`);
   if (queuedReport.status === 'sent') return { status: 'already_sent', reportId: queuedReport.id, reportType };
-  if (queuedReport.status === 'processing') return { status: 'processing', reportId: queuedReport.id, reportType };
+  if (queuedReport.status === 'processing') {
+    const updatedAt = typeof queuedReport.updated_at === 'string' ? Date.parse(queuedReport.updated_at) : NaN;
+    const processingAgeMs = Number.isFinite(updatedAt) ? Date.now() - updatedAt : 0;
+    if (processingAgeMs < 5 * 60 * 1000) return { status: 'processing', reportId: queuedReport.id, reportType };
+    const { error: staleResetError } = await supabaseAdmin.from('reports').update({ status: 'queued' }).eq('id', queuedReport.id).eq('status', 'processing');
+    if (staleResetError) throw staleResetError;
+  }
 
   const { data: claimed } = await supabaseAdmin.from('reports').update({ status: 'processing' }).eq('id', queuedReport.id).in('status', ['queued', 'failed']).select('id').maybeSingle();
   if (!claimed) {
@@ -80,7 +87,7 @@ export async function processReport(submissionId: string, options: ProcessReport
     const intelligenceTrustIndex = intelligence.report.trustIndex;
 
     const accessToken = queuedReport.access_token || randomUUID();
-    const reportUrl = `${BASE_URL}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
+    const reportUrl = `${callbackBaseUrl}/report/${queuedReport.id}?token=${encodeURIComponent(accessToken)}`;
     if (reportType === 'standard_report') {
       const result = calculateReport({ facts, evidence, comparables, goal: submission.goal as Goal, buyerProfile: { buyerType: submission.buyer_type === 'international' ? 'international' : 'south_african', buyerCountry: submission.buyer_country ?? null, buyerPurpose: submission.buyer_purpose ?? null, buyerBudget: submission.buyer_budget ?? null } });
       const { error: persistError } = await supabaseAdmin.from('reports').update({ status: 'completed', investment_score: result.investmentScore, ai_confidence: result.aiConfidence, property_facts: facts, property_evidence: evidence, score_breakdown: result.scoreBreakdown, assumptions: result.assumptions, limitations: result.limitations, rental_yield_percent: result.rentalYieldPercent, bond_monthly_payment_cents: result.bondMonthlyPaymentCents, bond_loan_amount_cents: result.bondLoanAmountCents, risk_level: result.riskLevel, recommendation: result.recommendation, confidence_label: result.confidenceLabel, access_token: accessToken, processed_at: new Date().toISOString(), intelligence_run_id: intelligenceRunId, intelligence_trust_index: intelligenceTrustIndex, ...(result.internationalBuyerIntelligence ? { international_buyer_analysis: result.internationalBuyerIntelligence } : {}) }).eq('id', queuedReport.id);

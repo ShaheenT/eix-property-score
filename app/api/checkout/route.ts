@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { createPayFastPaymentLink } from '@/lib/payfast';
+import { initializePaystackTransaction } from '@/lib/paystack';
 import { validatePropertyInput } from '@/lib/property-input';
 
 const ALLOWED_GOALS = new Set(['Buy to Live', 'Rental', 'Flip']);
@@ -103,7 +103,10 @@ export async function POST(req: NextRequest) {
     const { error: paymentReferenceError } = await supabaseAdmin.from('payments').update({ payment_reference: payment.id }).eq('id', payment.id);
     if (paymentReferenceError) throw paymentReferenceError;
 
-    const { url } = createPayFastPaymentLink({ amount, itemName, submissionId: submission.id, paymentId: payment.id, customerEmail: customer.email, customerName: customer.name, product: prod });
+    const requestOrigin = req.nextUrl.origin;
+    const { url, reference } = await initializePaystackTransaction({ amount, itemName, submissionId: submission.id, paymentId: payment.id, customerEmail: customer.email, customerName: customer.name, product: prod, baseUrl: requestOrigin });
+    const { error: referenceError } = await supabaseAdmin.from('payments').update({ payment_reference: reference }).eq('id', payment.id);
+    if (referenceError) throw referenceError;
     return NextResponse.json({ checkout_url: url, submission_id: submission.id, payment_id: payment.id, amount_zar: amount, buyer_type: buyerType, property: { kind: propertyInput?.kind ?? 'listing', source: propertyInput?.source ?? submission.source_platform, source_label: propertyInput?.sourceLabel ?? submission.source_platform } });
   } catch (err) {
     console.error('[Checkout] Unexpected error', err);
