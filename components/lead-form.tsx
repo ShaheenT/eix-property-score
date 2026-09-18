@@ -72,8 +72,8 @@ export function LeadForm() {
         </div>
         <div className="mt-4 flex items-end justify-between gap-4 border-t border-[#2A2D27]/8 pt-4">
           <div>
-            <p className="text-sm font-semibold text-[#20231F]">EiX Property Score™ Report</p>
-            <p className="mt-1 text-xs text-[#6A6D66]">{buyerType === 'international' ? 'International Buyer Intelligence · one property · delivered within 24 hours' : 'Founding Beta · one property · delivered within 24 hours'}</p>
+            <p className="text-sm font-semibold text-[#20231F]">Property Intelligence Report</p>
+            <p className="mt-1 text-xs text-[#6A6D66]">{buyerType === 'international' ? 'International Buyer Intelligence · one property · evidence-backed analysis · delivered within 24 hours' : 'Founding Beta · one property · evidence-backed analysis · delivered within 24 hours'}</p>
           </div>
           <div className="shrink-0 text-right">
             <p className="text-lg font-bold text-[#20231F]">{priceLabel}</p>
@@ -90,8 +90,8 @@ export function LeadForm() {
         <div className="space-y-2"><Label className="text-[#4B4E47]">Property Listing URL or Address <span className="text-[#0E847B]">*</span></Label><PropertySourceDetector value={form.listing_url} onChange={(v) => handleChange('listing_url', v)} onSourceDetected={setDetectedSource} /><div className="pt-1"><SupportedPlatforms /></div></div>
         <div className="space-y-2"><Label className="text-[#4B4E47]">What are you trying to decide? <span className="text-[#0E847B]">*</span></Label><Select value={form.goal} onValueChange={(v) => handleChange('goal', v)}><SelectTrigger className="w-full rounded-xl border-[#2A2D27]/12 bg-white py-3.5 text-[#20231F]"><SelectValue placeholder="Choose your property goal" /></SelectTrigger><SelectContent><SelectItem value="Buy to Live">Buy to Live</SelectItem><SelectItem value="Rental">Rental Investment</SelectItem><SelectItem value="Flip">Flip / Resell</SelectItem></SelectContent></Select></div>
         {detectedSource && <div className="rounded-xl border border-[#2A2D27]/8 bg-[#F8F5EF] p-3"><ConfidenceMeter value={detectedSource === 'property24' ? 95 : detectedSource === 'private_property' ? 82 : detectedSource === 'agency' ? 75 : detectedSource === 'facebook' ? 68 : 45} size="sm" /></div>}
-        <button type="submit" disabled={submitting} className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#0E847B] py-4 text-center text-sm font-semibold text-white hover:bg-[#08756D] disabled:cursor-wait disabled:opacity-60 sm:text-base">{submitting ? <><Loader2 className="h-5 w-5 animate-spin" /><span>Opening secure checkout…</span></> : <><Lock className="h-4 w-4 opacity-80" /><span>Analyse My Property — {priceLabel}</span><ArrowRight className="ml-1 h-5 w-5" /></>}</button>
-        <p className="text-center text-[11px] leading-5 text-[#777970]">Secure checkout via PayFast. {buyerType === 'international' ? `International Buyer Intelligence is priced at R${price.toLocaleString('en-ZA')} in ZAR; your payment provider may display the converted amount in your local currency.` : 'Your evidence-based report is delivered to your email and WhatsApp within 24 hours.'}</p>
+        <button type="submit" disabled={submitting} className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#0E847B] py-4 text-center text-sm font-semibold text-white hover:bg-[#08756D] disabled:cursor-wait disabled:opacity-60 sm:text-base">{submitting ? <><Loader2 className="h-5 w-5 animate-spin" /><span>Opening secure payment…</span></> : <><Lock className="h-4 w-4 opacity-80" /><span>Analyse My Property — {priceLabel}</span><ArrowRight className="ml-1 h-5 w-5" /></>}</button>
+        <p className="text-center text-[11px] leading-5 text-[#777970]">Secure payment powered by PayFast. {buyerType === 'international' ? `International Buyer Intelligence is priced at R${price.toLocaleString('en-ZA')} in ZAR; your payment provider may display the converted amount in your local currency.` : 'Your evidence-backed report is delivered to your email and WhatsApp within 24 hours.'}</p>
       </div>
     </form>
   );
