@@ -107,7 +107,7 @@ test('preserves Property24 listing facts and primary image from labelled listing
           <div>Erf Size 208 m²</div>
           <div>Rates and Taxes R 1,180</div>
           <div>Parking 2</div>
-          <div>Description Newly renovated home with wood floors, private garden and fibre connectivity.</div>
+          <div>Description Newly renovated home with wood floors, updated kitchen finishes, private low-maintenance garden, fibre connectivity and two parking spaces.</div>
           <div>117638664</div>
         </body>
       </html>`,
