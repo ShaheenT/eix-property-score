@@ -130,7 +130,7 @@ export default async function CustomerReportPage({
   if (facts.ratesAndTaxesCents !== null && facts.ratesAndTaxesCents !== undefined) findings.push({ title: `${currency(facts.ratesAndTaxesCents)} rates & taxes`, body: 'A recurring property cost is available for scenario planning.', tone: 'positive' });
 
   const buyerQuestions = [
-    comparableCount === 0 ? 'Is the R asking price supported by comparable Observatory properties with reliable price and size evidence?' : 'How does the property compare with the verified comparable set?',
+    comparableCount === 0 ? 'Is the asking price supported by comparable properties with reliable price and size evidence?' : 'How does the property compare with the verified comparable set?',
     report.rental_yield_percent === null ? 'What rent could this property realistically achieve, and what would the net rental position look like after operating costs?' : 'Does the rental yield remain attractive after realistic operating costs?',
     'Does the condition and renovation quality justify the asking price relative to comparable properties?',
     'Are there any additional recurring costs, restrictions, or property-specific obligations not visible in the supplied listing?',
