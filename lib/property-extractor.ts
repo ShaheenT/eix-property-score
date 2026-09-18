@@ -40,6 +40,7 @@ const EMPTY_FACTS: PropertyFacts = {
   propertyType: null,
   floorSizeM2: null,
   landSizeM2: null,
+  description: null,
   garages: null,
   parking: null,
   hasStudy: null,
@@ -499,6 +500,9 @@ function parseProperty24LabeledOverview(
     facts[field] = value;
     evidence.push({ field, value: raw, source: 'html' });
   };
+
+  const description = text.match(/\\bDescription\\s+([\\s\\S]{80,1800}?)(?=\\bProperty Overview\\b|\\bProperty Details\\b|\\bRecent Sales\\b|\\bContact Agent\\b|$)/i);
+  if (description?.[1]) add('description', description[1].trim(), description[1].trim());
 
   const address = text.match(/\bStreet Address\s+(.+?)\s+(?=Listing Date\b)/i);
   if (address?.[1]) add('address', address[1].trim(), address[1].trim());
