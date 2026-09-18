@@ -35,6 +35,159 @@ function SignalCard({ label, value, detail, tone = 'neutral' }: { label: string;
       ? 'border-amber-300/20 bg-amber-300/[0.06]'
       : 'border-white/10 bg-white/[0.035]';
   return (
+    <div className={`rounded-2xl border p-5 ${toneClass}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">{label}</p>
+      <p className="mt-2 text-lg font-bold tracking-tight">{value}</p>
+      {detail && <p className="mt-2 text-xs leading-5 text-white/65">{detail}</p>}
+    </div>
+  );
+}
+
+function Section({ eyebrow, title, children, className = '' }: { eyebrow: string; title: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`mt-6 rounded-[28px] border border-white/10 bg-white/[0.025] p-6 shadow-2xl shadow-black/10 sm:p-8 ${className}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-200">{eyebrow}</p>
+      <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+export default async function CustomerReportPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ token?: string }>;
+}) {
+  const { id } = await params;
+  const { token } = await searchParams;
+  if (!token) notFound();
+
+  const { data: report } = await supabaseAdmin
+    .from('reports')
+    .select('id,status,report_type,investment_score,ai_confidence,property_facts,property_evidence,score_breakdown,assumptions,limitations,rental_yield_percent,bond_monthly_payment_cents,bond_loan_amount_cents,risk_level,recommendation,confidence_label,access_token,processed_at,investor_analysis,international_buyer_analysis')
+    .eq('id', id)
+    .eq('access_token', token)
+    .single();
+
+  if (!report || !['completed', 'sent'].includes(report.status)) notFound();
+
+  const facts = (report.property_facts || {}) as Record<string, any>;
+  const evidence = Array.isArray(report.property_evidence) ? report.property_evidence : [];
+  const limitations = Array.isArray(report.limitations) ? report.limitations : [];
+  const assumptions = Array.isArray(report.assumptions) ? report.assumptions : [];
+  const score = (report.score_breakdown || {}) as Record<string, any>;
+  const isPro = report.report_type === 'investor_report_pro';
+  const investor = (report.investor_analysis || {}) as Record<string, any>;
+  const internationalBuyer = (report.international_buyer_analysis || null) as Record<string, any> | null;
+
+  const askingPrice = typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null;
+  const floorM2 = typeof facts.floorSizeM2 === 'number' ? facts.floorSizeM2 : null;
+  const landM2 = typeof facts.landSizeM2 === 'number' ? facts.landSizeM2 : null;
+  const scoreNumber = typeof report.investment_score === 'number' ? report.investment_score : null;
+  const comparableCount = Number(score.marketComparableCount || 0);
+  const psm2 = score.subjectPricePerM2Cents ? currency(score.subjectPricePerM2Cents) : pricePerM2(askingPrice, floorM2);
+  const comparableMedian = score.marketMedianAskingPriceCents ? currency(score.marketMedianAskingPriceCents) : 'Not established';
+  const vsMedian = comparableCount > 0 ? percent(score.subjectVsMedianPercent) : 'Not established';
+  const address = text(facts.address, 'Address not verified');
+  const title = text(facts.title, 'Property Analysis');
+  const propertyType = text(facts.propertyType, 'Property');
+  const price = currency(askingPrice);
+  const description = text(facts.description, '');
+  const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
+  const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
+  const floorErfRatio = floorM2 !== null && landM2 !== null && landM2 > 0 ? `${((floorM2 / landM2) * 100).toFixed(0)}%` : 'Not established';
+
+  const buyerSignal = comparableCount === 0
+    ? scoreNumber !== null && scoreNumber >= 60
+      ? 'PROCEED — WITH PRICE & MARKET CHECK'
+      : scoreNumber !== null && scoreNumber >= 50
+        ? 'INVESTIGATE — PRICE EVIDENCE REQUIRED'
+        : 'CAUTION — RESOLVE MATERIAL GAPS'
+    : report.recommendation === 'Buy' || report.recommendation === 'Strong Buy'
+      ? 'PROCEED — REVIEW MARKET EVIDENCE'
+      : report.recommendation === 'Consider'
+        ? 'CONSIDER — REVIEW PRICE & EVIDENCE'
+        : 'CAUTION — INVESTIGATE BEFORE COMMITTING';
+
+  const decisionBody = comparableCount === 0
+    ? `EiX has established the core physical proposition of this ${propertyType.toLowerCase()}. The unresolved variable is market price: EiX does not yet have enough verified comparable evidence to establish whether ${price} is fair. That becomes the first question to solve before an offer.`
+    : `EiX has a verified comparable set. The market signal should be read alongside this property's size, condition, land, parking, financial scenario and evidence gaps — not as a formal valuation.`;
+
+  const assessmentHeadline = comparableCount === 0
+    ? scoreNumber !== null && scoreNumber >= 60 ? 'Promising Property — Market Price Requires Verification' : 'Property Requires Further Investigation'
+    : report.recommendation === 'Buy' || report.recommendation === 'Strong Buy' ? 'Positive Signal — Review the Evidence' : report.recommendation === 'Consider' ? 'Consider — Review Price & Evidence' : 'Caution — Investigate Before Committing';
+
+  const insight = floorM2 !== null && landM2 !== null
+    ? `At ${price}, you are not simply buying ${text(facts.bedrooms)} bedrooms. You are paying for the combination of ${number(landM2)} m² of erf, ${number(floorM2)} m² of internal space, ${facts.parking ?? 'unverified'} parking, ${facts.hasGarden ? 'private outdoor space' : 'an unverified garden'} and the stated condition. The question is whether buyers in this market are paying enough of a premium for those characteristics to justify the asking price.`
+    : `The listing establishes a useful property profile, but the price proposition cannot yet be separated from the missing market evidence. EiX therefore focuses the decision on the evidence most likely to change what you should do next.`;
+
+  const evidenceMap = [
+    ['Asking price', price, 'VERY HIGH'],
+    ['Floor size', floorM2 !== null ? `${number(floorM2)} m²` : 'Not established', 'HIGH'],
+    ['Erf size', landM2 !== null ? `${number(landM2)} m²` : 'Not established', 'HIGH'],
+    ['Parking', text(facts.parking, 'Not established'), 'MEDIUM'],
+    ['Rates & taxes', currency(typeof facts.ratesAndTaxesCents === 'number' ? facts.ratesAndTaxesCents : null), 'MEDIUM'],
+    ['Garden', yesNo(facts.hasGarden), 'MEDIUM'],
+    ['Fibre', yesNo(facts.hasFibre), 'LOW / MEDIUM'],
+    ['Renovation / condition', renovated ? 'Listing-supported' : 'Not established', 'HIGH'],
+    ['Rental income', report.rental_yield_percent === null ? 'Not established' : `${report.rental_yield_percent}% gross yield`, 'HIGH'],
+    ['Comparable prices', comparableCount > 0 ? `${comparableCount} verified` : 'Not sufficiently verified', 'VERY HIGH'],
+  ];
+
+  const buyerQuestions = [
+    `Is ${price} supported by recent comparable properties with reliable price, size and property-type evidence?`,
+    'What are comparable properties actually achieving, and how long are they taking to sell?',
+    report.rental_yield_percent === null ? 'What rent could this property realistically achieve, and what remains after operating costs?' : 'Does the rental yield remain attractive after realistic operating costs?',
+    'Are there ownership costs, restrictions, defects or obligations that are not visible in the supplied listing?',
+    renovated ? 'Does the renovation quality justify any premium over comparable properties?' : 'Does the condition justify the asking price relative to comparable properties?',
+  ];
+
+  const negotiationItems = [
+    ['Current asking price', price],
+    ['Market position', comparableCount > 0 ? `${vsMedian} vs comparable median` : 'Not established'],
+    ['Negotiation readiness', comparableCount > 0 ? 'Evidence available' : 'LOW — build evidence first'],
+    ['Comparable evidence', comparableCount > 0 ? `${comparableCount} verified` : 'Required'],
+    ['Achieved prices', 'Verify recent sales'],
+    ['Time on market', 'Verify'],
+    ['Condition premium', renovated ? 'Compare renovation quality' : 'Verify condition'],
+    ['Seller motivation', 'Verify'],
+    ['Rental potential', report.rental_yield_percent === null ? 'Verify achievable rent' : `${report.rental_yield_percent}% gross yield`],
+  ];
+
+  const risks = [
+    comparableCount === 0 ? 'Market price is unresolved: verified comparable evidence is insufficient to call the asking price fair or unfair.' : null,
+    report.rental_yield_percent === null ? 'Rental economics are unresolved because verified rental evidence is unavailable.' : null,
+    facts.leviesCents === null || facts.leviesCents === undefined ? 'Levies or other recurring ownership costs were not established.' : null,
+    facts.ratesAndTaxesCents === null || facts.ratesAndTaxesCents === undefined ? 'Rates and taxes were not established from the supplied evidence.' : null,
+    renovated ? 'Renovation is listing-supported, not independently inspected; quality and workmanship should be verified.' : null,
+  ].filter(Boolean) as string[];
+
+  const verifiedFacts: Array<[string, string]> = [
+    ['Asking Price', price],
+    ['Property Type', propertyType],
+    ['Bedrooms', text(facts.bedrooms)],
+    ['Bathrooms', text(facts.bathrooms)],
+    ['Floor Size', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
+    ['Land Size', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
+    ['Parking', text(facts.parking)],
+    ['Garden', yesNo(facts.hasGarden)],
+    ['Fibre', yesNo(facts.hasFibre)],
+    ['Levies', currency(typeof facts.leviesCents === 'number' ? facts.leviesCents : null)],
+    ['Rates & Taxes', currency(typeof facts.ratesAndTaxesCents === 'number' ? facts.ratesAndTaxesCents : null)],
+  ];
+
+  const proSections = [
+    ['Comparable Market Evidence', investor.comparableSales],
+    ['Rental Demand', investor.rentalDemand],
+    ['Negotiation Opportunities', investor.negotiationOpportunities],
+    ['Investment Risks', investor.investmentRisks],
+    ['Growth Outlook', investor.growthOutlook],
+    ['Exit Strategy', investor.exitStrategy],
+  ] as const;
+
+  return (
     <main className="min-h-screen bg-midnight px-4 py-6 text-white sm:px-8 sm:py-10 print:bg-white print:text-black">
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex justify-end print:hidden"><ReportPrintButton /></div>
