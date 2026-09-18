@@ -586,12 +586,10 @@ function parseProperty24Facts(
     return { facts: emptyFacts(), evidence: [] };
   }
 
+  const primary = parseProperty24PrimaryListingFacts(body);
   const overview = parseProperty24Overview(body);
   const labeledOverview = parseProperty24LabeledOverview(body);
   const keyFeatures = parseProperty24KeyFeatures(body);
-
-  return {
-    const primary = parseProperty24PrimaryListingFacts(body);
 
   return {
     facts: mergeFacts(
@@ -608,7 +606,6 @@ function parseProperty24Facts(
       labeledOverview.evidence,
       keyFeatures.evidence,
     ),
-  };
   };
 }
 
