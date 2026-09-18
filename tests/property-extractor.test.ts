@@ -291,7 +291,6 @@ test('extracts the verified Property24 overview fields for listing 117638664', a
     '<div>2 Bathrooms</div>' +
     '<div>Features Bedrooms 2 Bathrooms 2 Parking 2 Pet Friendly Garden Fibre Internet</div>' +
     '<div>Property Overview</div>' +
-    '<div>Listing Number 117638664</div>' +
     '<div>Type of Property House</div>' +
     '<div>Street Address 53 Lytton Street, Observatory</div>' +
     '<div>Listing Date 18 September 2026</div>' +
