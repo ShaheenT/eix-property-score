@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { verifyPaystackWebhookSignature, verifyPaystackTransaction } from '@/lib/paystack';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 type PaystackMetadata = {
   submission_id?: string;
