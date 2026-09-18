@@ -95,8 +95,8 @@ export default function SuccessPage() {
           title={paymentConfirmed ? 'Payment received' : 'Confirming your payment'}
           message="Your payment is being confirmed securely by PayFast. Once confirmed, EiX Property Score™ analyses the property evidence you submitted and prepares your report."
           steps={[
-            'Payment confirmed securely via PayFast.',
-            'Your property evidence is being analysed.',
+            paymentConfirmed ? 'Payment confirmed securely via PayFast.' : 'Secure payment confirmation is being checked with PayFast.',
+            paymentConfirmed ? 'Your property evidence is being analysed.' : 'Your property analysis will begin once payment is confirmed.',
             reportUrl ? 'Your EiX Property Score™ report is ready.' : status,
           ]}
           accent="teal"
