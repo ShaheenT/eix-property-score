@@ -36,11 +36,17 @@ export async function processReport(submissionId: string, options: ProcessReport
   if (!['paid', 'report_sent'].includes(submission.status)) throw new Error('Submission is not paid');
   if (!['Buy to Live', 'Rental', 'Flip'].includes(submission.goal)) throw new Error('Invalid submission goal');
 
-  const { data: queuedReport, error: reportError } = await supabaseAdmin.from('reports').select('id, status, report_type, access_token').eq('submission_id', submissionId).eq('report_type', reportType).maybeSingle();
+  const { data: queuedReport, error: reportError } = await supabaseAdmin.from('reports').select('id, status, report_type, access_token, updated_at').eq('submission_id', submissionId).eq('report_type', reportType).maybeSingle();
   if (reportError) throw reportError;
   if (!queuedReport) throw new Error(`Report record not found: ${reportType}`);
   if (queuedReport.status === 'sent') return { status: 'already_sent', reportId: queuedReport.id, reportType };
-  if (queuedReport.status === 'processing') return { status: 'processing', reportId: queuedReport.id, reportType };
+  if (queuedReport.status === 'processing') {
+    const updatedAt = typeof queuedReport.updated_at === 'string' ? Date.parse(queuedReport.updated_at) : NaN;
+    const processingAgeMs = Number.isFinite(updatedAt) ? Date.now() - updatedAt : 0;
+    if (processingAgeMs < 5 * 60 * 1000) return { status: 'processing', reportId: queuedReport.id, reportType };
+    const { error: staleResetError } = await supabaseAdmin.from('reports').update({ status: 'queued' }).eq('id', queuedReport.id).eq('status', 'processing');
+    if (staleResetError) throw staleResetError;
+  }
 
   const { data: claimed } = await supabaseAdmin.from('reports').update({ status: 'processing' }).eq('id', queuedReport.id).in('status', ['queued', 'failed']).select('id').maybeSingle();
   if (!claimed) {
