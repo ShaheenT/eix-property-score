@@ -338,6 +338,48 @@ function hasMatchingProperty24Listing(body: string, listingId: string): boolean 
   return patterns.some((pattern) => pattern.test(body));
 }
 
+function parseProperty24PrimaryListingFacts(
+  body: string,
+): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+  const text = decodeHtmlEntities(body);
+
+  const add = <K extends keyof PropertyFacts>(
+    field: K,
+    value: Exclude<PropertyFacts[K], null>,
+    raw: string,
+  ) => {
+    if (facts[field] !== null && facts[field] !== undefined) return;
+    facts[field] = value;
+    evidence.push({ field, value: raw, source: 'html' });
+  };
+
+  const summary = text.match(
+    /\b(\d+)\s+Bedroom\s+(House|Apartment|Townhouse|Duplex|Farm|Vacant Land|Land)\s+for Sale in\s+[A-Za-z][A-Za-z0-9 .'-]+?\s+(\d+\s+[^,]+,\s*[^,]+,\s*[^0-9]+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9]+(?:\.\d+)?)\s*m(?:2|²)\b/i,
+  );
+
+  if (summary) {
+    add('bedrooms', Number(summary[1]), summary[1]);
+    add('propertyType', summary[2], summary[2]);
+    add('address', summary[3].trim(), summary[3].trim());
+    add('bathrooms', Number(summary[5]), summary[5]);
+    add('parking', Number(summary[6]), summary[6]);
+    add('floorSizeM2', Number(summary[7]), summary[7]);
+  }
+
+  const floor = text.match(/\bFloor\s*m(?:2|²)\s*:\s*\+?-?\s*([0-9]+(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  if (floor?.[1]) add('floorSizeM2', Number(floor[1]), floor[0]);
+
+  const erf = text.match(/\bErf\s*:\s*([0-9]+(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  if (erf?.[1]) add('landSizeM2', Number(erf[1]), erf[0]);
+
+  const description = text.match(/\bDescription\s+([\s\S]{80,2200}?)(?=\s+Read full description\b|\s+Property Overview\b|\s+Property Details\b)/i);
+  if (description?.[1]) add('description', description[1].trim(), description[1].trim());
+
+  return { facts, evidence };
+}
+
 function parseProperty24Overview(
   body: string,
 ): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
@@ -549,18 +591,24 @@ function parseProperty24Facts(
   const keyFeatures = parseProperty24KeyFeatures(body);
 
   return {
+    const primary = parseProperty24PrimaryListingFacts(body);
+
+  return {
     facts: mergeFacts(
       emptyFacts(),
+      primary.facts,
       overview.facts,
       labeledOverview.facts,
       keyFeatures.facts,
     ),
     evidence: mergeEvidence(
       [],
+      primary.evidence,
       overview.evidence,
       labeledOverview.evidence,
       keyFeatures.evidence,
     ),
+  };
   };
 }
 
