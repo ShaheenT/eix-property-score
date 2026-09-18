@@ -331,7 +331,7 @@ function hasMatchingProperty24Listing(body: string, listingId: string): boolean 
     new RegExp(`data-listingnumber\\s*=\\s*["']${escaped}["']`, 'i'),
     new RegExp(`listing(?:Number|number)\\s*[:=]\\s*["']?${escaped}["']?`, 'i'),
     new RegExp(`Listing Number\\s*${escaped}`, 'i'),
-    new RegExp(`P24-\${escaped}\b`, 'i'),
+    new RegExp(`P24-${escaped}\\b`, 'i'),
   ];
   return patterns.some((pattern) => pattern.test(body));
 }
