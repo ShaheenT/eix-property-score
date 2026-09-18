@@ -41,6 +41,7 @@ const EMPTY_FACTS: PropertyFacts = {
   floorSizeM2: null,
   landSizeM2: null,
   description: null,
+  primaryImageUrl: null,
   garages: null,
   parking: null,
   hasStudy: null,
