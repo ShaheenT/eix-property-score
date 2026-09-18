@@ -4,6 +4,7 @@ import { verifyPaystackTransaction } from '@/lib/paystack';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
   }
 
   const reportType = requestedReportType as ReportType;
+  const requestOrigin = req.nextUrl.origin;
 
   try {
     let submissionId = submissionIdParam;
@@ -147,7 +149,7 @@ export async function GET(req: NextRequest) {
       if (createReportError) throw createReportError;
 
       try {
-        const result = await processReport(submissionId, { reportType });
+        const result = await processReport(submissionId, { reportType, baseUrl: requestOrigin });
         if (result.status === 'completed' && 'reportUrl' in result) {
           return NextResponse.json({ status: 'completed', reportType, submissionId, reportUrl: result.reportUrl });
         }
@@ -160,7 +162,7 @@ export async function GET(req: NextRequest) {
 
     if (report.status === 'completed' || report.status === 'sent') {
       const reportUrl =
-        `${BASE_URL}/report/${report.id}?token=${encodeURIComponent(report.access_token || '')}`;
+        `${requestOrigin}/report/${report.id}?token=${encodeURIComponent(report.access_token || '')}`;
       return NextResponse.json({ status: 'completed', reportType, submissionId, reportUrl });
     }
 
