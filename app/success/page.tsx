@@ -8,7 +8,7 @@ export default function SuccessPage() {
   const [mounted, setMounted] = useState(false);
   const [reportUrl, setReportUrl] = useState<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
-  const [status, setStatus] = useState('Checking payment and preparing your report…');
+  const [status, setStatus] = useState('Confirming your payment and preparing your report…');
   const [failed, setFailed] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
@@ -68,11 +68,11 @@ export default function SuccessPage() {
           setStatus('We are retrying your report preparation…');
         }
       } catch {
-        setStatus('We are checking your report status…');
+        setStatus('We are checking your report status securely…');
       }
       if (attempts < 30) timer = setTimeout(check, 2000);
       else {
-        setStatus('Your payment is recorded, but the report is taking longer than expected. Please try again shortly.');
+        setStatus('Your payment is recorded securely, but the report is taking longer than expected. Please try again shortly.');
         setFailed(true);
       }
     };
@@ -92,11 +92,11 @@ export default function SuccessPage() {
       <div className={`relative z-10 w-full max-w-2xl ${mounted ? 'animate-scale-in' : 'opacity-0'}`}>
         <div className="mb-8 flex items-center justify-center"><img src="/eixproplogo.png" alt="EiX Property Score" className="h-16 w-auto object-contain" /></div>
         <SuccessCard
-          title={paymentConfirmed ? 'Payment Received' : 'Confirming Your Payment'}
-          message="Your EiX Property Score™ request is being checked securely. Once PayFast confirms the payment, we prepare the report from the property listing you submitted."
+          title={paymentConfirmed ? 'Payment received' : 'Confirming your payment'}
+          message="Your payment is being confirmed securely by PayFast. Once confirmed, EiX Property Score™ analyses the property evidence you submitted and prepares your report."
           steps={[
-            'Payment confirmation is checked securely.',
-            'Your submitted property listing is analysed.',
+            'Payment confirmed securely via PayFast.',
+            'Your property evidence is being analysed.',
             reportUrl ? 'Your EiX Property Score™ report is ready.' : status,
           ]}
           accent="teal"
@@ -104,8 +104,8 @@ export default function SuccessPage() {
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
           {reportUrl ? <>
             <CheckCircle2 className="mx-auto h-8 w-8 text-teal-400" />
-            <p className="mt-3 text-lg font-semibold">Your R149 report is ready</p>
-            <a href={reportUrl} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-teal-400 px-8 py-4 text-sm font-bold text-midnight-900 transition-all hover:brightness-110">View My Report<ArrowRight className="h-4 w-4" /></a>
+            <p className="mt-3 text-lg font-semibold">Your EiX Property Score™ report is ready</p>
+            <a href={reportUrl} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-teal-400 px-8 py-4 text-sm font-bold text-midnight-900 transition-all hover:brightness-110">View My EiX Property Score™ Report<ArrowRight className="h-4 w-4" /></a>
           </> : <>
             <Loader2 className={`mx-auto h-8 w-8 text-teal-400 ${failed ? '' : 'animate-spin'}`} />
             <p className="mt-3 text-sm text-white/60">{status}</p>
