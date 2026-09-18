@@ -63,7 +63,24 @@ export function LeadForm() {
   const inputClass = 'w-full min-w-0 rounded-xl border border-[#2A2D27]/12 bg-white px-4 py-3.5 text-[#20231F] shadow-none placeholder:text-[#92958D] focus-visible:ring-[#0E847B]/30';
   return (
     <form onSubmit={handleSubmit} className="min-w-0 rounded-[2rem] border border-[#2A2D27]/10 bg-[#FFFDF8] p-6 shadow-[0_20px_60px_rgba(42,45,39,.08)] sm:p-7" noValidate>
-      <div className="mb-6 flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F7F5] ring-1 ring-[#0E847B]/15"><Sparkles className="h-4 w-4 text-[#0E847B]" /></div><div><h3 className="text-base font-semibold">Analyse This Property — {priceLabel}</h3><p className="text-xs text-[#6A6D66]">{buyerType === 'international' ? 'International Buyer Intelligence · evidence-based report within 24 hours' : 'EiXPropScore™ Founding Beta · evidence-based report within 24 hours'}</p></div></div>
+      <div className="mb-6 rounded-2xl border border-[#2A2D27]/8 bg-white px-4 py-4 sm:px-5">
+        <div className="flex items-center justify-between gap-4">
+          <img src="/images/eix-property-score-logo.svg" alt="EiX Property Score" className="h-10 w-auto object-contain sm:h-12" />
+          <div className="flex items-center gap-2 rounded-full bg-[#E8F7F5] px-3 py-1.5 text-[11px] font-semibold text-[#0E847B] ring-1 ring-[#0E847B]/15">
+            <Lock className="h-3.5 w-3.5" /> Secure checkout
+          </div>
+        </div>
+        <div className="mt-4 flex items-end justify-between gap-4 border-t border-[#2A2D27]/8 pt-4">
+          <div>
+            <p className="text-sm font-semibold text-[#20231F]">EiX Property Score™ Report</p>
+            <p className="mt-1 text-xs text-[#6A6D66]">{buyerType === 'international' ? 'International Buyer Intelligence · one property · delivered within 24 hours' : 'Founding Beta · one property · delivered within 24 hours'}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-lg font-bold text-[#20231F]">{priceLabel}</p>
+            <p className="text-[10px] text-[#777970]">one-time</p>
+          </div>
+        </div>
+      </div>
       <div className="space-y-4">
         <div className="space-y-2"><Label className="text-[#4B4E47]">Full Name <span className="text-[#0E847B]">*</span></Label><Input required value={form.name} onChange={(e) => handleChange('name', e.target.value)} placeholder="e.g. Thabo Mokoena" className={inputClass} autoComplete="name" /></div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><div className="space-y-2"><Label className="text-[#4B4E47]">Email <span className="text-[#0E847B]">*</span></Label><Input required type="email" value={form.email} onChange={(e) => handleChange('email', e.target.value)} placeholder="you@email.com" className={inputClass} autoComplete="email" /></div><div className="space-y-2"><Label className="text-[#4B4E47]">WhatsApp <span className="text-[#0E847B]">*</span></Label><Input required inputMode="tel" value={form.whatsapp} onChange={(e) => handleChange('whatsapp', e.target.value)} placeholder="+44 7700 900123" className={inputClass} autoComplete="tel" /></div></div>
