@@ -36,9 +36,9 @@ function SignalCard({ label, value, detail, tone = 'neutral' }: { label: string;
       : 'border-white/10 bg-white/[0.035]';
   return (
     <div className={`rounded-2xl border p-5 ${toneClass}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">{label}</p>
       <p className="mt-2 text-lg font-bold tracking-tight">{value}</p>
-      {detail && <p className="mt-2 text-xs leading-5 text-white/45">{detail}</p>}
+      {detail && <p className="mt-2 text-xs leading-5 text-white/65">{detail}</p>}
     </div>
   );
 }
@@ -190,44 +190,34 @@ export default async function CustomerReportPage({
   return (
     <main className="min-h-screen bg-midnight px-4 py-6 text-white sm:px-8 sm:py-10 print:bg-white print:text-black">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-5 flex items-center justify-between print:hidden">
-          <div>
-            <p className="text-sm font-bold tracking-tight">EiX Property Score™</p>
-            <p className="text-[9px] uppercase tracking-[0.2em] text-white/35">Property intelligence · Founding Beta</p>
-          </div>
-          <ReportPrintButton />
-        </header>
+        <div className="mb-5 flex justify-end print:hidden"><ReportPrintButton /></div>
 
         {!isPro && (
           <section className="overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] via-white/[0.025] to-teal-300/[0.04] p-6 shadow-2xl shadow-black/20 sm:p-9">
             <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-3xl">
-                <div className="flex flex-wrap items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.2em]">
-                  <span className="rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-teal-200">Property Intelligence</span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/40">Founding Beta</span>
-                </div>
                 <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-5xl">{title}</h1>
                 <p className="mt-2 text-sm text-white/70">{address}</p>
                 {primaryImageUrl && (
                   <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035]">
                     <img src={primaryImageUrl} alt="Property listing" className="h-56 w-full object-cover sm:h-72" loading="eager" referrerPolicy="no-referrer" />
-                    <p className="px-4 py-2 text-[10px] text-white/45">Property image from the submitted listing source.</p>
+                    <p className="px-4 py-2 text-[10px] text-white/65">Property image from the submitted listing source.</p>
                   </div>
                 )}
                 <div className="mt-7 flex flex-wrap items-end gap-x-8 gap-y-4">
-                  <div><p className="text-[9px] uppercase tracking-[0.18em] text-white/30">Asking</p><p className="mt-1 text-3xl font-bold">{price}</p></div>
-                  <div><p className="text-[9px] uppercase tracking-[0.18em] text-white/30">Price / m²</p><p className="mt-1 text-2xl font-bold">{psm2}</p></div>
-                  <div><p className="text-[9px] uppercase tracking-[0.18em] text-white/30">Market</p><p className="mt-1 text-lg font-semibold text-amber-200">{comparableCount > 0 ? 'Evidence available' : 'Unresolved'}</p></div>
+                  <div><p className="text-[9px] uppercase tracking-[0.18em] text-white/70">Asking</p><p className="mt-1 text-3xl font-bold">{price}</p></div>
+                  <div><p className="text-[9px] uppercase tracking-[0.18em] text-white/70">Price / m²</p><p className="mt-1 text-2xl font-bold">{psm2}</p></div>
+                  <div><p className="text-[9px] uppercase tracking-[0.18em] text-white/70">Market</p><p className="mt-1 text-lg font-semibold text-amber-200">{comparableCount > 0 ? 'Evidence available' : 'Unresolved'}</p></div>
                 </div>
               </div>
 
               <div className="flex shrink-0 flex-col items-center lg:items-end">
                 <div className="relative grid h-40 w-40 place-items-center rounded-full p-[10px]" style={{ background: `conic-gradient(#2dd4bf ${Math.max(0, Math.min(100, scoreNumber ?? 0))}%, rgba(255,255,255,.08) 0)` }}>
                   <div className="grid h-full w-full place-items-center rounded-full bg-[#07110f]">
-                    <div className="text-center"><p className="text-5xl font-black tracking-tighter text-teal-300">{scoreNumber ?? '—'}</p><p className="text-[9px] uppercase tracking-[0.2em] text-white/35">EiX Buyer Signal</p></div>
+                    <div className="text-center"><p className="text-5xl font-black tracking-tighter text-teal-300">{scoreNumber ?? '—'}</p><p className="text-[9px] uppercase tracking-[0.2em] text-white/60">EiX Buyer Signal</p></div>
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-white/40">Confidence {report.ai_confidence ?? 0}% · {report.confidence_label || 'Unknown'}</p>
+                <p className="mt-3 text-xs text-white/65">Confidence {report.ai_confidence ?? 0}% · {report.confidence_label || 'Unknown'}</p>
               </div>
             </div>
 
@@ -248,7 +238,7 @@ export default async function CustomerReportPage({
         {!isPro && (
           <>
             <Section eyebrow="The EiX X-Ray" title="What the listing says is not the same as what it means.">
-              <p className="mt-4 max-w-4xl text-sm leading-7 text-white/55">{insight}</p>
+              <p className="mt-4 max-w-4xl text-sm leading-7 text-white/70">{insight}</p>
               <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <SignalCard label="LAND" value={landM2 !== null ? `${number(landM2)} m² erf` : 'Not verified'} detail="Private land component." tone="positive" />
                 <SignalCard label="BUILDING" value={floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'} detail={floorM2 !== null && askingPrice !== null ? `${psm2} asking price / m²` : 'Derived metric unavailable'} />
@@ -256,8 +246,8 @@ export default async function CustomerReportPage({
                 <SignalCard label="RUNNING COST" value={currency(typeof facts.ratesAndTaxesCents === 'number' ? facts.ratesAndTaxesCents : null)} detail="Stated rates & taxes." />
               </div>
               <div className="mt-7 grid gap-4 lg:grid-cols-2">
-                <div className="rounded-2xl border border-teal-300/15 bg-teal-300/[0.04] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200/70">Positive buyer signal</p><p className="mt-2 text-lg font-bold">The property proposition is stronger than the bedroom count alone suggests.</p><p className="mt-2 text-sm leading-6 text-white/50">Renovation, land, parking, bathrooms, garden and fibre are relevant characteristics. EiX interprets them; it does not claim an independent inspection.</p></div>
-                <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200/70">Unresolved buyer signal</p><p className="mt-2 text-lg font-bold">The asking price has no sufficiently verified market anchor yet.</p><p className="mt-2 text-sm leading-6 text-white/50">That is the specific gap that can change the transaction decision — and therefore the gap EiX puts at the centre of this report.</p></div>
+                <div className="rounded-2xl border border-teal-300/15 bg-teal-300/[0.04] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200/70">Positive buyer signal</p><p className="mt-2 text-lg font-bold">The property proposition is stronger than the bedroom count alone suggests.</p><p className="mt-2 text-sm leading-6 text-white/70">Renovation, land, parking, bathrooms, garden and fibre are relevant characteristics. EiX interprets them; it does not claim an independent inspection.</p></div>
+                <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200/70">Unresolved buyer signal</p><p className="mt-2 text-lg font-bold">The asking price has no sufficiently verified market anchor yet.</p><p className="mt-2 text-sm leading-6 text-white/70">That is the specific gap that can change the transaction decision — and therefore the gap EiX puts at the centre of this report.</p></div>
               </div>
             </Section>
 
@@ -274,22 +264,22 @@ export default async function CustomerReportPage({
 
             <Section eyebrow="EiX Decision Engine" title="What would change the decision?">
               <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">01 · Price evidence</p><p className="mt-3 font-bold">If comparable evidence supports the asking price</p><p className="mt-2 text-sm leading-6 text-white/50">Price concern reduces and the physical proposition becomes easier to assess on its own merits.</p></div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">02 · Market pressure</p><p className="mt-3 font-bold">If comparable evidence clusters below the asking price</p><p className="mt-2 text-sm leading-6 text-white/50">Negotiation becomes materially more important. EiX does not invent a discount percentage.</p></div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">03 · Income evidence</p><p className="mt-3 font-bold">If achievable rent produces weak economics</p><p className="mt-2 text-sm leading-6 text-white/50">The investment case weakens, even if the property is attractive to an owner-occupier.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">01 · Price evidence</p><p className="mt-3 font-bold">If comparable evidence supports the asking price</p><p className="mt-2 text-sm leading-6 text-white/70">Price concern reduces and the physical proposition becomes easier to assess on its own merits.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">02 · Market pressure</p><p className="mt-3 font-bold">If comparable evidence clusters below the asking price</p><p className="mt-2 text-sm leading-6 text-white/70">Negotiation becomes materially more important. EiX does not invent a discount percentage.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">03 · Income evidence</p><p className="mt-3 font-bold">If achievable rent produces weak economics</p><p className="mt-2 text-sm leading-6 text-white/70">The investment case weakens, even if the property is attractive to an owner-occupier.</p></div>
               </div>
             </Section>
 
             <Section eyebrow="EiX Evidence Map" title="The facts that actually move the decision.">
               <div className="mt-6 overflow-hidden rounded-2xl border border-white/10">
-                <div className="hidden grid-cols-[1.2fr_1fr_.7fr] bg-white/[0.045] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.18em] text-white/30 sm:grid"><span>Evidence</span><span>Finding</span><span>Decision impact</span></div>
+                <div className="hidden grid-cols-[1.2fr_1fr_.7fr] bg-white/[0.045] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.18em] text-white/70 sm:grid"><span>Evidence</span><span>Finding</span><span>Decision impact</span></div>
                 {evidenceMap.map(([finding, value, impact]) => (
                   <div key={finding} className="grid gap-1 border-t border-white/10 px-5 py-4 sm:grid-cols-[1.2fr_1fr_.7fr] sm:gap-4">
-                    <span className="text-sm font-semibold">{finding}</span><span className="text-sm text-white/55">{value}</span><span className={`text-[10px] font-bold tracking-[0.12em] ${impact === 'VERY HIGH' ? 'text-amber-200' : 'text-white/35'}`}>{impact}</span>
+                    <span className="text-sm font-semibold">{finding}</span><span className="text-sm text-white/70">{value}</span><span className={`text-[10px] font-bold tracking-[0.12em] ${impact === 'VERY HIGH' ? 'text-amber-200' : 'text-white/60'}`}>{impact}</span>
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-xs text-white/30">Impact describes potential decision significance. It does not mean the underlying fact is independently verified beyond the evidence shown.</p>
+              <p className="mt-4 text-xs text-white/70">Impact describes potential decision significance. It does not mean the underlying fact is independently verified beyond the evidence shown.</p>
             </Section>
 
             <Section eyebrow="Property Anatomy™" title="The property beyond the headline.">
@@ -301,11 +291,11 @@ export default async function CustomerReportPage({
                   ['Bathrooms', text(facts.bathrooms)],
                   ['Parking', text(facts.parking)],
                   ['Garden', yesNo(facts.hasGarden)],
-                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-[9px] uppercase tracking-[0.16em] text-white/30">{label}</p><p className="mt-2 text-lg font-bold">{value}</p></div>)}
+                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-[9px] uppercase tracking-[0.16em] text-white/70">{label}</p><p className="mt-2 text-lg font-bold">{value}</p></div>)}
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/30">Floor-area / erf ratio</p><p className="mt-2 text-3xl font-black">{floorErfRatio}</p><p className="mt-2 text-sm leading-6 text-white/45">This is a derived floor-area-to-erf relationship. It is not the property's stated site coverage.</p></div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/30">Why the ratio matters</p><p className="mt-2 text-lg font-bold">You can compare the physical proposition, not just the bedroom count.</p><p className="mt-2 text-sm leading-6 text-white/45">Land, internal space, outdoor space and parking can materially change how similar properties should be compared.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Floor-area / erf ratio</p><p className="mt-2 text-3xl font-black">{floorErfRatio}</p><p className="mt-2 text-sm leading-6 text-white/65">This is a derived floor-area-to-erf relationship. It is not the property's stated site coverage.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Why the ratio matters</p><p className="mt-2 text-lg font-bold">You can compare the physical proposition, not just the bedroom count.</p><p className="mt-2 text-sm leading-6 text-white/65">Land, internal space, outdoor space and parking can materially change how similar properties should be compared.</p></div>
               </div>
             </Section>
 
@@ -323,12 +313,12 @@ export default async function CustomerReportPage({
               <div className="mt-6 space-y-3">
                 {buyerQuestions.map((question, index) => <div key={question} className="flex gap-4 rounded-2xl border border-white/10 bg-white/[0.035] p-5"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal-300/10 text-xs font-bold text-teal-200">{String(index + 1).padStart(2, '0')}</span><p className="pt-1 text-sm leading-6 text-white/70">{question}</p></div>)}
               </div>
-              <div className="mt-5 flex items-center justify-between rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-5"><div><p className="text-[10px] uppercase tracking-[0.16em] text-amber-200/60">EiX Offer Readiness</p><p className="mt-1 text-xl font-black">{comparableCount > 0 ? 'Evidence-led' : '2 / 5'}</p></div><p className="max-w-md text-right text-xs leading-5 text-white/45">Do not negotiate from the asking price alone. Build your position from comparable evidence first.</p></div>
+              <div className="mt-5 flex items-center justify-between rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-5"><div><p className="text-[10px] uppercase tracking-[0.16em] text-amber-200/60">EiX Offer Readiness</p><p className="mt-1 text-xl font-black">{comparableCount > 0 ? 'Evidence-led' : '2 / 5'}</p></div><p className="max-w-md text-right text-xs leading-5 text-white/65">Do not negotiate from the asking price alone. Build your position from comparable evidence first.</p></div>
             </Section>
 
             <Section eyebrow="Negotiation Intelligence" title="Know what you need before you negotiate.">
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {negotiationItems.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><p className="text-[9px] uppercase tracking-[0.15em] text-white/30">{label}</p><p className="mt-2 text-sm font-semibold">{value}</p></div>)}
+                {negotiationItems.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><p className="text-[9px] uppercase tracking-[0.15em] text-white/70">{label}</p><p className="mt-2 text-sm font-semibold">{value}</p></div>)}
               </div>
               <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-5 text-sm font-semibold leading-6 text-white/70">EiX cannot responsibly recommend a discount percentage without verified comparable evidence. The product should give the buyer the evidence needed to negotiate, not manufacture a number that looks impressive.</p>
             </Section>
@@ -343,8 +333,8 @@ export default async function CustomerReportPage({
                 ].map(([label, value]) => <SignalCard key={label} label={label} value={value} />)}
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/30">Cash requirement</p><p className="mt-2 text-sm leading-6 text-white/55">Deposit plus applicable transfer/acquisition costs and legal/conveyancing costs where relevant.</p></div>
-                <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-amber-200/60">Important</p><p className="mt-2 text-sm leading-6 text-white/55">This is an illustrative financing scenario, not a lending quote.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Cash requirement</p><p className="mt-2 text-sm leading-6 text-white/70">Deposit plus applicable transfer/acquisition costs and legal/conveyancing costs where relevant.</p></div>
+                <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-amber-200/60">Important</p><p className="mt-2 text-sm leading-6 text-white/70">This is an illustrative financing scenario, not a lending quote.</p></div>
               </div>
             </Section>
 
@@ -358,7 +348,7 @@ export default async function CustomerReportPage({
                   ['PARKING', facts.parking !== null && facts.parking !== undefined ? `${facts.parking} spaces recorded.` : 'Not established.'],
                   ['CONNECTIVITY', facts.hasFibre ? 'Fibre recorded.' : 'Not established.'],
                   ['MARKET CERTAINTY', comparableCount > 0 ? 'Comparable evidence available.' : 'Needs comparable evidence.'],
-                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><p className="text-[9px] font-bold tracking-[0.16em] text-teal-200/70">{label}</p><p className="mt-2 text-sm leading-6 text-white/50">{value}</p></div>)}
+                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><p className="text-[9px] font-bold tracking-[0.16em] text-teal-200/70">{label}</p><p className="mt-2 text-sm leading-6 text-white/70">{value}</p></div>)}
               </div>
             </Section>
 
@@ -370,7 +360,7 @@ export default async function CustomerReportPage({
 
             <Section eyebrow="Due-Diligence Priorities" title="Exactly what should be verified next.">
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {limitations.length > 0 ? limitations.map((item, index) => <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/25">Priority {String(index + 1).padStart(2, '0')}</p><p className="mt-2 text-sm leading-6 text-white/60">{item}</p></div>) : <div className="rounded-2xl border border-teal-300/15 bg-teal-300/[0.04] p-5 text-sm text-white/60">No material evidence gaps were recorded.</div>}
+                {limitations.length > 0 ? limitations.map((item, index) => <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/70">Priority {String(index + 1).padStart(2, '0')}</p><p className="mt-2 text-sm leading-6 text-white/60">{item}</p></div>) : <div className="rounded-2xl border border-teal-300/15 bg-teal-300/[0.04] p-5 text-sm text-white/60">No material evidence gaps were recorded.</div>}
               </div>
             </Section>
 
@@ -384,7 +374,7 @@ export default async function CustomerReportPage({
 
             <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.025] p-6 sm:p-8">
               <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-300">Your Next EiX Decision</p><h2 className="mt-2 text-2xl font-black">The next layer is where deeper evidence becomes valuable.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/50">The R149 report identifies the decision bottleneck. The Investor Report is designed to go deeper into the evidence required to act on it.</p></div>
+                <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-300">Your Next EiX Decision</p><h2 className="mt-2 text-2xl font-black">The next layer is where deeper evidence becomes valuable.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">The R149 report identifies the decision bottleneck. The Investor Report is designed to go deeper into the evidence required to act on it.</p></div>
                 <div className="shrink-0 rounded-2xl border border-teal-300/20 bg-teal-300/[0.06] px-6 py-5"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-teal-200/70">EiX Investor Report</p><p className="mt-1 text-2xl font-black">R349</p></div>
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -397,18 +387,18 @@ export default async function CustomerReportPage({
         <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.02] p-6 sm:p-8">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-300">Evidence & Sources</p>
           <h2 className="mt-2 text-2xl font-bold">Audit trail</h2>
-          <p className="mt-2 text-sm text-white/40">The detailed evidence layer sits underneath the decision layer so the customer sees the intelligence first and can audit the source facts when needed.</p>
+          <p className="mt-2 text-sm text-white/65">The detailed evidence layer sits underneath the decision layer so the customer sees the intelligence first and can audit the source facts when needed.</p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {verifiedFacts.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4"><p className="text-[9px] uppercase tracking-[0.14em] text-white/25">{label}</p><p className="mt-1 text-sm font-semibold">{value}</p></div>)}
+            {verifiedFacts.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4"><p className="text-[9px] uppercase tracking-[0.14em] text-white/70">{label}</p><p className="mt-1 text-sm font-semibold">{value}</p></div>)}
           </div>
-          <p className="mt-5 text-xs text-white/25">Evidence records attached: {evidence.length}</p>
+          <p className="mt-5 text-xs text-white/70">Evidence records attached: {evidence.length}</p>
         </section>
 
         {internationalBuyer?.profile?.buyerType === 'international' && (
           <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.02] p-6 sm:p-8">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-300">International Buyer Intelligence</p>
             <h2 className="mt-2 text-2xl font-bold">Cross-border acquisition context</h2>
-            <p className="mt-2 text-sm leading-6 text-white/45">Evidence-led intelligence for international purchasers. This does not constitute legal, tax, immigration or formal valuation advice.</p>
+            <p className="mt-2 text-sm leading-6 text-white/65">Evidence-led intelligence for international purchasers. This does not constitute legal, tax, immigration or formal valuation advice.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <SignalCard label="Buyer country" value={text(internationalBuyer.profile?.buyerCountry)} />
               <SignalCard label="Purpose" value={text(internationalBuyer.profile?.buyerPurpose)} />
@@ -422,15 +412,15 @@ export default async function CustomerReportPage({
           <section className="mt-6 rounded-[28px] border border-teal-300/15 bg-white/[0.02] p-6 sm:p-8">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-300">Investor Analysis</p>
             <h2 className="mt-2 text-2xl font-bold">Deeper investment intelligence</h2>
-            <p className="mt-2 text-sm text-white/45">The Investor Report retains its evidence-backed acquisition analysis.</p>
-            {proSections.map(([sectionTitle, section]) => section && <div key={sectionTitle} className="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-5"><div className="flex justify-between gap-4"><h3 className="font-semibold">{sectionTitle}</h3><span className="text-[10px] uppercase tracking-[0.12em] text-white/30">{text(section?.status, 'INSUFFICIENT_DATA')}</span></div><p className="mt-2 text-sm leading-6 text-white/50">{text(section?.summary)}</p></div>)}
+            <p className="mt-2 text-sm text-white/65">The Investor Report retains its evidence-backed acquisition analysis.</p>
+            {proSections.map(([sectionTitle, section]) => section && <div key={sectionTitle} className="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-5"><div className="flex justify-between gap-4"><h3 className="font-semibold">{sectionTitle}</h3><span className="text-[10px] uppercase tracking-[0.12em] text-white/70">{text(section?.status, 'INSUFFICIENT_DATA')}</span></div><p className="mt-2 text-sm leading-6 text-white/70">{text(section?.summary)}</p></div>)}
           </section>
         )}
 
         <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.02] p-6 sm:p-8">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/30">Method & Important Limitations</p>
-          <p className="mt-3 text-sm leading-7 text-white/45">EiX Property Score™ provides property decision intelligence based on available evidence and stated assumptions. It is not a formal property valuation, financial advice, legal advice, tax advice or investment guarantee. Information should be independently verified before making a transaction decision.</p>
-          {assumptions.length > 0 && <div className="mt-5"><p className="text-sm font-semibold">Scenario assumptions</p><ul className="mt-3 space-y-2 text-sm text-white/40">{assumptions.map((item) => <li key={item}>• {item}</li>)}</ul></div>}
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">Method & Important Limitations</p>
+          <p className="mt-3 text-sm leading-7 text-white/65">EiX Property Score™ provides property decision intelligence based on available evidence and stated assumptions. It is not a formal property valuation, financial advice, legal advice, tax advice or investment guarantee. Information should be independently verified before making a transaction decision.</p>
+          {assumptions.length > 0 && <div className="mt-5"><p className="text-sm font-semibold">Scenario assumptions</p><ul className="mt-3 space-y-2 text-sm text-white/65">{assumptions.map((item) => <li key={item}>• {item}</li>)}</ul></div>}
         </section>
 
         <p className="mt-8 pb-8 text-center text-[10px] uppercase tracking-[0.18em] text-white/20">EiX Property Score™ · Listing data → interpretation → decision intelligence → action</p>
