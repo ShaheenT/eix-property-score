@@ -17,6 +17,7 @@ export default function SuccessPage() {
     const params = new URLSearchParams(window.location.search);
     const currentSubmissionId = params.get('submission_id')?.trim() || '';
     const currentPaymentId = params.get('payment_id')?.trim() || '';
+    const currentReference = params.get('reference')?.trim() || '';
     setSubmissionId(currentSubmissionId || null);
 
     if (!currentSubmissionId && !currentPaymentId) {
@@ -34,6 +35,7 @@ export default function SuccessPage() {
         const query = new URLSearchParams();
         if (currentSubmissionId) query.set('submission_id', currentSubmissionId);
         if (currentPaymentId) query.set('payment_id', currentPaymentId);
+        if (currentReference) query.set('reference', currentReference);
 
         const response = await fetch(`/api/report/status?${query.toString()}`, { cache: 'no-store' });
         const data = await response.json().catch(() => ({}));
