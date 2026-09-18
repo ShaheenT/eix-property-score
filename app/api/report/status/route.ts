@@ -139,7 +139,23 @@ export async function GET(req: NextRequest) {
     if (reportError) throw reportError;
 
     if (!report) {
-      return NextResponse.json({ status: 'queued', reportType, submissionId });
+      const { data: createdReport, error: createReportError } = await supabaseAdmin
+        .from('reports')
+        .insert({ submission_id: submissionId, status: 'queued', report_type: reportType })
+        .select('id, status, access_token, report_type')
+        .single();
+      if (createReportError) throw createReportError;
+
+      try {
+        const result = await processReport(submissionId, { reportType });
+        if (result.status === 'completed' && 'reportUrl' in result) {
+          return NextResponse.json({ status: 'completed', reportType, submissionId, reportUrl: result.reportUrl });
+        }
+      } catch (error) {
+        console.error('[Report Status] Initial processing failed', error);
+      }
+
+      return NextResponse.json({ status: createdReport.status, reportType, submissionId });
     }
 
     if (report.status === 'completed' || report.status === 'sent') {
