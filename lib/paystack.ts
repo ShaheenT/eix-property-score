@@ -14,6 +14,7 @@ interface PaystackCheckoutParams {
   customerEmail: string;
   customerName: string;
   product: PaystackProduct;
+  baseUrl?: string;
 }
 
 interface PaystackInitializeResponse {
@@ -39,11 +40,13 @@ export async function initializePaystackTransaction({
   customerEmail,
   customerName,
   product,
+  baseUrl,
 }: PaystackCheckoutParams): Promise<{ url: string; reference: string }> {
   const secretKey = requireSecretKey();
   const isPro = product === 'investor_report_pro';
   const returnPath = isPro ? '/payment/pro-success' : '/success';
-  const callbackUrl = `${BASE_URL}${returnPath}?submission_id=${encodeURIComponent(submissionId)}&payment_id=${encodeURIComponent(paymentId)}`;
+  const callbackBaseUrl = baseUrl || BASE_URL;
+  const callbackUrl = `${callbackBaseUrl}${returnPath}?submission_id=${encodeURIComponent(submissionId)}&payment_id=${encodeURIComponent(paymentId)}`;
   const reference = `eix-${paymentId.replace(/[^a-zA-Z0-9.=-]/g, '').slice(0, 80)}`;
 
   const payload = {
