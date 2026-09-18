@@ -331,6 +331,7 @@ function hasMatchingProperty24Listing(body: string, listingId: string): boolean 
     new RegExp(`data-listingnumber\\s*=\\s*["']${escaped}["']`, 'i'),
     new RegExp(`listing(?:Number|number)\\s*[:=]\\s*["']?${escaped}["']?`, 'i'),
     new RegExp(`Listing Number\\s*${escaped}`, 'i'),
+    new RegExp(`P24-${escaped}\\b`, 'i'),
   ];
   return patterns.some((pattern) => pattern.test(body));
 }
@@ -482,6 +483,53 @@ function parseProperty24KeyFeatures(
   return { facts, evidence };
 }
 
+function parseProperty24LabeledOverview(
+  body: string,
+): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+  const text = decodeHtmlEntities(body);
+
+  const add = <K extends keyof PropertyFacts>(
+    field: K,
+    value: Exclude<PropertyFacts[K], null>,
+    raw: string,
+  ) => {
+    if (facts[field] !== null && facts[field] !== undefined) return;
+    facts[field] = value;
+    evidence.push({ field, value: raw, source: 'html' });
+  };
+
+  const address = text.match(/\bStreet Address\s+(.+?)\s+(?=Listing Date\b)/i);
+  if (address?.[1]) add('address', address[1].trim(), address[1].trim());
+
+  const floorSize = text.match(/\bFloor Size\s*[:\-]?\s*([0-9][0-9\s,]*(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  if (floorSize?.[1]) {
+    const parsed = parseProperty24SizeM2(floorSize[1]);
+    if (parsed !== null) add('floorSizeM2', parsed, floorSize[0]);
+  }
+
+  const landSize = text.match(/\bErf Size\s*[:\-]?\s*([0-9][0-9\s,]*(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  if (landSize?.[1]) {
+    const parsed = parseProperty24SizeM2(landSize[1]);
+    if (parsed !== null) add('landSizeM2', parsed, landSize[0]);
+  }
+
+  const rates = text.match(/\bRates and Taxes\s*[:\-]?\s*R\s*([0-9][0-9\s,]*(?:\.\d+)?)\b/i);
+  if (rates?.[1]) {
+    const cents = parseRandCents(rates[1]);
+    if (cents !== null) add('ratesAndTaxesCents', cents, rates[0]);
+  }
+
+  const parking = text.match(/\bParking\s*[:\-]?\s*([0-9]+)\b/i);
+  if (parking?.[1]) {
+    const parsed = parsePositiveInteger(parking[1]);
+    if (parsed !== null) add('parking', parsed, parking[0]);
+  }
+
+  return { facts, evidence };
+}
+
 function parseProperty24Facts(
   body: string,
   sourceUrl: string,
@@ -492,11 +540,22 @@ function parseProperty24Facts(
   }
 
   const overview = parseProperty24Overview(body);
+  const labeledOverview = parseProperty24LabeledOverview(body);
   const keyFeatures = parseProperty24KeyFeatures(body);
 
   return {
-    facts: mergeFacts(emptyFacts(), overview.facts, keyFeatures.facts),
-    evidence: mergeEvidence([], overview.evidence, keyFeatures.evidence),
+    facts: mergeFacts(
+      emptyFacts(),
+      overview.facts,
+      labeledOverview.facts,
+      keyFeatures.facts,
+    ),
+    evidence: mergeEvidence(
+      [],
+      overview.evidence,
+      labeledOverview.evidence,
+      keyFeatures.evidence,
+    ),
   };
 }
 
