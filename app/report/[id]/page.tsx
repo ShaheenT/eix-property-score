@@ -123,7 +123,7 @@ export default async function CustomerReportPage({
     'What are comparable properties in the same area actually achieving, and how long are they taking to sell?',
     report.rental_yield_percent === null ? 'What rental income could this property realistically generate, and what would the net position be after operating costs?' : 'Does the rental yield remain attractive after realistic operating costs?',
     'Are there additional ownership costs, restrictions or obligations not visible in the supplied listing?',
-    renovated ? 'Does the renovation quality justify any premium over comparable properties?' : 'Does the property's condition justify the asking price relative to comparable properties?',
+    renovated ? 'Does the renovation quality justify any premium over comparable properties?' : `Does the property's condition justify the asking price relative to comparable properties?`,
   ];
 
   const verifiedFacts: Array<[string, string]> = [
