@@ -100,7 +100,7 @@ export default async function CustomerReportPage({
 
   const buyerSignal = comparableCount === 0
     ? scoreNumber !== null && scoreNumber >= 60
-      ? 'PROCEED — BUT CHALLENGE THE PRICE'
+      ? 'PROCEED — WITH PRICE & MARKET CHECK'
       : scoreNumber !== null && scoreNumber >= 50
         ? 'INVESTIGATE — PRICE EVIDENCE REQUIRED'
         : 'CAUTION — RESOLVE MATERIAL GAPS'
