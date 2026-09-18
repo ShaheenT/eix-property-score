@@ -44,7 +44,7 @@ export async function initializePaystackTransaction({
   const isPro = product === 'investor_report_pro';
   const returnPath = isPro ? '/payment/pro-success' : '/success';
   const callbackUrl = `${BASE_URL}${returnPath}?submission_id=${encodeURIComponent(submissionId)}&payment_id=${encodeURIComponent(paymentId)}`;
-  const reference = `eix_${paymentId.replace(/[^a-zA-Z0-9._=-]/g, '').slice(0, 80)}`;
+  const reference = `eix-${paymentId.replace(/[^a-zA-Z0-9.=-]/g, '').slice(0, 80)}`;
 
   const payload = {
     email: customerEmail,
