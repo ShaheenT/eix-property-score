@@ -3,65 +3,33 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { ReportPrintButton } from '@/components/report-print-button';
 
 function currency(cents: number | null | undefined): string {
-  return typeof cents !== 'number' || !Number.isFinite(cents)
-    ? 'Not verified'
-    : `R ${(cents / 100).toLocaleString('en-ZA')}`;
+  return typeof cents !== 'number' || !Number.isFinite(cents) ? 'Not verified' : `R ${(cents / 100).toLocaleString('en-ZA')}`;
 }
-
+function text(value: unknown, fallback = 'Not available'): string {
+  return value === null || value === undefined || value === '' ? fallback : String(value);
+}
 function yesNo(value: unknown): string {
   if (value === true) return 'Yes';
   if (value === false) return 'No';
   return 'Not verified';
 }
-
-function text(value: unknown, fallback = 'Not available'): string {
-  return value === null || value === undefined || value === '' ? fallback : String(value);
-}
-
-function statusLabel(value: unknown): string {
-  return text(value, 'INSUFFICIENT_DATA');
-}
-
 function percent(value: unknown): string {
   return typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)}%` : 'Not available';
 }
-
-function wholeNumber(value: unknown): string {
+function number(value: unknown): string {
   return typeof value === 'number' && Number.isFinite(value) ? value.toLocaleString('en-ZA') : 'Not verified';
 }
-
-function pricePerM2(askingPriceCents: unknown, floorSizeM2: unknown): string {
-  if (
-    typeof askingPriceCents !== 'number' ||
-    !Number.isFinite(askingPriceCents) ||
-    typeof floorSizeM2 !== 'number' ||
-    !Number.isFinite(floorSizeM2) ||
-    floorSizeM2 <= 0
-  ) {
-    return 'Not available';
-  }
-
-  return currency(Math.round(askingPriceCents / floorSizeM2));
+function pricePerM2(priceCents: unknown, floorM2: unknown): string {
+  if (typeof priceCents !== 'number' || typeof floorM2 !== 'number' || !Number.isFinite(priceCents) || !Number.isFinite(floorM2) || floorM2 <= 0) return 'Not available';
+  return currency(Math.round(priceCents / floorM2));
 }
-
-function coveragePercent(floorSizeM2: unknown, landSizeM2: unknown): string {
-  if (
-    typeof floorSizeM2 !== 'number' ||
-    !Number.isFinite(floorSizeM2) ||
-    typeof landSizeM2 !== 'number' ||
-    !Number.isFinite(landSizeM2) ||
-    landSizeM2 <= 0
-  ) {
-    return 'Not available';
-  }
-
-  return `${((floorSizeM2 / landSizeM2) * 100).toFixed(0)}%`;
+function coverage(floorM2: unknown, landM2: unknown): string {
+  if (typeof floorM2 !== 'number' || typeof landM2 !== 'number' || !Number.isFinite(floorM2) || !Number.isFinite(landM2) || landM2 <= 0) return 'Not available';
+  return `${((floorM2 / landM2) * 100).toFixed(0)}%`;
 }
-
-function findingTone(value: 'positive' | 'attention' | 'neutral'): string {
-  if (value === 'positive') return 'border-teal-400/20 bg-teal-400/5';
-  if (value === 'attention') return 'border-amber-300/20 bg-amber-300/5';
-  return 'border-white/10 bg-white/5';
+function contains(textValue: unknown, terms: string[]): boolean {
+  const value = typeof textValue === 'string' ? textValue.toLowerCase() : '';
+  return terms.some((term) => value.includes(term));
 }
 
 export default async function CustomerReportPage({
@@ -77,7 +45,7 @@ export default async function CustomerReportPage({
 
   const { data: report } = await supabaseAdmin
     .from('reports')
-    .select('id, status, report_type, investment_score, ai_confidence, property_facts, property_evidence, score_breakdown, assumptions, limitations, rental_yield_percent, bond_monthly_payment_cents, bond_loan_amount_cents, risk_level, recommendation, confidence_label, access_token, processed_at, investor_analysis, international_buyer_analysis')
+    .select('id,status,report_type,investment_score,ai_confidence,property_facts,property_evidence,score_breakdown,assumptions,limitations,rental_yield_percent,bond_monthly_payment_cents,bond_loan_amount_cents,risk_level,recommendation,confidence_label,access_token,processed_at,investor_analysis,international_buyer_analysis')
     .eq('id', id)
     .eq('access_token', token)
     .single();
@@ -93,22 +61,78 @@ export default async function CustomerReportPage({
   const investor = (report.investor_analysis || {}) as Record<string, any>;
   const internationalBuyer = (report.international_buyer_analysis || null) as Record<string, any> | null;
 
-  const askingPriceCents = typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null;
-  const floorSizeM2 = typeof facts.floorSizeM2 === 'number' ? facts.floorSizeM2 : null;
-  const landSizeM2 = typeof facts.landSizeM2 === 'number' ? facts.landSizeM2 : null;
+  const askingPrice = typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null;
+  const floorM2 = typeof facts.floorSizeM2 === 'number' ? facts.floorSizeM2 : null;
+  const landM2 = typeof facts.landSizeM2 === 'number' ? facts.landSizeM2 : null;
   const comparableCount = Number(score.marketComparableCount || 0);
-  const subjectPricePerM2 = score.subjectPricePerM2Cents ? currency(score.subjectPricePerM2Cents) : pricePerM2(askingPriceCents, floorSizeM2);
-  const subjectVsMedian = comparableCount > 0 ? percent(score.subjectVsMedianPercent) : 'Not established';
+  const psm2 = score.subjectPricePerM2Cents ? currency(score.subjectPricePerM2Cents) : pricePerM2(askingPrice, floorM2);
+  const vsMedian = comparableCount > 0 ? percent(score.subjectVsMedianPercent) : 'Not established';
   const address = text(facts.address, 'Address not verified');
-  const propertyTitle = text(facts.title, 'Property Analysis');
+  const title = text(facts.title, 'Property Analysis');
+  const description = text(facts.description, '');
+  const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
+  const propertyType = text(facts.propertyType, 'Property');
+  const price = currency(askingPrice);
+
+  const scoreNumber = typeof report.investment_score === 'number' ? report.investment_score : null;
+  const buyerSignal = comparableCount === 0
+    ? scoreNumber !== null && scoreNumber >= 60
+      ? 'PROCEED — WITH PRICE & MARKET CHECK'
+      : scoreNumber !== null && scoreNumber >= 50
+        ? 'INVESTIGATE — PRICE & MARKET EVIDENCE REQUIRED'
+        : 'CAUTION — RESOLVE MATERIAL EVIDENCE GAPS'
+    : report.recommendation === 'Buy' || report.recommendation === 'Strong Buy'
+      ? 'PROCEED — REVIEW MARKET EVIDENCE'
+      : report.recommendation === 'Consider'
+        ? 'CONSIDER — REVIEW PRICE & EVIDENCE'
+        : 'CAUTION — INVESTIGATE BEFORE COMMITTING';
+
+  const decisionBody = comparableCount === 0
+    ? `EiX has established the core physical and financial profile of this ${propertyType.toLowerCase()}, but it has not established enough verified comparable market evidence to say whether ${price} represents fair market value. The property may still be worth pursuing; the price question is simply the most important question left to answer.`
+    : `EiX has established a verified comparable set and uses it as a market signal. Read that signal alongside the property's physical profile, financial scenario and due-diligence requirements.`;
+
+  const assessmentHeadline = comparableCount === 0
+    ? scoreNumber !== null && scoreNumber >= 60 ? 'Promising Property — Market Price Requires Verification' : 'Property Requires Further Investigation'
+    : report.recommendation === 'Buy' || report.recommendation === 'Strong Buy' ? 'Positive Signal — Review the Evidence' : report.recommendation === 'Consider' ? 'Consider — Review Price & Evidence' : 'Caution — Investigate Before Committing';
+
+  const evidenceMap: Array<{ finding: string; value: string; impact: string }> = [
+    { finding: 'Asking price', value: price, impact: 'HIGH' },
+    { finding: 'Floor size', value: floorM2 !== null ? `${number(floorM2)} m²` : 'Not established', impact: 'HIGH' },
+    { finding: 'Erf size', value: landM2 !== null ? `${number(landM2)} m²` : 'Not established', impact: 'HIGH' },
+    { finding: 'Parking', value: text(facts.parking, 'Not established'), impact: 'MEDIUM' },
+    { finding: 'Rates & taxes', value: currency(typeof facts.ratesAndTaxesCents === 'number' ? facts.ratesAndTaxesCents : null), impact: 'MEDIUM' },
+    { finding: 'Garden', value: yesNo(facts.hasGarden), impact: 'MEDIUM' },
+    { finding: 'Fibre', value: yesNo(facts.hasFibre), impact: 'LOW / MEDIUM' },
+    { finding: 'Renovation / condition', value: renovated ? 'Listing-supported' : 'Not established', impact: renovated ? 'HIGH' : 'MEDIUM' },
+    { finding: 'Levies', value: currency(typeof facts.leviesCents === 'number' ? facts.leviesCents : null), impact: 'MEDIUM' },
+    { finding: 'Rental income', value: report.rental_yield_percent === null ? 'Not established' : 'Available', impact: 'HIGH' },
+    { finding: 'Comparable prices', value: comparableCount > 0 ? `${comparableCount} verified` : 'Not sufficiently verified', impact: 'VERY HIGH' },
+  ];
+
+  const whySignals: Array<{ title: string; body: string }> = [];
+  if (renovated) whySignals.push({ title: 'Renovated condition', body: 'The supplied listing description supports a renovated or recently updated condition. EiX treats this as a listing-supported characteristic, not an independent inspection.' });
+  if (landM2 !== null) whySignals.push({ title: `${number(landM2)} m² erf`, body: 'The property has meaningful private land relative to its recorded floor area, which can affect owner-occupier appeal and the way buyers compare the property with alternatives.' });
+  if (floorM2 !== null) whySignals.push({ title: `${number(floorM2)} m² internal floor area`, body: `${psm2} asking price per m² gives buyers a useful comparison metric once similar properties are assessed.` });
+  if (facts.parking !== null && facts.parking !== undefined) whySignals.push({ title: `${facts.parking} parking spaces`, body: 'Parking is explicitly supported by the supplied evidence and can materially affect practical usability and buyer appeal.' });
+  if (facts.hasGarden) whySignals.push({ title: 'Private garden', body: 'A garden is recorded in the supplied evidence and is a meaningful owner-occupier feature.' });
+  if (facts.hasFibre) whySignals.push({ title: 'Fibre connectivity', body: 'Fibre is recorded in the supplied evidence and adds practical connectivity value.' });
+  if (facts.ratesAndTaxesCents !== null && facts.ratesAndTaxesCents !== undefined) whySignals.push({ title: `${currency(facts.ratesAndTaxesCents)} rates & taxes`, body: 'A stated recurring property cost is available for the acquisition scenario.' });
+
+  const buyerQuestions = [
+    `Is ${price} supported by comparable properties with reliable price and size evidence?`,
+    'What are comparable properties in the same area actually achieving, and how long are they taking to sell?',
+    report.rental_yield_percent === null ? 'What rental income could this property realistically generate, and what would the net position be after operating costs?' : 'Does the rental yield remain attractive after realistic operating costs?',
+    'Are there additional ownership costs, restrictions or obligations not visible in the supplied listing?',
+    renovated ? 'Does the renovation quality justify any premium over comparable properties?' : 'Does the property's condition justify the asking price relative to comparable properties?',
+  ];
 
   const verifiedFacts: Array<[string, string]> = [
-    ['Asking Price', currency(askingPriceCents)],
-    ['Property Type', text(facts.propertyType)],
+    ['Asking Price', price],
+    ['Property Type', propertyType],
     ['Bedrooms', text(facts.bedrooms)],
     ['Bathrooms', text(facts.bathrooms)],
-    ['Floor Size', floorSizeM2 !== null ? `${wholeNumber(floorSizeM2)} m²` : 'Not verified'],
-    ['Land Size', landSizeM2 !== null ? `${wholeNumber(landSizeM2)} m²` : 'Not verified'],
+    ['Floor Size', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
+    ['Land Size', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
     ['Garages', text(facts.garages)],
     ['Parking', text(facts.parking)],
     ['Study', yesNo(facts.hasStudy)],
@@ -121,36 +145,6 @@ export default async function CustomerReportPage({
     ['Rates & Taxes', currency(typeof facts.ratesAndTaxesCents === 'number' ? facts.ratesAndTaxesCents : null)],
   ];
 
-  const findings: Array<{ title: string; body: string; tone: 'positive' | 'attention' | 'neutral' }> = [];
-  if (facts.hasGarden) findings.push({ title: 'Private outdoor space', body: 'A garden is recorded in the supplied property evidence, which can materially affect owner-occupier appeal.', tone: 'positive' });
-  if (facts.parking !== null && facts.parking !== undefined) findings.push({ title: `${facts.parking} parking spaces`, body: 'Parking is explicitly recorded rather than inferred from the listing presentation.', tone: 'positive' });
-  if (facts.hasFibre) findings.push({ title: 'Fibre connectivity', body: 'Fibre is recorded as available in the supplied property evidence.', tone: 'positive' });
-  if (floorSizeM2 !== null && askingPriceCents !== null) findings.push({ title: `${subjectPricePerM2} asking price / m²`, body: 'EiX derives this from the supplied asking price and verified floor area. Use it as a comparison metric, not a valuation.', tone: 'neutral' });
-  if (comparableCount === 0) findings.push({ title: 'Price position is unresolved', body: 'EiX does not have enough verified comparable asking-price evidence to establish whether R pricing is above, below or within the expected market range.', tone: 'attention' });
-  if (facts.ratesAndTaxesCents !== null && facts.ratesAndTaxesCents !== undefined) findings.push({ title: `${currency(facts.ratesAndTaxesCents)} rates & taxes`, body: 'A recurring property cost is available for scenario planning.', tone: 'positive' });
-
-  const buyerQuestions = [
-    comparableCount === 0 ? 'Is the asking price supported by comparable properties with reliable price and size evidence?' : 'How does the property compare with the verified comparable set?',
-    report.rental_yield_percent === null ? 'What rent could this property realistically achieve, and what would the net rental position look like after operating costs?' : 'Does the rental yield remain attractive after realistic operating costs?',
-    'Does the condition and renovation quality justify the asking price relative to comparable properties?',
-    'Are there any additional recurring costs, restrictions, or property-specific obligations not visible in the supplied listing?',
-    'What should be independently verified before making or accepting an offer?',
-  ];
-
-  const decisionHeadline = comparableCount === 0
-    ? 'INTERESTING PROPERTY — PRICE REQUIRES VERIFICATION'
-    : report.recommendation === 'Buy'
-      ? 'BUY SIGNAL — REVIEW THE EVIDENCE'
-      : report.recommendation === 'Consider'
-        ? 'CONSIDER — REVIEW PRICE & EVIDENCE'
-        : report.recommendation === 'Caution'
-          ? 'CAUTION — INVESTIGATE BEFORE COMMITTING'
-          : 'INSUFFICIENT EVIDENCE FOR A MARKET CONCLUSION';
-
-  const decisionBody = comparableCount === 0
-    ? `EiX can establish the core physical and financial profile of this property, but it cannot responsibly establish whether the asking price is fair without sufficiently verified comparable evidence. The key next question is whether the market supports the asking price.`
-    : `EiX has established a comparable evidence set and uses it as a market signal. The result should be read alongside the property facts, financial scenario and due-diligence items below.`;
-
   const proSections = [
     ['Comparable Market Evidence', investor.comparableSales],
     ['Rental Demand', investor.rentalDemand],
@@ -162,40 +156,38 @@ export default async function CustomerReportPage({
 
   return (
     <main className="min-h-screen bg-midnight px-4 py-6 text-white sm:px-8 sm:py-10">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 flex items-center justify-between print:hidden">
           <img src="/eixproplogo.png" alt="EiX Property Score" className="h-11 w-auto" />
           <ReportPrintButton />
         </div>
 
         <section className="glass-strong rounded-3xl p-6 sm:p-9">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-400">EiX Property Score™</p>
+          <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-400">
-                {isPro ? 'EiX Investor Report Pro™' : 'EiX Property Score™ · Property Intelligence'}
-              </p>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{propertyTitle}</h1>
-              <p className="mt-2 text-sm text-white/55">{address}</p>
-              <p className="mt-4 text-sm text-white/45">Evidence-backed analysis · Generated {report.processed_at ? new Date(report.processed_at).toLocaleString('en-ZA') : 'recently'}</p>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+              <p className="mt-2 text-white/60">{address}</p>
+              <p className="mt-4 text-2xl font-semibold">{price} <span className="text-sm font-normal text-white/40">asking</span></p>
             </div>
             {!isPro && (
-              <div className="rounded-2xl border border-teal-400/20 bg-teal-400/5 px-5 py-4 text-right">
+              <div className="rounded-3xl border border-teal-400/20 bg-teal-400/5 px-6 py-5 lg:min-w-[230px] lg:text-right">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">EiX Property Score</p>
-                <p className="mt-1 text-5xl font-bold text-teal-400">{report.investment_score ?? '—'}<span className="text-lg text-white/35">/100</span></p>
-                <p className="mt-1 text-xs text-white/45">{report.confidence_label || 'Unknown'} confidence · {report.ai_confidence ?? 0}%</p>
+                <p className="mt-1 text-5xl font-bold text-teal-400">{scoreNumber ?? '—'}<span className="text-lg text-white/35">/100</span></p>
+                <p className="mt-1 text-xs text-white/45">Confidence {report.ai_confidence ?? 0}% · {report.confidence_label || 'Unknown'}</p>
               </div>
             )}
           </div>
 
           {!isPro && (
-            <div className="mt-7 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5 sm:p-6">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200/75">EiX Buyer Signal</p>
-              <h2 className="mt-2 text-xl font-bold sm:text-2xl">{decisionHeadline}</h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">{decisionBody}</p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/55">
+            <div className="mt-7 rounded-3xl border border-amber-300/20 bg-amber-300/5 p-6 sm:p-7">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-200/75">EiX Buyer Signal</p>
+              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{buyerSignal}</h2>
+              <p className="mt-4 max-w-4xl text-sm leading-7 text-white/75">{decisionBody}</p>
+              <div className="mt-5 flex flex-wrap gap-2 text-xs text-white/55">
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{report.risk_level || 'Unrated'} risk</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{report.confidence_label || 'Unknown'} confidence</span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{comparableCount} verified comparables</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{evidence.length} evidence records</span>
               </div>
             </div>
           )}
@@ -203,224 +195,227 @@ export default async function CustomerReportPage({
 
         {!isPro && (
           <>
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">Why this property caught EiX's attention</p>
+              <h2 className="mt-1 text-2xl font-bold">What the listing tells you — and what it means</h2>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {whySignals.slice(0, 7).map((item) => (
+                  <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <p className="text-base font-semibold"><span className="mr-2 text-teal-400">✓</span>{item.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-white/60">{item.body}</p>
+                  </div>
+                ))}
+              </div>
+              {whySignals.length === 0 && <p className="mt-5 text-sm text-white/55">EiX has not established enough additional source detail to create a property-specific highlight set.</p>}
+            </section>
+
+            <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
+              <div className="glass rounded-3xl p-6 sm:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">The biggest question</p>
+                <h2 className="mt-2 text-3xl font-bold">Is {price} justified?</h2>
+                <p className="mt-4 text-sm leading-7 text-white/65">{comparableCount > 0 ? `EiX can compare this property with ${comparableCount} verified comparable properties. The resulting market signal is shown below and should be treated as negotiation evidence, not a formal valuation.` : `EiX could verify the asking price and core property specifications, but it has not established enough verified comparable market evidence to tell you whether ${price} is fair market value.`}</p>
+                <p className="mt-4 text-sm font-semibold leading-7 text-white">{comparableCount > 0 ? 'Use the comparable evidence to investigate price position before committing.' : 'That is not a reason to discard the property. It is the number-one question to investigate before making an offer.'}</p>
+              </div>
+              <div className="glass rounded-3xl p-6 sm:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">EiX Assessment</p>
+                <h2 className="mt-2 text-2xl font-bold">{assessmentHeadline}</h2>
+                <p className="mt-3 text-sm leading-6 text-white/60">EiX has enough evidence to analyse several material characteristics. The remaining uncertainty is concentrated around the evidence that could change the transaction decision.</p>
+              </div>
+            </section>
+
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-400">30-second decision brief</p>
-                  <h2 className="mt-1 text-2xl font-bold">What EiX discovered</h2>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">EiX Evidence Map</p>
+                  <h2 className="mt-1 text-2xl font-bold">What matters to the decision</h2>
                 </div>
-                <p className="text-xs text-white/40">The listing provides facts. EiX interprets their decision impact.</p>
+                <p className="text-xs text-white/40">Impact reflects potential decision significance, not data quality.</p>
               </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {findings.slice(0, 6).map((finding) => (
-                  <div key={finding.title} className={`rounded-2xl border p-5 ${findingTone(finding.tone)}`}>
-                    <p className="text-sm font-semibold">{finding.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-white/60">{finding.body}</p>
+              <div className="mt-6 overflow-hidden rounded-2xl border border-white/10">
+                <div className="grid grid-cols-[1.1fr_1fr_.65fr] bg-white/5 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/35">
+                  <span>Finding</span><span>Value</span><span>Decision impact</span>
+                </div>
+                {evidenceMap.map((item) => (
+                  <div key={item.finding} className="grid grid-cols-[1.1fr_1fr_.65fr] border-t border-white/10 px-4 py-4 text-sm">
+                    <span className="font-medium">{item.finding}</span><span className="text-white/60">{item.value}</span><span className={item.impact === 'VERY HIGH' ? 'font-semibold text-amber-200' : 'text-white/45'}>{item.impact}</span>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-400">EiX Property Anatomy™</p>
-              <h2 className="mt-1 text-2xl font-bold">The property at a glance</h2>
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">EiX Property Anatomy™</p>
+              <h2 className="mt-1 text-2xl font-bold">The property beyond the listing headline</h2>
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {[
-                  ['Asking', currency(askingPriceCents)],
-                  ['Floor', floorSizeM2 !== null ? `${wholeNumber(floorSizeM2)} m²` : 'Not verified'],
-                  ['Erf', landSizeM2 !== null ? `${wholeNumber(landSizeM2)} m²` : 'Not verified'],
-                  ['Price / m²', subjectPricePerM2],
+                  ['Land', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
+                  ['Building', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
                   ['Bedrooms', text(facts.bedrooms)],
                   ['Bathrooms', text(facts.bathrooms)],
                   ['Parking', text(facts.parking)],
                   ['Garden', yesNo(facts.hasGarden)],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">{label}</p>
-                    <p className="mt-2 text-lg font-semibold">{value}</p>
-                  </div>
-                ))}
+                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4"><p className="text-[10px] uppercase tracking-[0.15em] text-white/35">{label}</p><p className="mt-2 text-lg font-semibold">{value}</p></div>)}
               </div>
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-white/35">Building / erf relationship</p>
-                    <p className="mt-1 text-lg font-semibold">{coveragePercent(floorSizeM2, landSizeM2)} of the erf is represented by the recorded floor area.</p>
-                  </div>
-                  <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/45">Derived metric</span>
-                </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-xs uppercase tracking-[0.15em] text-white/35">Asking price / floor m²</p><p className="mt-2 text-2xl font-bold">{psm2}</p><p className="mt-2 text-sm leading-6 text-white/50">A comparison metric derived from the verified asking price and floor area. It is not a valuation.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-xs uppercase tracking-[0.15em] text-white/35">Building / erf relationship</p><p className="mt-2 text-2xl font-bold">{coverage(floorM2, landM2)}</p><p className="mt-2 text-sm leading-6 text-white/50">The recorded floor area as a proportion of the recorded erf size. EiX uses this to help contextualise the physical proposition.</p></div>
               </div>
             </section>
 
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-400">Price Intelligence</p>
-              <h2 className="mt-1 text-2xl font-bold">The number that matters</h2>
-              <div className="mt-5 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-xs uppercase tracking-[0.15em] text-white/35">Asking price</p>
-                  <p className="mt-2 text-2xl font-bold">{currency(askingPriceCents)}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-xs uppercase tracking-[0.15em] text-white/35">Subject price / m²</p>
-                  <p className="mt-2 text-2xl font-bold">{subjectPricePerM2}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-xs uppercase tracking-[0.15em] text-white/35">Vs comparable median</p>
-                  <p className="mt-2 text-2xl font-bold">{subjectVsMedian}</p>
-                </div>
-              </div>
-              <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5">
-                <p className="text-sm font-semibold">{comparableCount > 0 ? 'Market signal' : 'The unresolved question'}</p>
-                <p className="mt-2 text-sm leading-6 text-white/65">
-                  {comparableCount > 0
-                    ? `EiX places the subject at ${subjectVsMedian} relative to the active comparable asking-price median. This is a negotiation signal, not a formal valuation.`
-                    : `EiX has verified the asking price and core property dimensions, but not enough comparable evidence to establish market position. The R3.55m asking price therefore remains the key question to resolve before committing capital.`}
-                </p>
-              </div>
-            </section>
-
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-400">EiX Negotiation Intelligence</p>
-              <h2 className="mt-1 text-2xl font-bold">What to resolve before making an offer</h2>
-              <div className="mt-5 grid gap-3">
-                {buyerQuestions.map((question, index) => (
-                  <div key={question} className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-400/10 text-xs font-bold text-teal-300">{String(index + 1).padStart(2, '0')}</span>
-                    <div>
-                      <p className="text-sm font-semibold">{question}</p>
-                      <p className="mt-1 text-xs leading-5 text-white/40">{index === 0 && comparableCount === 0 ? 'This is currently the highest-impact unresolved market question.' : 'Independent verification is recommended before relying on this item for a transaction decision.'}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm font-semibold">EiX negotiation readiness</p>
-                <p className="mt-1 text-sm text-white/55">{comparableCount > 0 ? 'Market evidence is available. Use the comparable set and property-specific differences to frame the discussion.' : 'Low — comparable evidence is not yet sufficient to justify a specific discount or offer price. EiX will not invent a negotiation number without evidence.'}</p>
-              </div>
-            </section>
-
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-400">Acquisition Intelligence</p>
-              <h2 className="mt-1 text-2xl font-bold">What the purchase could look like</h2>
-              <div className="mt-5 grid gap-4 sm:grid-cols-4">
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">Why EiX scored this property {scoreNumber ?? '—'}/100</p>
+              <h2 className="mt-1 text-2xl font-bold">The score explained</h2>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {[
-                  ['Asking price', currency(askingPriceCents)],
-                  ['10% deposit', currency(askingPriceCents !== null ? Math.round(askingPriceCents * 0.10) : null)],
-                  ['90% loan', currency(report.bond_loan_amount_cents)],
+                  ['Property Evidence — Strong', `Core listing information is available across ${evidence.length} evidence records, including material property facts that EiX can verify.`],
+                  ['Property Fundamentals — Positive with limitations', `The physical profile contributes to the score through bedrooms, bathrooms, size, land, parking, garden and other verified characteristics. Missing characteristics are not assumed to be present.`],
+                  ['Financial Clarity — Moderate', `The asking price and acquisition scenario can be calculated, while rental economics and unverified operating costs remain unresolved.`],
+                  ['Market Position — Unresolved', comparableCount > 0 ? `EiX has ${comparableCount} verified comparables and reports the resulting market signal below.` : 'Comparable evidence is currently insufficient to establish whether the asking price is above, below or within the expected market range.'],
+                ].map(([heading, body]) => <div key={heading} className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="font-semibold">{heading}</p><p className="mt-2 text-sm leading-6 text-white/55">{body}</p></div>)}
+              </div>
+            </section>
+
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">Price Intelligence</p>
+              <h2 className="mt-1 text-2xl font-bold">Does the market support the asking price?</h2>
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-xs uppercase text-white/35">Asking price</p><p className="mt-2 text-2xl font-bold">{price}</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-xs uppercase text-white/35">Price / m²</p><p className="mt-2 text-2xl font-bold">{psm2}</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-xs uppercase text-white/35">Subject vs median</p><p className="mt-2 text-2xl font-bold">{vsMedian}</p></div>
+              </div>
+              <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5"><p className="font-semibold">{comparableCount > 0 ? 'Market signal' : 'Market position unresolved'}</p><p className="mt-2 text-sm leading-6 text-white/65">{comparableCount > 0 ? `The subject is ${vsMedian} relative to the active comparable asking-price median. This is market evidence, not a formal valuation.` : 'EiX will not manufacture a market conclusion where the comparable evidence is insufficient. Obtain verified comparable prices, sizes and property-type matches before treating the asking price as fair or unfair.'}</p></div>
+            </section>
+
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">Before You Make an Offer</p>
+              <h2 className="mt-1 text-2xl font-bold">Five questions EiX says you should answer</h2>
+              <div className="mt-6 space-y-3">
+                {buyerQuestions.map((question, index) => <div key={question} className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-400/10 text-xs font-bold text-teal-300">{String(index + 1).padStart(2, '0')}</span><p className="pt-1 text-sm leading-6">{question}</p></div>)}
+              </div>
+            </section>
+
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">EiX Negotiation Intelligence</p>
+              <h2 className="mt-1 text-2xl font-bold">What you need before negotiating price</h2>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  ['Current asking price', price],
+                  ['Market position', comparableCount > 0 ? `${vsMedian} vs comparable median` : 'Not yet established'],
+                  ['Negotiation readiness', comparableCount > 0 ? 'Evidence available' : 'LOW — evidence required'],
+                  ['Comparable properties', comparableCount > 0 ? `${comparableCount} verified` : 'Required'],
+                  ['Recent achieved prices', 'Required'],
+                  ['Time on market', 'Verify'],
+                  ['Condition differences', renovated ? 'Renovation is listing-supported; compare quality' : 'Verify against comparables'],
+                  ['Seller motivation', 'Verify'],
+                  ['Rental potential', report.rental_yield_percent === null ? 'Verify rent' : `${report.rental_yield_percent}% yield`],
+                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-xs uppercase tracking-[0.14em] text-white/35">{label}</p><p className="mt-2 font-semibold">{value}</p></div>)}
+              </div>
+              <p className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm font-semibold leading-6">EiX cannot responsibly recommend a discount percentage without verified comparable evidence.</p>
+            </section>
+
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">Acquisition Scenario</p>
+              <h2 className="mt-1 text-2xl font-bold">What the purchase could look like</h2>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['Purchase price', price],
+                  ['10% deposit', askingPrice !== null ? currency(Math.round(askingPrice * 0.10)) : 'Not available'],
+                  ['Estimated loan', currency(report.bond_loan_amount_cents)],
                   ['Illustrative monthly bond', currency(report.bond_monthly_payment_cents)],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <p className="text-xs uppercase tracking-[0.14em] text-white/35">{label}</p>
-                    <p className="mt-2 text-xl font-semibold">{value}</p>
-                  </div>
-                ))}
+                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-xs uppercase tracking-[0.14em] text-white/35">{label}</p><p className="mt-2 text-xl font-bold">{value}</p></div>)}
               </div>
-              <p className="mt-4 text-xs leading-5 text-white/40">Illustrative scenario only. It does not constitute a lending quote. The report's assumptions and transaction-cost caveats are shown below.</p>
-            </section>
-
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-400">EiX Bottom Line</p>
-              <h2 className="mt-1 text-2xl font-bold">What should you take away?</h2>
-              <div className="mt-5 rounded-2xl border border-teal-400/20 bg-teal-400/5 p-6">
-                <p className="text-base leading-7 text-white/80">{decisionBody}</p>
-                {comparableCount === 0 && (
-                  <p className="mt-4 text-base font-semibold leading-7 text-white">
-                    Do not let the absence of comparable evidence become a guess. Resolve the market-price question first.
-                  </p>
-                )}
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-xs uppercase tracking-[0.14em] text-white/35">Cash requirement</p><p className="mt-2 text-sm leading-6 text-white/65">Deposit plus applicable transfer/acquisition costs and legal/conveyancing costs where relevant.</p></div>
+                <div className="rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5"><p className="text-xs uppercase tracking-[0.14em] text-amber-200/60">Important</p><p className="mt-2 text-sm leading-6 text-white/65">This is an illustrative financing scenario, not a lending quote.</p></div>
               </div>
             </section>
 
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-              <h2 className="text-lg font-bold">Why the score is {report.investment_score ?? '—'}/100</h2>
-              <p className="mt-2 text-sm leading-6 text-white/55">EiX separates property evidence from market evidence. When verified comparables are unavailable, the score is deliberately capped rather than presented as a market-backed valuation.</p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">Evidence</p><p className="mt-1 text-xl font-semibold">{text(score.evidence, '0')}/100</p></div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">Property Fundamentals</p><p className="mt-1 text-xl font-semibold">{text(score.fundamentals, '0')}/100</p></div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">Financial Clarity</p><p className="mt-1 text-xl font-semibold">{text(score.financialClarity, '0')}/100</p></div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">Market Position</p><p className="mt-1 text-xl font-semibold">{comparableCount > 0 ? `${text(score.marketPosition, '0')}/100` : 'Unresolved'}</p></div>
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">EiX Property DNA™</p>
+              <h2 className="mt-1 text-2xl font-bold">How this property presents itself</h2>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['OWNER-OCCUPIER', facts.hasGarden || facts.parking ? 'Relevant practical features are established.' : 'Requires further property-specific evidence.'],
+                  ['INVESTMENT', report.rental_yield_percent === null ? 'Requires verified rental evidence.' : `${report.rental_yield_percent}% gross rental yield is available.`],
+                  ['RENOVATED', renovated ? 'Listing-supported.' : 'Not independently established.'],
+                  ['OUTDOOR SPACE', facts.hasGarden ? 'Private garden recorded.' : 'Not established.'],
+                  ['PARKING', facts.parking !== null && facts.parking !== undefined ? `${facts.parking} spaces recorded.` : 'Not established.'],
+                  ['CONNECTIVITY', facts.hasFibre ? 'Fibre recorded.' : 'Not established.'],
+                  ['MARKET CERTAINTY', comparableCount > 0 ? 'Comparable evidence available.' : 'Needs comparable evidence.'],
+                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-[10px] font-bold tracking-[0.16em] text-teal-300">{label}</p><p className="mt-2 text-sm leading-6 text-white/55">{value}</p></div>)}
               </div>
+            </section>
+
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">Risk & Red Flags</p>
+              <h2 className="mt-1 text-2xl font-bold">What could change the decision?</h2>
+              <div className="mt-5 space-y-3">
+                {[
+                  comparableCount === 0 ? 'Market price is unresolved because verified comparable evidence is insufficient.' : null,
+                  report.rental_yield_percent === null ? 'Rental economics are unresolved because verified rental income is unavailable.' : null,
+                  facts.ratesAndTaxesCents === null || facts.ratesAndTaxesCents === undefined ? 'Rates and taxes were not established from the supplied evidence.' : null,
+                  facts.leviesCents === null || facts.leviesCents === undefined ? 'Levies or other recurring ownership costs were not established.' : null,
+                  ...limitations.slice(0, 3),
+                ].filter(Boolean).filter((item, index, values) => values.indexOf(item) === index).map((item) => <div key={String(item)} className="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-5 text-sm leading-6 text-white/65">• {String(item)}</div>)}
+              </div>
+            </section>
+
+            <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">Due-Diligence Priorities</p>
+              <h2 className="mt-1 text-2xl font-bold">Exactly what should be verified</h2>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {limitations.length > 0 ? limitations.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white/60">• {item}</div>) : <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/60">No material evidence gaps were recorded.</div>}
+              </div>
+            </section>
+
+            <section className="mt-6 rounded-3xl border border-teal-400/20 bg-teal-400/5 p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">EiX Bottom Line</p>
+              <h2 className="mt-1 text-2xl font-bold">What should you remember?</h2>
+              <p className="mt-5 text-base leading-8 text-white/80"><strong>This is an interesting property, but the {price} asking price is the critical unresolved issue.</strong></p>
+              <p className="mt-3 text-base leading-8 text-white/70">The physical proposition is reasonably well defined: a {propertyType.toLowerCase()} with {text(facts.bedrooms)} bedrooms, {text(facts.bathrooms)} bathrooms{landM2 !== null ? `, a ${number(landM2)} m² erf` : ''}{floorM2 !== null ? ` and ${number(floorM2)} m² floor area` : ''}{facts.parking !== null && facts.parking !== undefined ? `, ${facts.parking} parking spaces` : ''}{facts.hasGarden ? ', garden' : ''}{facts.hasFibre ? ' and fibre' : ''}.</p>
+              <p className="mt-3 text-base leading-8 text-white/70">The next decision should therefore not be “Do I like the property?” It should be: <strong>“Does the market support {price} for this particular property?”</strong></p>
+              <p className="mt-3 text-base font-semibold leading-8 text-white">{comparableCount === 0 ? 'EiX recommends resolving that question before committing to an offer.' : 'EiX recommends reviewing the comparable evidence and property-specific differences before committing to an offer.'}</p>
             </section>
           </>
         )}
 
-        <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-          <h2 className="text-lg font-bold">Verified Evidence</h2>
-          <p className="mt-2 text-sm text-white/55">This is the audit layer behind the EiX decision brief. It shows what the supplied source established and what remains unverified.</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {verifiedFacts.map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase text-white/35">{label}</p>
-                <p className="mt-1 font-semibold">{value}</p>
-              </div>
-            ))}
+        <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">Evidence & Sources</p>
+          <h2 className="mt-1 text-2xl font-bold">Verified property facts</h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {verifiedFacts.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase tracking-[0.14em] text-white/35">{label}</p><p className="mt-1 font-semibold">{value}</p></div>)}
           </div>
           <p className="mt-5 text-xs text-white/35">Evidence records attached: {evidence.length}</p>
         </section>
 
         {internationalBuyer?.profile?.buyerType === 'international' && (
-          <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
+          <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
             <h2 className="text-lg font-bold">International Buyer Intelligence</h2>
-            <p className="mt-2 text-sm leading-6 text-white/55">Evidence-led intelligence for international purchasers. This section does not constitute legal, tax, immigration or formal valuation advice.</p>
+            <p className="mt-2 text-sm leading-6 text-white/55">Evidence-led intelligence for international purchasers. This does not constitute legal, tax, immigration or formal valuation advice.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">Buyer Country</p><p className="mt-1 font-semibold">{text(internationalBuyer.profile?.buyerCountry)}</p></div>
               <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">Purpose</p><p className="mt-1 font-semibold">{text(internationalBuyer.profile?.buyerPurpose)}</p></div>
               <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">Budget</p><p className="mt-1 font-semibold">{text(internationalBuyer.profile?.buyerBudget)}</p></div>
               <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">Market Position</p><p className="mt-1 font-semibold">{text(internationalBuyer.marketPosition)}</p></div>
             </div>
-            {Array.isArray(internationalBuyer.evidenceGaps) && internationalBuyer.evidenceGaps.length > 0 && <div className="mt-5"><h3 className="text-sm font-semibold">Evidence Gaps</h3><ul className="mt-3 space-y-2 text-sm text-white/55">{internationalBuyer.evidenceGaps.map((item: unknown) => <li key={String(item)}>• {String(item)}</li>)}</ul></div>}
-            {Array.isArray(internationalBuyer.dueDiligenceQuestions) && internationalBuyer.dueDiligenceQuestions.length > 0 && <div className="mt-5"><h3 className="text-sm font-semibold">International Buyer Due Diligence</h3><ul className="mt-3 space-y-2 text-sm text-white/55">{internationalBuyer.dueDiligenceQuestions.map((item: unknown) => <li key={String(item)}>• {String(item)}</li>)}</ul></div>}
           </section>
         )}
 
-        {isPro ? (
-          <>
-            <section className="mt-6 glass rounded-2xl p-6">
-              <h2 className="text-lg font-bold">Investor Analysis</h2>
-              <p className="mt-2 text-sm leading-6 text-white/55">This analysis evaluates verified listing evidence, acquisition assumptions, available market evidence and explicitly identified information gaps.</p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {['marketIntelligence', 'rentalDemand', 'growthOutlook', 'exitStrategy'].map((key) => (
-                  <div key={key} className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs uppercase text-white/35">{key.replace(/([A-Z])/g, ' $1')}</p><p className="mt-1 font-semibold">{statusLabel(investor[key]?.status)}</p></div>
-                ))}
-              </div>
-            </section>
-            {proSections.map(([title, section]) => section && <section key={title} className="mt-6 glass rounded-2xl p-6">
-              <div className="flex items-center justify-between gap-4"><h2 className="text-lg font-bold">{title}</h2><span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold">{statusLabel(section?.status)}</span></div>
-              <p className="mt-3 text-sm leading-relaxed text-white/55">{text(section?.summary)}</p>
-              {Array.isArray(section?.opportunities) && section.opportunities.length > 0 && <ul className="mt-4 space-y-2 text-sm text-white/70">{section.opportunities.map((item: unknown) => <li key={String(item)}>• {String(item)}</li>)}</ul>}
-              {Array.isArray(section?.items) && section.items.length > 0 && <div className="mt-4 space-y-3">{section.items.map((item: any, index: number) => <div key={`${String(item?.risk)}-${index}`} className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-sm font-semibold">{text(item?.risk)}</p><p className="mt-1 text-sm text-white/50">{text(item?.reason)}</p><p className="mt-2 text-xs uppercase tracking-wider text-white/30">Severity: {text(item?.severity)}</p></div>)}</div>}
-            </section>)}
-            {investor.acquisitionIntelligence && <section className="mt-6 glass rounded-2xl p-6"><h2 className="text-lg font-bold">Acquisition Intelligence</h2><div className="mt-4 grid gap-4 sm:grid-cols-2"><div><p className="text-xs uppercase text-white/40">10% Deposit</p><p className="mt-1 text-xl font-semibold">{currency(investor.acquisitionIntelligence.depositCents)}</p></div><div><p className="text-xs uppercase text-white/40">Transfer Duty</p><p className="mt-1 text-xl font-semibold">{currency(investor.acquisitionIntelligence.transferDutyCents)}</p></div><div><p className="text-xs uppercase text-white/40">90% Loan</p><p className="mt-1 text-xl font-semibold">{currency(investor.acquisitionIntelligence.loanAmountCents)}</p></div><div><p className="text-xs uppercase text-white/40">Monthly Bond</p><p className="mt-1 text-xl font-semibold">{currency(investor.acquisitionIntelligence.bondMonthlyPaymentCents)}</p></div></div></section>}
-          </>
-        ) : (
-          <>
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-              <h2 className="text-lg font-bold">Rental & Financial Clarity</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div><p className="text-xs uppercase text-white/35">Gross Rental Yield</p><p className="mt-1 text-xl font-semibold">{report.rental_yield_percent === null ? 'Not available' : `${report.rental_yield_percent}%`}</p></div>
-                <div><p className="text-xs uppercase text-white/35">BondMatch Monthly Payment</p><p className="mt-1 text-xl font-semibold">{currency(report.bond_monthly_payment_cents)}</p></div>
-                <div><p className="text-xs uppercase text-white/35">BondMatch Loan Amount</p><p className="mt-1 text-xl font-semibold">{currency(report.bond_loan_amount_cents)}</p></div>
-                <div><p className="text-xs uppercase text-white/35">Risk</p><p className="mt-1 text-xl font-semibold">{report.risk_level || 'Unrated'}</p></div>
-              </div>
-              <p className="mt-4 text-xs leading-5 text-white/40">Rental yield and cash-flow are not calculated without verified rental income and relevant operating-cost evidence.</p>
-            </section>
-
-            <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-              <h2 className="text-lg font-bold">What EiX Could Not Verify</h2>
-              <p className="mt-2 text-sm text-white/55">These are not generic disclaimers. They are the remaining evidence gaps that could change the transaction decision.</p>
-              {limitations.length > 0 ? <ul className="mt-4 space-y-3 text-sm text-white/60">{limitations.map((item: unknown) => <li key={String(item)} className="rounded-xl border border-white/10 bg-white/5 p-4">• {String(item)}</li>)}</ul> : <p className="mt-4 text-sm text-white/55">No material evidence gaps were recorded.</p>}
-              {assumptions.length > 0 && <><h3 className="mt-6 text-sm font-semibold">Scenario assumptions</h3><ul className="mt-3 space-y-2 text-sm text-white/55">{assumptions.map((item: unknown) => <li key={String(item)}>• {String(item)}</li>)}</ul></>}
-            </section>
-          </>
+        {isPro && (
+          <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+            <h2 className="text-lg font-bold">Investor Analysis</h2>
+            <p className="mt-2 text-sm text-white/55">The investor report retains its evidence-backed analysis and acquisition sections.</p>
+            {proSections.map(([sectionTitle, section]) => section && <div key={sectionTitle} className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-5"><div className="flex justify-between gap-4"><h3 className="font-semibold">{sectionTitle}</h3><span className="text-xs text-white/40">{text(section?.status, 'INSUFFICIENT_DATA')}</span></div><p className="mt-2 text-sm leading-6 text-white/55">{text(section?.summary)}</p></div>)}
+          </section>
         )}
 
-        <section className="mt-6 glass rounded-2xl p-6 sm:p-7">
-          <h2 className="text-lg font-bold">EiX Method & Important Limitations</h2>
+        <section className="mt-6 glass rounded-3xl p-6 sm:p-8">
+          <h2 className="text-lg font-bold">Method & Important Limitations</h2>
           <p className="mt-3 text-sm leading-6 text-white/55">EiX Property Score™ provides property decision intelligence based on available evidence and stated assumptions. It is not a formal property valuation, financial advice, legal advice, tax advice or investment guarantee. Information should be independently verified before making a transaction decision.</p>
+          {assumptions.length > 0 && <div className="mt-5"><h3 className="text-sm font-semibold">Scenario assumptions</h3><ul className="mt-3 space-y-2 text-sm text-white/50">{assumptions.map((item) => <li key={item}>• {item}</li>)}</ul></div>}
         </section>
 
-        <p className="mt-8 pb-8 text-center text-xs text-white/25">EiX Property Score™ · Evidence-first property decision intelligence</p>
+        <p className="mt-8 pb-8 text-center text-xs text-white/25">EiX Property Score™ · Property data → interpretation → decision intelligence → action</p>
       </div>
     </main>
   );
