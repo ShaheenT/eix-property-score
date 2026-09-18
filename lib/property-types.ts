@@ -12,6 +12,7 @@ export interface PropertyFacts {
   floorSizeM2: number | null;
   landSizeM2: number | null;
   description?: string | null;
+  primaryImageUrl: string | null;
 
   // Verified Property24 fields
   leviesCents: number | null;
