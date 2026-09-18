@@ -46,8 +46,8 @@ function SignalCard({ label, value, detail, tone = 'neutral' }: { label: string;
 function Section({ eyebrow, title, children, className = '' }: { eyebrow: string; title: string; children: React.ReactNode; className?: string }) {
   return (
     <section className={`mt-6 rounded-[28px] border border-white/10 bg-white/[0.025] p-6 shadow-2xl shadow-black/10 sm:p-8 ${className}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-300">{eyebrow}</p>
-      <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-200">{eyebrow}</p>
+      <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">{title}</h2>
       {children}
     </section>
   );
@@ -95,6 +95,7 @@ export default async function CustomerReportPage({
   const propertyType = text(facts.propertyType, 'Property');
   const price = currency(askingPrice);
   const description = text(facts.description, '');
+  const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
   const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
   const floorErfRatio = floorM2 !== null && landM2 !== null && landM2 > 0 ? `${((floorM2 / landM2) * 100).toFixed(0)}%` : 'Not established';
 
@@ -206,7 +207,13 @@ export default async function CustomerReportPage({
                   <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/40">Founding Beta</span>
                 </div>
                 <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-5xl">{title}</h1>
-                <p className="mt-2 text-sm text-white/50">{address}</p>
+                <p className="mt-2 text-sm text-white/70">{address}</p>
+                {primaryImageUrl && (
+                  <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035]">
+                    <img src={primaryImageUrl} alt="Property listing" className="h-56 w-full object-cover sm:h-72" loading="eager" referrerPolicy="no-referrer" />
+                    <p className="px-4 py-2 text-[10px] text-white/45">Property image from the submitted listing source.</p>
+                  </div>
+                )}
                 <div className="mt-7 flex flex-wrap items-end gap-x-8 gap-y-4">
                   <div><p className="text-[9px] uppercase tracking-[0.18em] text-white/30">Asking</p><p className="mt-1 text-3xl font-bold">{price}</p></div>
                   <div><p className="text-[9px] uppercase tracking-[0.18em] text-white/30">Price / m²</p><p className="mt-1 text-2xl font-bold">{psm2}</p></div>
