@@ -490,13 +490,13 @@ function parseProperty24LabeledOverview(
   const evidence: PropertyEvidence[] = [];
   const text = decodeHtmlEntities(body);
 
-  const add = (
-    field: keyof PropertyFacts,
-    value: string | number,
+  const add = <K extends keyof PropertyFacts>(
+    field: K,
+    value: Exclude<PropertyFacts[K], null>,
     raw: string,
   ) => {
     if (facts[field] !== null && facts[field] !== undefined) return;
-    facts[field] = value as never;
+    facts[field] = value;
     evidence.push({ field, value: raw, source: 'html' });
   };
 
