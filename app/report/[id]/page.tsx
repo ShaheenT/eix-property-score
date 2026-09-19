@@ -449,7 +449,7 @@ export default async function CustomerReportPage({
                   ['OUTDOOR SPACE', facts.hasGarden ? 'Private garden recorded.' : 'Not established.'],
                   ['PARKING', facts.parking !== null && facts.parking !== undefined ? `${facts.parking} spaces recorded.` : 'Not established.'],
                   ['CONNECTIVITY', facts.hasFibre ? 'Fibre recorded.' : 'Not established.'],
-                  ['MARKET CERTAINTY', comparableCount > 0 ? 'Comparable evidence available.' : 'Needs comparable evidence.'],
+                  ['MARKET CERTAINTY', achievedSaleCount >= 3 ? 'Achieved-sale evidence available.' : 'Achieved-sale evidence required.'],
                 ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><p className="text-[9px] font-bold tracking-[0.16em] text-teal-200/70">{label}</p><p className="mt-2 text-sm leading-6 text-white/70">{value}</p></div>)}
               </div>
             </Section>
