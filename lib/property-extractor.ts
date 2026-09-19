@@ -413,7 +413,17 @@ function parseProperty24PrimaryListingFacts(
       /\bDescription\s+([\s\S]{80,2200}?)(?=\s+Read full description\b)/i,
     );
     if (description?.[1]) {
-      add('description', description[1].trim(), description[1].trim());
+      const candidate = description[1].trim();
+      const markerMatches = [
+        candidate.search(/(?:^|\s)(?:SOLE MANDATE|Charming\s|[A-Z][A-Za-z0-9'’\-]+ has quickly become)/i),
+      ].filter((position) => position >= 0);
+      const marker = markerMatches.length ? Math.min(...markerMatches) : -1;
+      const cleaned = marker > 0 ? candidate.slice(marker).trim() : candidate;
+      const withoutPageChrome = cleaned
+        .replace(/\bRead full description\b[\s\S]*$/i, '')
+        .replace(/\bwindow\.loader\.addCallback[\s\S]*$/i, '')
+        .trim();
+      if (withoutPageChrome) add('description', withoutPageChrome, withoutPageChrome);
     }
   }
 
