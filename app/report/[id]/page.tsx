@@ -92,18 +92,22 @@ export default async function CustomerReportPage({
   const title = text(facts.title, 'Property Analysis');
   const propertyType = text(facts.propertyType, 'Property');
   const price = currency(askingPrice);
-  const description = typeof facts.description === 'string' ? facts.description
-    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')
-    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')
-    .replace(/window\\\\?\\.loader[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
-    .replace(/resetPasswordUrl[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
-    .replace(/BondCalculatorsDesktop[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
-    .replace(/Bond Calculator[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
-    .replace(/Send Listing[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
-    .replace(/WhatsApp Agent[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
+  const rawDescription = typeof facts.description === 'string' ? facts.description : '';
+  const descriptionMarkers = ['Charming ', 'SOLE MANDATE', 'Observatory has quickly become'];
+  const markerPositions = descriptionMarkers.map((marker) => rawDescription.toLowerCase().indexOf(marker.toLowerCase())).filter((position) => position >= 0);
+  const descriptionStart = markerPositions.length ? Math.min(...markerPositions) : 0;
+  let description = rawDescription.slice(descriptionStart);
+  const descriptionEnd = description.indexOf('Viewings by appointment only!');
+  if (descriptionEnd >= 0) description = description.slice(0, descriptionEnd + 'Viewings by appointment only!'.length);
+  description = description
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&rsquo;/gi, '’').replace(/&ndash;/gi, '–').replace(/&mdash;/gi, '—').replace(/&#39;/gi, "'")
-    .replace(/\\s+/g, ' ').trim() : '';
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&rsquo;/gi, '’')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&mdash;/gi, '—')
+    .replace(/&#39;/gi, "'")
+    .trim();
   const bathroomMarker = description.toLowerCase().indexOf('bathrooms:');
   const bathroomTail = bathroomMarker >= 0 ? description.slice(bathroomMarker + 'bathrooms:'.length).trim() : '';
   const bathroomToken = bathroomTail.split(/\\s+/)[0].replace(/[^0-9.]/g, '');
