@@ -11,6 +11,14 @@ const CUSTOMER = {
 test('R149: complete South African buyer checkout intake', async ({ page }) => {
   let checkoutPayload: Record<string, unknown> | null = null;
 
+  await page.route('**/e2e/paystack-checkout', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><html><body><h1>Playwright Paystack checkout stub</h1></body></html>',
+    });
+  });
+
   await page.route('**/api/checkout', async (route) => {
     checkoutPayload = JSON.parse(route.request().postData() || '{}');
 
@@ -61,6 +69,8 @@ test('R149: complete South African buyer checkout intake', async ({ page }) => {
   await page.getByRole('button', {
     name: /Analyse My Property — R149/i,
   }).click();
+
+  await expect(page).toHaveURL(/\/e2e\/paystack-checkout$/);
 
   await expect.poll(() => checkoutPayload).toEqual({
     name: CUSTOMER.name,
