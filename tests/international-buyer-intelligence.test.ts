@@ -116,7 +116,7 @@ const acquisition: AcquisitionIntelligence = {
   transferDutyCents: 23400000,
   transferDutySchedule: 'SARS_2026_2027',
   transferDutyBasis: 'purchase_price_assumption',
-  bondAnnualInterestPercent: 11.5,
+  bondAnnualInterestPercent: 10.25,
   bondTermYears: 20,
   bondMonthlyPaymentCents: 2360000,
   verifiedRecurringMonthlyCostsCents: null,
