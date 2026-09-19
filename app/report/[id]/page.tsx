@@ -215,77 +215,50 @@ export default async function CustomerReportPage({
         <div className="mb-5 flex justify-end print:hidden"><ReportPrintButton /></div>
 
         {!isPro && (
-          <section className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[#0c1715] shadow-[0_30px_100px_rgba(0,0,0,.4)]">
-            <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-teal-300/10 blur-3xl" />
-            <div className="grid lg:grid-cols-[1.02fr_.98fr]">
-              <div className="relative z-10 p-7 sm:p-10 lg:p-12">
-                <div className="flex items-center gap-2">
-                  <img src="/eixproplogo.png" alt="EiX Property Score" className="h-8 w-auto" />
-                  <span className="rounded-full border border-teal-300/20 bg-teal-300/[0.07] px-3 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-teal-100">Founding Beta</span>
+          <section className="overflow-hidden rounded-[30px] border border-slate-200 bg-white text-slate-950 shadow-[0_24px_80px_rgba(15,23,42,.10)]">
+            <div className="relative h-[280px] sm:h-[390px] lg:h-[460px]">
+              {primaryImageUrl ? (
+                <img src={primaryImageUrl} alt="Property listing" className="absolute inset-0 h-full w-full object-cover" loading="eager" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-slate-100 text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Property image unavailable</p>
                 </div>
-                <p className="mt-9 text-[10px] font-bold uppercase tracking-[0.28em] text-teal-200">Property Intelligence</p>
-                <h1 className="mt-4 max-w-2xl text-4xl font-black leading-[1.02] tracking-[-0.045em] sm:text-6xl">{title}</h1>
-                <p className="mt-4 max-w-xl text-sm leading-6 text-white/55">{address}</p>
-                <div className="mt-9">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Asking price</p>
-                  <p className="mt-1 text-4xl font-black tracking-[-0.04em] sm:text-5xl">{price}</p>
-                </div>
-                <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {[
-                    ['Bedrooms', text(facts.bedrooms)],
-                    ['Bathrooms', text(bathrooms)],
-                    ['Floor', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
-                    ['Erf', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/35">{label}</p>
-                      <p className="mt-2 text-lg font-black tracking-tight">{value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="relative min-h-[380px] border-t border-white/10 lg:min-h-full lg:border-l lg:border-t-0">
-                {primaryImageUrl ? (
-                  <>
-                    <img src={primaryImageUrl} alt="Property listing" className="absolute inset-0 h-full w-full object-cover" loading="eager" referrerPolicy="no-referrer" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0c1715] via-black/5 to-black/20" />
-                    <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/15 bg-black/35 p-4 backdrop-blur-xl">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">Source</p>
-                      <p className="mt-1 text-xs text-white/80">Submitted property listing</p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex h-full min-h-[380px] items-center justify-center bg-gradient-to-br from-teal-300/10 to-black p-8 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">Property image unavailable</p>
-                  </div>
-                )}
+              )}
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/55 to-transparent" />
+              <div className="absolute bottom-5 left-5 sm:bottom-7 sm:left-7">
+                <span className="rounded-full border border-white/30 bg-black/25 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur-md">EiX Property Score™ · Founding Beta</span>
               </div>
             </div>
-            <div className="border-t border-white/10 bg-black/20 p-7 sm:p-9">
-              <div className="grid gap-7 lg:grid-cols-[1fr_auto] lg:items-center">
+
+            <div className="p-6 sm:p-9 lg:p-10">
+              <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-200/75">EiX Buyer Signal</p>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{buyerSignal}</h2>
-                  <p className="mt-3 max-w-3xl text-sm leading-7 text-white/60">{decisionBody}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-teal-700">Property Intelligence</p>
+                  <h1 className="mt-3 max-w-4xl text-3xl font-black leading-[1.04] tracking-[-0.04em] sm:text-5xl">{title}</h1>
+                  <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">{address}</p>
                 </div>
-                <div className="flex items-center gap-5 lg:min-w-[250px] lg:justify-end">
-                  <div className="grid h-28 w-28 place-items-center rounded-full border border-teal-300/30 bg-teal-300/[0.07] shadow-[0_0_45px_rgba(45,212,191,.08)]">
-                    <div className="text-center">
-                      <p className="text-4xl font-black text-teal-200">{scoreNumber ?? '—'}</p>
-                      <p className="text-[8px] uppercase tracking-[0.2em] text-white/40">of 100</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35">Confidence</p>
-                    <p className="mt-1 text-2xl font-black">{report.ai_confidence ?? 0}%</p>
-                    <p className="mt-1 text-xs text-white/40">{report.confidence_label || 'Evidence-limited'}</p>
-                  </div>
+                <div className="lg:text-right">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Asking price</p>
+                  <p className="mt-1 text-3xl font-black tracking-[-0.04em] sm:text-4xl">{price}</p>
                 </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ['Bedrooms', text(facts.bedrooms)],
+                  ['Bathrooms', text(bathrooms)],
+                  ['Floor', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
+                  ['Erf', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">{label}</p>
+                    <p className="mt-2 text-xl font-black tracking-tight text-slate-950">{value}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
         )}
-
             <Section eyebrow="The EiX X-Ray" title="What the listing says is not the same as what it means.">
               <p className="mt-4 max-w-4xl text-sm leading-7 text-white/70">{insight}</p>
               <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
