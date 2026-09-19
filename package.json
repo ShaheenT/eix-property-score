@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "npx --yes tsx@4.23.13 --test tests/*.test.ts",
-    "test:extraction:live": "npx --yes tsx@4.23.13 scripts/live-extraction-corpus.ts"
+    "test:extraction:live": "npx --yes tsx@4.23.13 scripts/live-extraction-corpus.ts",
+    "test:e2e": "npx --yes playwright@1.55.0 test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
