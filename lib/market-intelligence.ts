@@ -86,19 +86,10 @@ export function calculateMarketIntelligence(
   let subjectVsMedianPercent: number | null = null;
   let subjectVsAchievedSaleMedianPercent: number | null = null;
 
-  if (
-    hasEnoughComparables &&
-    subjectPrice !== null &&
-    askingPriceMedian !== null &&
-    askingPriceMedian > 0
-  ) {
-    subjectVsMedianPercent =
-      ((subjectPrice - askingPriceMedian) / askingPriceMedian) * 100;
-  }
-
   if (achievedSales.length >= comparableEvidenceThreshold && subjectPrice !== null && achievedSaleMedianCents !== null && achievedSaleMedianCents > 0) {
     subjectVsAchievedSaleMedianPercent =
       ((subjectPrice - achievedSaleMedianCents) / achievedSaleMedianCents) * 100;
+    subjectVsMedianPercent = subjectVsAchievedSaleMedianPercent;
   }
 
   let marketPosition: MarketIntelligence['marketPosition'] =
