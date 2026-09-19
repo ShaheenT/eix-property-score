@@ -888,15 +888,18 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
         });
       }
     }
+    // Property24's visible listing summary / overview is the bounded source evidence
+    // for listing-specific physical facts. Structured metadata can conflict with it
+    // (e.g. bathrooms), so do not let JSON-LD silently override the listing page.
     const facts =
       source === 'private_property'
         ? mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts)
-        : mergeFacts(emptyFacts(), jsonLd.facts, fallback.facts);
+        : mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts);
 
     const evidence =
       source === 'private_property'
         ? mergeEvidence([], fallback.evidence, jsonLd.evidence)
-        : mergeEvidence([], jsonLd.evidence, fallback.evidence);
+        : mergeEvidence([], fallback.evidence, jsonLd.evidence);
     const factCount = countExtractedFacts(facts);
 
     if (factCount === 0 || !hasMinimumPropertyEvidence(facts)) {
