@@ -355,17 +355,30 @@ function parseProperty24PrimaryListingFacts(
     evidence.push({ field, value: raw, source: 'html' });
   };
 
-  const summary = text.match(
-    /\b(\d+)\s+Bedroom\s+(House|Apartment|Townhouse|Duplex|Farm|Vacant Land|Land)\s+for Sale in\s+[A-Za-z][A-Za-z0-9 .'-]+?\s+(\d+\s+[^,]+,\s*[^,]+,\s*[^0-9]+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9]+(?:\.\d+)?)\s*m(?:2|²)\b/i,
+  // Property24 places the listing summary before unrelated calculator/widgets.
+  // Parse the summary in its own bounded window so page-wide text such as
+  // "Bond Calculator ... 3 Bathrooms" can never become the listing's bathroom count.
+  const heading = text.match(
+    /\b(\d+)\s+Bedroom\s+(House|Apartment|Townhouse|Duplex|Farm|Vacant Land|Land)\s+for Sale in\s+([^\n]{2,120})/i,
   );
 
-  if (summary) {
-    add('bedrooms', Number(summary[1]), summary[1]);
-    add('propertyType', summary[2], summary[2]);
-    add('address', summary[3].trim(), summary[3].trim());
-    add('bathrooms', Number(summary[5]), summary[5]);
-    add('parking', Number(summary[6]), summary[6]);
-    add('floorSizeM2', Number(summary[7]), summary[7]);
+  if (heading) {
+    const headingStart = heading.index ?? 0;
+    const summaryWindow = text.slice(headingStart, headingStart + 900);
+
+    const addressAndFacts = summaryWindow.match(
+      /for Sale in\s+[^\n]+?\s+(\d+\s+[^,]+,\s*[^,]+,\s*[^0-9]+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9]+(?:\.\d+)?)\s*m(?:2|²)\b/i,
+    );
+
+    add('bedrooms', Number(heading[1]), heading[1]);
+    add('propertyType', heading[2], heading[2]);
+
+    if (addressAndFacts) {
+      add('address', addressAndFacts[1].trim(), addressAndFacts[1].trim());
+      add('bathrooms', Number(addressAndFacts[3]), addressAndFacts[3]);
+      add('parking', Number(addressAndFacts[4]), addressAndFacts[4]);
+      add('floorSizeM2', Number(addressAndFacts[5]), addressAndFacts[5]);
+    }
   }
 
   const floor = text.match(/\bFloor\s*m(?:2|²)\s*:\s*\+?-?\s*([0-9]+(?:\.\d+)?)\s*m(?:2|²)\b/i);
