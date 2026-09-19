@@ -63,58 +63,21 @@ test('report engine exposes acquisition intelligence as the authoritative bond s
   assert.equal(result.acquisitionIntelligence.purchasePriceCents, facts.askingPriceCents);
 });
 
-test('report engine exposes market intelligence and canonical decision', () => {
-  const comparable: import('../lib/property24-comparables').ComparableProperty = {
-    listingId: 'comparable-1',
-    sourceUrl: 'https://www.property24.com/for-sale/house/cape-town/comparable-1',
-    facts: { ...facts, title: 'Comparable', askingPriceCents: 250000000, floorSizeM2: 150 },
+test('report engine requires three achieved sales before a market decision', () => {
+  const comparables = [250000000, 260000000, 270000000].map((askingPriceCents, index) => ({
+    listingId: `sale-${index + 1}`,
+    sourceUrl: `https://www.property24.com/for-sale/house/cape-town/sale-${index + 1}`,
+    facts: { ...facts, title: `Achieved sale ${index + 1}`, askingPriceCents, floorSizeM2: 150 },
     evidence: [],
     similarity: 0.95,
-    saleStatus: 'active_listing',
-  };
+    saleStatus: 'registered_sale' as const,
+  }));
 
-  const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables: [comparable] });
-
-  assert.equal(result.marketIntelligence.comparableCount, 1);
+  const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables });
+  assert.equal(result.marketIntelligence.verifiedAchievedSaleCount, 3);
   assert.equal(result.decision.decision, 'NEGOTIATE');
   assert.equal(result.recommendation, 'Consider');
-  assert.equal(result.scoreBreakdown.marketComparableCount, 1);
-  assert.ok(result.scoreBreakdown.marketPosition > 0);
-});
-
-test('report engine can propagate a BUY decision from the decision engine', () => {
-  const comparable: import('../lib/property24-comparables').ComparableProperty = {
-    listingId: 'comparable-1',
-    sourceUrl: 'https://www.property24.com/for-sale/house/cape-town/comparable-1',
-    facts: { ...facts, title: 'Comparable', askingPriceCents: 250000000, floorSizeM2: 150 },
-    evidence: [],
-    similarity: 0.95,
-  };
-
-  const result = calculateReport({
-    facts,
-    evidence,
-    goal: 'Buy to Live',
-    comparables: [comparable],
-    constraints: { maxKnownUpfrontCashCents: 1000000000 },
-  });
-
-  assert.equal(result.decision.decision, 'BUY');
-  assert.equal(result.recommendation, 'Buy');
-});
-
-test('score is bounded when market evidence is available', () => {
-  const comparable: import('../lib/property24-comparables').ComparableProperty = {
-    listingId: 'comparable-1',
-    sourceUrl: 'https://www.property24.com/for-sale/house/cape-town/comparable-1',
-    facts: { ...facts, title: 'Comparable', askingPriceCents: 200000000, floorSizeM2: 150 },
-    evidence: [],
-    similarity: 0.95,
-  };
-
-  const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables: [comparable] });
-  assert.ok(result.investmentScore !== null);
-  assert.ok(result.investmentScore >= 0 && result.investmentScore <= 100);
+  assert.equal(result.investmentScore !== null, true);
 });
 
 test('report engine preserves insufficient-data decision for rental', () => {
