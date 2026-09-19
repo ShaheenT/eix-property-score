@@ -11,6 +11,11 @@ export interface ComparableProperty {
   facts: PropertyFacts;
   evidence: PropertyEvidence[];
   similarity: number | null;
+  /**
+   * Market evidence provenance. Active listings are context only.
+   * Price-fairness analysis requires at least 3 registered achieved sales.
+   */
+  saleStatus?: 'registered_sale' | 'pending_sale' | 'active_listing';
 }
 
 export interface ComparableSelectionOptions {
