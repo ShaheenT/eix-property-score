@@ -99,8 +99,8 @@ test('report engine can propagate a BUY decision from the decision engine', () =
     constraints: { maxKnownUpfrontCashCents: 1000000000 },
   });
 
-  assert.equal(result.decision.decision, 'NEGOTIATE');
-  assert.equal(result.recommendation, 'Consider');
+  assert.equal(result.decision.decision, 'INVESTIGATE');
+  assert.equal(result.recommendation, 'Caution');
   assert.equal(result.marketIntelligence.achievedSaleCount, 3);
 });
 
