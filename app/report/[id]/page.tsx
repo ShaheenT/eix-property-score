@@ -343,7 +343,7 @@ export default async function CustomerReportPage({
                 ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-[9px] uppercase tracking-[0.16em] text-white/70">{label}</p><p className="mt-2 text-lg font-bold">{value}</p></div>)}
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Floor-area / erf ratio</p><p className="mt-2 text-3xl font-black">{floorErfRatio}</p><p className="mt-2 text-sm leading-6 text-white/65">This is a derived floor-area-to-erf relationship. It is not the property's stated site coverage.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Floor-area / erf ratio</p><p className="mt-2 text-3xl font-black">{floorErfRatio}</p><p className="mt-2 text-sm leading-6 text-white/65">This is a derived floor-area-to-erf relationship. It is not the stated site coverage.</p></div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Why the ratio matters</p><p className="mt-2 text-lg font-bold">You can compare the physical proposition, not just the bedroom count.</p><p className="mt-2 text-sm leading-6 text-white/65">Land, internal space, outdoor space and parking can materially change how similar properties should be compared.</p></div>
               </div>
             </Section>
