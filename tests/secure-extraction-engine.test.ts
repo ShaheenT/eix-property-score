@@ -245,3 +245,37 @@ test('Property24 source adapter wins over conflicting structured metadata for Ob
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('Property24 111658444 uses bounded listing facts over conflicting structured metadata', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(
+    `<html><head><script type="application/ld+json">{"@type":"RealEstateListing","numberOfBathroomsTotal":1,"floorSize":{"value":1},"lotSize":{"value":1}}</script></head><body>
+      <h1>3 Bedroom House for Sale in Observatory</h1>
+      <div>R 3 295 000</div>
+      <div>Observatory, Cape Town</div>
+      <div>Contact seller for street address</div>
+      <div>Bedrooms 3</div><div>Bathrooms 2</div><div>236 m²</div>
+      <div>3 Bedroom House for Sale in Observatory</div>
+      <div>Dual Income 2 Bed Main house and 1 Bed Flat</div>
+      <div>Rental Income: R25 900 per month</div>
+      <div>Approximate Gross Yield: 9.4%</div>
+      <div>Features</div><div>Bedrooms: 3</div><div>Bathrooms: 2</div><div>Flatlet</div><div>Garden</div>
+      <div>Property Overview</div><div>Listing Number 111658444</div><div>Type of Property House</div><div>Erf Size 236 m²</div><div>Floor Size 190 m²</div><div>Rates and Taxes R 2 166</div>
+      <div>P24-111658444</div>
+    </body></html>`,
+    {status:200,headers:{'content-type':'text/html; charset=utf-8'}}
+  );
+  try {
+    const result = await runSecureExtraction('https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/111658444');
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.facts.bedrooms, 3);
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.floorSizeM2, 190);
+    assert.equal(result.facts.landSizeM2, 236);
+    assert.equal(result.facts.askingPriceCents, 329500000);
+    assert.equal(result.facts.ratesAndTaxesCents, 216600);
+    assert.equal(result.metadata?.reportEligible, true);
+    assert.equal(result.metadata?.conflicts.find((item) => item.field === 'bathrooms')?.resolution, 'source_adapter');
+  } finally { globalThis.fetch = originalFetch; }
+});
