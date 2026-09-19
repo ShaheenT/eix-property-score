@@ -141,6 +141,20 @@ function calculatePropertyScore(
     return { score: null, breakdown: {} };
   }
 
+  // A market-facing score is not allowed until at least three registered
+  // achieved-sale comparables are verified. Active asking listings are context.
+  if (market.verifiedAchievedSaleCount < 3) {
+    return {
+      score: null,
+      breakdown: {
+        marketComparableCount: market.comparableCount,
+        verifiedAchievedSaleCount: market.verifiedAchievedSaleCount,
+        activeListingCount: market.activeListingCount,
+        pendingSaleCount: market.pendingSaleCount,
+      },
+    };
+  }
+
   const evidenceComponent = evidenceScore(facts, evidence);
   const fundamentalsComponent = componentScore(facts, FUNDAMENTAL_FIELDS);
   const financialComponent = componentScore(facts, FINANCIAL_FIELDS);
