@@ -83,10 +83,6 @@ export default async function CustomerReportPage({
   const internationalBuyer = (report.international_buyer_analysis || null) as Record<string, any> | null;
 
   const askingPrice = typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null;
-  const bathroomMatch = description.match(/Features\\s+Bedrooms:\\s*\\d+(?:\\.\\d+)?\\s+Bathrooms:\\s*(\\d+(?:\\.\\d+)?)\\s+Parking:/i);
-  const bathrooms = bathroomMatch ? Number(bathroomMatch[1]) : bathrooms;
-  const floorMatch = description.match(/Floor\\s*m2:\\s*\\+?-?\\s*([\\d.]+)\\s*m2/i);
-  const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2) ? facts.floorSizeM2 : floorMatch ? Number(floorMatch[1]) : null;
   const landM2 = typeof facts.landSizeM2 === 'number' ? facts.landSizeM2 : null;
   const scoreNumber = typeof report.investment_score === 'number' ? report.investment_score : null;
   const comparableCount = Number(score.marketComparableCount || 0);
@@ -109,6 +105,10 @@ export default async function CustomerReportPage({
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&rsquo;/gi, '’').replace(/&ndash;/gi, '–').replace(/&mdash;/gi, '—').replace(/&#39;/gi, "'")
     .replace(/\\s+/g, ' ').trim() : '';
+  const bathroomMatch = description.match(/Features\\s+Bedrooms:\\s*\\d+(?:\\.\\d+)?\\s+Bathrooms:\\s*(\\d+(?:\\.\\d+)?)\\s+Parking:/i);
+  const bathrooms = bathroomMatch ? Number(bathroomMatch[1]) : facts.bathrooms;
+  const floorMatch = description.match(/Floor\\s*m2:\\s*\\+?-?\\s*([\\d.]+)\\s*m2/i);
+  const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2) ? facts.floorSizeM2 : floorMatch ? Number(floorMatch[1]) : null;
   const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
   const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
   const floorErfRatio = floorM2 !== null && landM2 !== null && landM2 > 0 ? `${((floorM2 / landM2) * 100).toFixed(0)}%` : 'Not established';
