@@ -3,6 +3,9 @@ import type { ComparableProperty } from '@/lib/property24-comparables';
 
 export interface MarketIntelligence {
   comparableCount: number;
+  verifiedAchievedSaleCount: number;
+  pendingSaleCount: number;
+  activeListingCount: number;
   askingPriceCents: {
     min: number | null;
     median: number | null;
@@ -51,11 +54,24 @@ export function calculateMarketIntelligence(
   subject: PropertyFacts,
   comparables: ComparableProperty[],
 ): MarketIntelligence {
-  const askingPrices = comparables
+  const achievedSales = comparables.filter(
+    (comparable) => comparable.saleStatus === 'registered_sale',
+  );
+  const pendingSales = comparables.filter(
+    (comparable) => comparable.saleStatus === 'pending_sale',
+  );
+  const activeListings = comparables.filter(
+    (comparable) => !comparable.saleStatus || comparable.saleStatus === 'active_listing',
+  );
+
+  // Only registered achieved sales can establish price fairness.
+  const priceEvidence = achievedSales;
+
+  const askingPrices = priceEvidence
     .map((comparable) => comparable.facts.askingPriceCents)
     .filter((value): value is number => value !== null);
 
-  const comparablePricePerM2 = comparables
+  const comparablePricePerM2 = priceEvidence
     .map((comparable) => {
       const price = comparable.facts.askingPriceCents;
       const floor = comparable.facts.floorSizeM2;
@@ -97,6 +113,9 @@ export function calculateMarketIntelligence(
 
   return {
     comparableCount: comparables.length,
+    verifiedAchievedSaleCount: achievedSales.length,
+    pendingSaleCount: pendingSales.length,
+    activeListingCount: activeListings.length,
     askingPriceCents: {
       min: askingPrices.length > 0 ? Math.min(...askingPrices) : null,
       median: askingPriceMedian,
