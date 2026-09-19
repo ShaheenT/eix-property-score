@@ -16,13 +16,12 @@ const evidence: PropertyEvidence[] = [
   { field: 'floorSizeM2', value: '150', source: 'json_ld' }, { field: 'landSizeM2', value: '400', source: 'json_ld' },
 ];
 
-test('complete verified listing produces an evidence-backed EiX score even without comparables', () => {
+test('complete verified listing does not receive a market-facing score without three achieved sales', () => {
   const result = calculateReport({ facts, evidence, goal: 'Buy to Live' });
-  assert.ok(result.investmentScore !== null);
-  assert.ok(result.investmentScore <= 69);
+  assert.equal(result.investmentScore, null);
   assert.equal(result.aiConfidence, 100);
   assert.equal(result.confidenceLabel, 'High');
-  assert.equal(result.scoreBreakdown.marketComparableCount, 0);
+  assert.equal(result.scoreBreakdown.verifiedAchievedSaleCount, 0);
   assert.ok(result.limitations.some((item) => item.includes('Market position is evidence-limited')));
 });
 
@@ -71,6 +70,7 @@ test('report engine exposes market intelligence and canonical decision', () => {
     facts: { ...facts, title: 'Comparable', askingPriceCents: 250000000, floorSizeM2: 150 },
     evidence: [],
     similarity: 0.95,
+    saleStatus: 'active_listing',
   };
 
   const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables: [comparable] });
