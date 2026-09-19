@@ -8,6 +8,7 @@ on:
       - feature/secure-extraction-engine
       - feature/intelligence-os-foundation
       - feature/intelligence-provider-layer-v2
+      - release/eixpropscore-r149-verified
   pull_request:
     branches:
       - main
