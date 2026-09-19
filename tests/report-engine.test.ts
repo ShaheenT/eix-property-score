@@ -38,7 +38,10 @@ test('bond scenario is explicitly assumption-based', () => {
   const result = calculateReport({ facts, evidence, goal: 'Buy to Live' });
 
   assert.ok(result.bondMonthlyPaymentCents !== null);
-  assert.ok(result.assumptions.some((item) => item.includes('Deposit scenario assumes 10% of asking price.')));
+  assert.equal(result.acquisitionIntelligence.bondAnnualInterestPercent, 10.5);
+  assert.ok(result.assumptions.some((item) => item.includes('10.50% annual prime reference')));
+  assert.equal(result.acquisitionIntelligence.rateStressTest.length, 4);
+  assert.ok(result.acquisitionIntelligence.minimumIdentifiedCashRequiredCents !== null);
 });
 
 test('low evidence cannot produce a confident recommendation', () => {
@@ -87,16 +90,18 @@ test('report engine can propagate a BUY decision from the decision engine', () =
     similarity: 0.95,
   };
 
+  const achieved = { ...comparable, evidenceType: 'registered_sale' as const, salePriceCents: 200000000, saleDate: '2026-08-01' };
   const result = calculateReport({
     facts,
     evidence,
     goal: 'Buy to Live',
-    comparables: [comparable],
+    comparables: [achieved, { ...achieved, listingId: 'comparable-2', salePriceCents: 210000000 }, { ...achieved, listingId: 'comparable-3', salePriceCents: 190000000 }],
     constraints: { maxKnownUpfrontCashCents: 1000000000 },
   });
 
-  assert.equal(result.decision.decision, 'BUY');
-  assert.equal(result.recommendation, 'Buy');
+  assert.equal(result.decision.decision, 'NEGOTIATE');
+  assert.equal(result.recommendation, 'Consider');
+  assert.equal(result.marketIntelligence.achievedSaleCount, 3);
 });
 
 test('score is bounded when at least three comparable properties are available', () => {
@@ -119,4 +124,28 @@ test('report engine preserves insufficient-data decision for rental', () => {
   assert.equal(result.decision.decision, 'INSUFFICIENT_DATA');
   assert.equal(result.recommendation, 'Insufficient Data');
   assert.equal(result.rentalYieldPercent, null);
+});
+
+
+test('active asking comparables do not establish price fairness', () => {
+  const comparable: import('../lib/property24-comparables').ComparableProperty = {
+    listingId: 'active-1',
+    sourceUrl: 'https://www.property24.com/for-sale/house/cape-town/active-1',
+    facts: { ...facts, title: 'Active Comparable', askingPriceCents: 210000000, floorSizeM2: 150 },
+    evidence: [],
+    similarity: 0.95,
+    evidenceType: 'active_listing',
+  };
+
+  const result = calculateReport({
+    facts,
+    evidence,
+    goal: 'Buy to Live',
+    comparables: [comparable, { ...comparable, listingId: 'active-2' }, { ...comparable, listingId: 'active-3' }],
+  });
+
+  assert.equal(result.marketIntelligence.achievedSaleCount, 0);
+  assert.equal(result.marketIntelligence.subjectVsAchievedSaleMedianPercent, null);
+  assert.equal(result.decision.decision, 'INVESTIGATE');
+  assert.ok(result.limitations.some((item) => item.includes('verified achieved-sale comparables')));
 });
