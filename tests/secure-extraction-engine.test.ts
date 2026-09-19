@@ -176,3 +176,72 @@ test('accepts a Property24 listing when the provider returns HTTP 404 with valid
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('Property24 source adapter wins over conflicting structured metadata for Observatory 117506054', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`
+    <html><head>
+      <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"RealEstateListing","name":"3 Bedroom House for Sale in Observatory","numberOfBedrooms":3,"numberOfBathrooms":3,"floorSize":{"@type":"QuantitativeValue","value":200},"offers":{"@type":"Offer","price":3500000,"priceCurrency":"ZAR"},"itemOffered":{"@type":"House"}}
+      </script>
+    </head><body>
+      <h1>3 Bedroom House for Sale in Observatory</h1>
+      <div>R 3 500 000</div>
+      <div>3 Bedroom</div>
+      <div>2 Bathrooms</div>
+      <div>P24-117506054</div>
+    </body></html>`, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } });
+
+  try {
+    const result = await runSecureExtraction(
+      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117506054',
+      {
+        legacyExtract: async () => ({
+          status: 'extracted',
+          facts: {
+            title: '3 Bedroom House for Sale in Observatory',
+            description: null,
+            address: '28 Falmouth Road, Observatory',
+            suburb: 'Observatory',
+            city: 'Cape Town',
+            province: 'Western Cape',
+            postalCode: null,
+            askingPriceCents: 350000000,
+            bedrooms: 3,
+            bathrooms: 2,
+            propertyType: 'House',
+            floorSizeM2: 119,
+            landSizeM2: 200,
+            leviesCents: null,
+            ratesAndTaxesCents: 131800,
+            garages: null,
+            parking: 2,
+            hasStudy: null,
+            hasPool: null,
+            hasGarden: true,
+            hasFibre: true,
+            hasSolar: null,
+            hasBatteryBackup: null,
+            primaryImageUrl: null,
+          },
+          evidence: [
+            { field: 'bathrooms', value: '2', source: 'html' },
+            { field: 'floorSizeM2', value: '119', source: 'html' },
+          ],
+          source: 'property24',
+          sourceUrl: 'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117506054',
+          errors: [],
+        }),
+      },
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.floorSizeM2, 119);
+    assert.equal(result.metadata?.reportEligible, true);
+    assert.equal(result.metadata?.conflicts.find((item) => item.field === 'bathrooms')?.resolution, 'source_adapter');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
