@@ -419,9 +419,14 @@ function parseProperty24PrimaryListingFacts(
       ].filter((position) => position >= 0);
       const marker = markerMatches.length ? Math.min(...markerMatches) : -1;
       const cleaned = marker > 0 ? candidate.slice(marker).trim() : candidate;
+      // Customer-facing description must begin at the actual listing copy.
+      // Property24 page chrome/config can appear before, between, or after the
+      // listing text. Never persist that chrome as property evidence.
       const withoutPageChrome = cleaned
+        .replace(/^[\s\S]*?(?=(?:SOLE MANDATE|Charming\s|[A-Z][A-Za-z0-9'’\-]+ has quickly become)/i, '')
         .replace(/\bRead full description\b[\s\S]*$/i, '')
         .replace(/\bwindow\.loader\.addCallback[\s\S]*$/i, '')
+        .replace(/\b(?:resetPasswordUrl|listingSendAgentAMessageActionUrl|BondCalculatorsDesktop|Bond Calculator|ContactForAddressForm)\b[\s\S]*?(?=(?:SOLE MANDATE|Charming\s|[A-Z][A-Za-z0-9'’\-]+ has quickly become)/i, '')
         .trim();
       if (withoutPageChrome) add('description', withoutPageChrome, withoutPageChrome);
     }
