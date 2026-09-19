@@ -229,9 +229,9 @@ function buildLimitations(
   if (!hasValue(facts.floorSizeM2) && !hasValue(facts.landSizeM2)) {
     limitations.push('No verified floor or land size was available.');
   }
-  if (market.comparableCount === 0) {
+  if (market.comparableCount < 3) {
     limitations.push(
-      'Market position is evidence-limited because no verified comparable asking prices were available for this report.',
+      `Price fairness is not established because at least 3 comparable properties are required; only ${market.comparableCount} were available.`,
     );
   }
   for (const unknown of decision.unknowns) {
