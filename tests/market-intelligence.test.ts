@@ -76,9 +76,10 @@ test('calculates subject position against comparable median', () => {
   const result = calculateMarketIntelligence(subject, [
     comparable('a', 32_000_000_00, 300),
     comparable('b', 34_000_000_00, 350),
+    comparable('c', 32_000_000_00, 320),
   ]);
 
-  assert.equal(result.askingPriceCents.median, 33_000_000_00);
+  assert.equal(result.askingPriceCents.median, 32_000_000_00);
   assert.ok(result.subjectVsMedianPercent !== null);
   assert.equal(result.marketPosition, 'Below Comparable Median');
 });
@@ -101,6 +102,9 @@ test('returns insufficient data when there are no usable comparables', () => {
   assert.equal(result.askingPriceCents.median, null);
   assert.equal(result.askingPriceCents.max, null);
   assert.equal(result.subjectVsMedianPercent, null);
+  assert.equal(result.achievedSaleCount, 0);
+  assert.equal(result.subjectVsAchievedSaleMedianPercent, null);
+  assert.equal(result.priceFairnessStatus, 'Not Established');
   assert.equal(result.marketPosition, 'Insufficient Data');
 });
 
@@ -109,6 +113,22 @@ test('does not describe active asking prices as a valuation', () => {
 
   assert.equal(
     result.disclaimer,
-    'Active asking-price comparison — not a valuation.',
+    'Achieved-sale evidence is preferred for price fairness; active asking-price comparisons are context only and are not a valuation.',
   );
+});
+
+
+test('uses at least three registered sales for price fairness evidence', () => {
+  const sales = [
+    comparable('sale-a', 28_000_000_00, 300),
+    comparable('sale-b', 30_000_000_00, 310),
+    comparable('sale-c', 32_000_000_00, 320),
+  ].map((item) => ({ ...item, evidenceType: 'registered_sale' as const, salePriceCents: item.facts.askingPriceCents, saleDate: '2026-08-01' }));
+
+  const result = calculateMarketIntelligence(subject, sales);
+
+  assert.equal(result.achievedSaleCount, 3);
+  assert.equal(result.achievedSaleMedianCents, 30_000_000_00);
+  assert.equal(result.priceFairnessStatus, 'Established From Achieved Sales');
+  assert.ok(result.subjectVsAchievedSaleMedianPercent !== null);
 });
