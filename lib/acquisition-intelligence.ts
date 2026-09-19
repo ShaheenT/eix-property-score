@@ -23,7 +23,7 @@ export interface AcquisitionIntelligence {
 }
 
 const DEFAULT_DEPOSIT_PERCENT = 10;
-const DEFAULT_BOND_INTEREST_PERCENT = 11.5;
+const DEFAULT_BOND_INTEREST_PERCENT = 10.25;
 const DEFAULT_BOND_TERM_YEARS = 20;
 
 function calculateTransferDutyCents(purchasePriceCents: number): number {
