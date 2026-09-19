@@ -145,7 +145,9 @@ export default async function CustomerReportPage({
   const comparableCount = Number(score.marketComparableCount || 0);
   const comparableMedian = score.marketMedianAskingPriceCents ? currency(score.marketMedianAskingPriceCents) : 'Not established';
   const vsMedian = comparableCount > 0 ? percent(score.subjectVsMedianPercent) : 'Not established';
-  const address = text(facts.address, 'Address not verified');
+  const rawAddress = text(facts.address, '');
+  const addressLooksContaminated = /for this property\\.|resetPasswordUrl|listingSendAgentAMessageActionUrl|Bond Calculator|window\\.loader|BondCalculatorsDesktop|googletag\\.|ContactForAddressForm/i.test(rawAddress);
+  const address = addressLooksContaminated ? 'Address not verified' : rawAddress || 'Address not verified';
   const title = text(facts.title, 'Property Analysis');
   const propertyType = text(facts.propertyType, 'Property');
   const price = currency(askingPrice);
