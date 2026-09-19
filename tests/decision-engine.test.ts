@@ -42,7 +42,7 @@ const acquisition: AcquisitionIntelligence = {
   transferDutyCents: 341_115_600,
   transferDutySchedule: 'SARS_2026_2027',
   transferDutyBasis: 'purchase_price_assumption',
-  bondAnnualInterestPercent: 11.5,
+  bondAnnualInterestPercent: 10.25,
   bondTermYears: 20,
   bondMonthlyPaymentCents: 28_793_600,
   verifiedRecurringMonthlyCostsCents: 2_044_400,
@@ -53,7 +53,7 @@ const acquisition: AcquisitionIntelligence = {
   knownUpfrontCashRequiredCents: 641_115_600,
   assumptions: [
     'Deposit scenario assumes 10% of asking price.',
-    'Bond scenario assumes 90% loan-to-value, 11.5% annual interest and a 20-year term.',
+    'Bond scenario assumes 90% loan-to-value, 10.25% annual interest and a 20-year term.',
   ],
   unknownCosts: [
     'Conveyancing and transfer attorney fees are not included.',
