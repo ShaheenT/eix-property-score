@@ -16,14 +16,11 @@ const evidence: PropertyEvidence[] = [
   { field: 'floorSizeM2', value: '150', source: 'json_ld' }, { field: 'landSizeM2', value: '400', source: 'json_ld' },
 ];
 
-test('complete verified listing produces an evidence-backed EiX score even without comparables', () => {
+test('complete verified listing does not manufacture a market-backed score without three comparables', () => {
   const result = calculateReport({ facts, evidence, goal: 'Buy to Live' });
-  assert.ok(result.investmentScore !== null);
-  assert.ok(result.investmentScore <= 69);
-  assert.equal(result.aiConfidence, 100);
-  assert.equal(result.confidenceLabel, 'High');
+  assert.equal(result.investmentScore, null);
   assert.equal(result.scoreBreakdown.marketComparableCount, 0);
-  assert.ok(result.limitations.some((item) => item.includes('Market position is evidence-limited')));
+  assert.ok(result.limitations.some((item) => item.includes('at least 3 comparable properties are required')));
 });
 
 test('does not fabricate rental yield without verified rent', () => {
@@ -76,10 +73,9 @@ test('report engine exposes market intelligence and canonical decision', () => {
   const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables: [comparable] });
 
   assert.equal(result.marketIntelligence.comparableCount, 1);
-  assert.equal(result.decision.decision, 'NEGOTIATE');
-  assert.equal(result.recommendation, 'Consider');
-  assert.equal(result.scoreBreakdown.marketComparableCount, 1);
-  assert.ok(result.scoreBreakdown.marketPosition > 0);
+  assert.equal(result.decision.decision, 'INVESTIGATE');
+  assert.equal(result.recommendation, 'Caution');
+  assert.equal(result.investmentScore, null);
 });
 
 test('report engine can propagate a BUY decision from the decision engine', () => {
@@ -103,7 +99,7 @@ test('report engine can propagate a BUY decision from the decision engine', () =
   assert.equal(result.recommendation, 'Buy');
 });
 
-test('score is bounded when market evidence is available', () => {
+test('score is bounded when at least three comparable properties are available', () => {
   const comparable: import('../lib/property24-comparables').ComparableProperty = {
     listingId: 'comparable-1',
     sourceUrl: 'https://www.property24.com/for-sale/house/cape-town/comparable-1',
@@ -112,7 +108,7 @@ test('score is bounded when market evidence is available', () => {
     similarity: 0.95,
   };
 
-  const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables: [comparable] });
+  const result = calculateReport({ facts, evidence, goal: 'Buy to Live', comparables: [comparable, { ...comparable, listingId: 'comparable-2', facts: { ...comparable.facts, title: 'Comparable 2' } }, { ...comparable, listingId: 'comparable-3', facts: { ...comparable.facts, title: 'Comparable 3' } }] });
   assert.ok(result.investmentScore !== null);
   assert.ok(result.investmentScore >= 0 && result.investmentScore <= 100);
 });
