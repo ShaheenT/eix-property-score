@@ -286,7 +286,6 @@ export default async function CustomerReportPage({
           </section>
         )}
 
-          <>
             <Section eyebrow="The EiX X-Ray" title="What the listing says is not the same as what it means.">
               <p className="mt-4 max-w-4xl text-sm leading-7 text-white/70">{insight}</p>
               <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -431,8 +430,7 @@ export default async function CustomerReportPage({
                 {['Comparable Market Analysis', 'Rental & Yield Intelligence', 'Investment Scenario Modelling', 'Negotiation Intelligence', 'Risk & Due-Diligence Analysis', 'Investor Decision Brief'].map((item) => <div key={item} className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{item}</div>)}
               </div>
             </section>
-          </>
-        )}
+
 
         <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.02] p-6 sm:p-8">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-300">Evidence & Sources</p>
