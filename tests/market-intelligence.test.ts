@@ -72,15 +72,31 @@ test('calculates subject price per square metre', () => {
   );
 });
 
-test('calculates subject position against comparable median', () => {
+test('does not establish price position from active asking listings alone', () => {
   const result = calculateMarketIntelligence(subject, [
     comparable('a', 32_000_000_00, 300),
     comparable('b', 34_000_000_00, 350),
   ]);
 
   assert.equal(result.askingPriceCents.median, 33_000_000_00);
+  assert.equal(result.verifiedAchievedSaleCount, 0);
+  assert.equal(result.subjectVsMedianPercent, null);
+  assert.equal(result.marketPosition, 'Insufficient Data');
+});
+
+test('establishes price position only with at least three registered achieved sales', () => {
+  const sales = [
+    comparable('sale-a', 28_000_000_00, 300),
+    comparable('sale-b', 30_000_000_00, 300),
+    comparable('sale-c', 32_000_000_00, 300),
+  ].map((item) => ({ ...item, saleStatus: 'registered_sale' as const }));
+
+  const result = calculateMarketIntelligence(subject, sales);
+
+  assert.equal(result.verifiedAchievedSaleCount, 3);
+  assert.equal(result.achievedSalePriceCents.median, 30_000_000_00);
   assert.ok(result.subjectVsMedianPercent !== null);
-  assert.equal(result.marketPosition, 'Below Comparable Median');
+  assert.equal(result.marketPosition, 'At Comparable Median');
 });
 
 test('calculates comparable price per square metre only from verified fields', () => {
