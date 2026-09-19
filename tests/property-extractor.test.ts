@@ -398,3 +398,59 @@ test('extracts complete Private Property facts from T5586887 fixture', async () 
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('Property24 listing evidence overrides conflicting structured metadata for Observatory listing 117506054', async () => {
+  const originalFetch = globalThis.fetch;
+  const html = `
+    <html>
+      <head>
+        <title>3 Bedroom House for Sale in Observatory</title>
+        <script type="application/ld+json">
+          {
+            "@context":"https://schema.org",
+            "@type":"RealEstateListing",
+            "name":"3 Bedroom House for Sale in Observatory",
+            "numberOfBedrooms":3,
+            "numberOfBathrooms":3,
+            "floorSize":{"@type":"QuantitativeValue","value":200},
+            "offers":{"@type":"Offer","price":3500000,"priceCurrency":"ZAR"},
+            "itemOffered":{"@type":"House"}
+          }
+        </script>
+      </head>
+      <body>
+        <div class="p24_listing p24_listingDetail" data-listingnumber="117506054"></div>
+        <div class="p24_listingFeatures"><span class="p24_feature">Bedrooms:</span><span class="p24_featureAmount">3</span></div>
+        <div class="p24_listingFeatures"><span class="p24_feature">Bathrooms:</span><span class="p24_featureAmount">2</span></div>
+        <div class="p24_listingFeatures"><span class="p24_feature">Parking:</span><span class="p24_featureAmount">2</span></div>
+        <div class="row p24_propertyOverviewRow"><div class="p24_propertyOverviewKey">Erf Size</div><div class="p24_propertyOverviewResult"><div class="p24_info">200 m²</div></div></div>
+        <div>Street Address 28 Falmouth Road, Observatory</div>
+        <div>Listing Date 06 August 2026</div>
+        <div>Floor Size 119 m²</div>
+        <div>Rates and Taxes R 1 318</div>
+      </body>
+    </html>`;
+  globalThis.fetch = async () => new Response(html, {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  });
+
+  try {
+    const result = await extractPropertyFromUrl(
+      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117506054',
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.source, 'property24');
+    assert.equal(result.facts.askingPriceCents, 350000000);
+    assert.equal(result.facts.bedrooms, 3);
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.floorSizeM2, 119);
+    assert.equal(result.facts.landSizeM2, 200);
+    assert.ok(result.evidence.some((item) => item.field === 'bathrooms' && item.source === 'html' && item.value === '2'));
+    assert.ok(result.evidence.some((item) => item.field === 'floorSizeM2' && item.source === 'html'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
