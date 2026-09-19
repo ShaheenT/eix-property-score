@@ -141,6 +141,17 @@ function calculatePropertyScore(
     return { score: null, breakdown: {} };
   }
 
+  if (market.achievedSaleCount < 3) {
+    return {
+      score: null,
+      breakdown: {
+        marketComparableCount: market.comparableCount,
+        achievedSaleComparableCount: market.achievedSaleCount,
+        activeAskingComparableCount: market.comparableCount,
+      },
+    };
+  }
+
   const evidenceComponent = evidenceScore(facts, evidence);
   const fundamentalsComponent = componentScore(facts, FUNDAMENTAL_FIELDS);
   const financialComponent = componentScore(facts, FINANCIAL_FIELDS);
