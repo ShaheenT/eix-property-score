@@ -141,10 +141,12 @@ export default async function CustomerReportPage({
 
   const askingPrice = typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null;
   const landM2 = typeof facts.landSizeM2 === 'number' ? facts.landSizeM2 : null;
-  const scoreNumber = typeof report.investment_score === 'number' ? report.investment_score : null;
-  const comparableCount = Number(score.marketComparableCount || 0);
-  const comparableMedian = score.marketMedianAskingPriceCents ? currency(score.marketMedianAskingPriceCents) : 'Not established';
-  const vsMedian = comparableCount >= 3 ? percent(score.subjectVsMedianPercent) : 'Not established';
+  const comparableCount = Number(score.activeAskingComparableCount || score.marketComparableCount || 0);
+  const achievedSaleCount = Number(score.achievedSaleComparableCount || 0);
+  const activeAskingMedian = score.activeAskingMedianPriceCents ? currency(score.activeAskingMedianPriceCents) : 'Not established';
+  const achievedSaleMedian = score.achievedSaleMedianPriceCents ? currency(score.achievedSaleMedianPriceCents) : 'Not established';
+  const vsAskingMedian = comparableCount >= 3 ? percent(score.subjectVsMedianPercent) : 'Not established';
+  const vsAchievedSaleMedian = achievedSaleCount >= 3 ? percent(score.subjectVsAchievedSaleMedianPercent) : 'Not established';
   const rawAddress = text(facts.address, '');
   const addressLooksContaminated = /for this property\\.|resetPasswordUrl|listingSendAgentAMessageActionUrl|Bond Calculator|window\\.loader|BondCalculatorsDesktop|googletag\\.|ContactForAddressForm/i.test(rawAddress);
   const address = addressLooksContaminated ? '' : rawAddress;
@@ -189,25 +191,21 @@ export default async function CustomerReportPage({
     hasKnownMonthlyCosts && typeof report.bond_monthly_payment_cents === 'number'
       ? knownMonthlyCostCents + report.bond_monthly_payment_cents
       : null;
-  const buyerSignal = comparableCount < 3
-    ? scoreNumber !== null && scoreNumber >= 60
-      ? 'PROCEED — WITH PRICE & MARKET CHECK'
-      : scoreNumber !== null && scoreNumber >= 50
-        ? 'INVESTIGATE — PRICE EVIDENCE REQUIRED'
-        : 'CAUTION — RESOLVE MATERIAL GAPS'
+  const buyerSignal = achievedSaleCount < 3
+    ? 'INVESTIGATE — ACHIEVED-SALE EVIDENCE REQUIRED'
     : report.recommendation === 'Buy' || report.recommendation === 'Strong Buy'
-      ? 'PROCEED — REVIEW MARKET EVIDENCE'
+      ? 'PROCEED — REVIEW VERIFIED SALES'
       : report.recommendation === 'Consider'
         ? 'CONSIDER — REVIEW PRICE & EVIDENCE'
         : 'CAUTION — INVESTIGATE BEFORE COMMITTING';
 
-  const decisionBody = comparableCount < 3
+  const decisionBody = achievedSaleCount < 3
     ? `EiX has established the core physical proposition of this ${propertyType.toLowerCase()}. The unresolved variable is market price: EiX does not yet have enough verified comparable evidence to establish whether ${price} is fair. That becomes the first question to solve before an offer.`
-    : `EiX has at least three comparable properties. The market signal should be read alongside this property's size, condition, land, parking, financial scenario and evidence gaps — not as a formal valuation.`;
+    : `EiX has at least three verified achieved-sale comparables. The market signal should be read alongside this property's size, condition, land, parking, financial scenario and evidence gaps — not as a formal valuation.`;
 
-  const assessmentHeadline = comparableCount < 3
-    ? scoreNumber !== null && scoreNumber >= 60 ? 'Promising Property — Market Price Requires Verification' : 'Property Requires Further Investigation'
-    : report.recommendation === 'Buy' || report.recommendation === 'Strong Buy' ? 'Positive Signal — Review the Evidence' : report.recommendation === 'Consider' ? 'Consider — Review Price & Evidence' : 'Caution — Investigate Before Committing';
+  const assessmentHeadline = achievedSaleCount < 3
+    ? 'Property Identified — Price Fairness Not Yet Established'
+    : report.recommendation === 'Buy' || report.recommendation === 'Strong Buy' ? 'Positive Signal — Review Verified Sales' : report.recommendation === 'Consider' ? 'Consider — Review Price & Evidence' : 'Caution — Investigate Before Committing';
 
   const insight = floorM2 !== null && landM2 !== null
     ? `At ${price}, you are not simply buying ${text(facts.bedrooms)} bedrooms. You are paying for the combination of ${number(landM2)} m² of erf, ${number(floorM2)} m² of internal space, ${facts.parking ?? 'unverified'} parking, ${facts.hasGarden ? 'private outdoor space' : 'an unverified garden'} and the stated condition. The question is whether buyers in this market are paying enough of a premium for those characteristics to justify the asking price.`
@@ -223,7 +221,8 @@ export default async function CustomerReportPage({
     ['Fibre', yesNo(facts.hasFibre), 'LOW / MEDIUM'],
     ['Renovation / condition', renovated ? 'Listing-supported' : 'Not established', 'HIGH'],
     ['Rental income', report.rental_yield_percent === null ? 'Not established' : `${report.rental_yield_percent}% gross yield`, 'HIGH'],
-    ['Comparable prices', comparableCount > 0 ? `${comparableCount} verified` : 'Not sufficiently verified', 'VERY HIGH'],
+    ['Achieved sale evidence', achievedSaleCount >= 3 ? `${achievedSaleCount} verified sales` : 'Not sufficiently verified', 'VERY HIGH'],
+    ['Active asking comparables', comparableCount > 0 ? `${comparableCount} asking listings` : 'Not established', 'MEDIUM'],
   ];
 
   const buyerQuestions = [
@@ -236,10 +235,10 @@ export default async function CustomerReportPage({
 
   const negotiationItems = [
     ['Current asking price', price],
-    ['Market position', comparableCount > 0 ? `${vsMedian} vs comparable median` : 'Not established'],
+    ['Achieved-sale position', achievedSaleCount >= 3 ? `${vsAchievedSaleMedian} vs achieved-sale median` : 'Not established'],
     ['Negotiation readiness', comparableCount > 0 ? 'Evidence available' : 'LOW — build evidence first'],
-    ['Comparable evidence', comparableCount > 0 ? `${comparableCount} verified` : 'Required'],
-    ['Achieved prices', 'Verify recent sales'],
+    ['Comparable evidence', achievedSaleCount >= 3 ? `${achievedSaleCount} achieved sales` : 'Achieved sales required'],
+    ['Achieved prices', achievedSaleCount >= 3 ? 'Evidence available' : 'Verify recent sales'],
     ['Time on market', 'Verify'],
     ['Condition premium', renovated ? 'Compare renovation quality' : 'Verify condition'],
     ['Seller motivation', 'Verify'],
@@ -247,6 +246,7 @@ export default async function CustomerReportPage({
   ];
 
   const risks = [
+    achievedSaleCount < 3 ? 'Price fairness is unresolved: verified achieved-sale evidence is insufficient to establish whether the asking price is supported.' : null,
     comparableCount === 0 ? 'Market price is unresolved: verified comparable evidence is insufficient to call the asking price fair or unfair.' : null,
     report.rental_yield_percent === null ? 'Rental economics are unresolved because verified rental evidence is unavailable.' : null,
     facts.leviesCents === null || facts.leviesCents === undefined ? 'Levies or other recurring ownership costs were not established.' : null,
@@ -345,10 +345,10 @@ export default async function CustomerReportPage({
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
                 <SignalCard label="ASKING" value={price} />
                 <SignalCard label="ASKING / FLOOR m²" value={psm2} detail="Derived from verified asking price and floor area; not a valuation." />
-                <SignalCard label="COMPARABLE MEDIAN" value={comparableMedian} detail={comparableCount > 0 ? `${comparableCount} verified comparable properties.` : 'No verified comparable set.'} tone={comparableCount > 0 ? 'positive' : 'attention'} />
+                <SignalCard label="ACHIEVED-SALE MEDIAN" value={achievedSaleMedian} detail={achievedSaleCount >= 3 ? `${achievedSaleCount} verified achieved-sale comparables.` : 'Price fairness requires at least 3 verified achieved sales.'} tone={achievedSaleCount >= 3 ? 'positive' : 'attention'} />
               </div>
               <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-                <p className="text-sm leading-7 text-white/65">{comparableCount > 0 ? `The subject is ${vsMedian} relative to the comparable asking-price median. Treat this as market evidence for investigation and negotiation, not as a formal valuation.` : `EiX could verify the asking price and physical profile, but it has not established enough verified comparable evidence to say whether ${price} is fair market value. The correct next move is to obtain genuinely comparable Observatory properties with reliable price, size, condition and property-type evidence.`}</p>
+                <p className="text-sm leading-7 text-white/65">{comparableCount > 0 ? `The subject is ${vsAskingMedian} relative to the active asking-price median. This is context only. It does not establish what comparable properties actually achieved.` : `EiX could verify the asking price and physical profile, but it has not established enough verified achieved-sale evidence to say whether ${price} is fair market value. The correct next move is to obtain at least three genuinely comparable achieved sales with reliable sale price, date, size, condition and property-type evidence.`}</p>
               </div>
             </Section>
 
@@ -383,6 +383,14 @@ export default async function CustomerReportPage({
                   ['Garden', yesNo(facts.hasGarden)],
                 ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-[9px] uppercase tracking-[0.16em] text-white/70">{label}</p><p className="mt-2 text-lg font-bold">{value}</p></div>)}
               </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['9.50%', score.rateStress_9_5 ? currency(score.rateStress_9_5) : 'Not available'],
+                  ['10.50% reference', score.rateStress_10_5 ? currency(score.rateStress_10_5) : 'Not available'],
+                  ['11.50%', score.rateStress_11_5 ? currency(score.rateStress_11_5) : 'Not available'],
+                  ['12.50%', score.rateStress_12_5 ? currency(score.rateStress_12_5) : 'Not available'],
+                ].map(([rate, value]) => <SignalCard key={rate} label={`Bond stress · ${rate}`} value={value} />)}
+              </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Floor-area / erf ratio</p><p className="mt-2 text-3xl font-black">{floorErfRatio}</p><p className="mt-2 text-sm leading-6 text-white/65">This is a derived floor-area-to-erf relationship. It is not the stated site coverage.</p></div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Why the ratio matters</p><p className="mt-2 text-lg font-bold">You can compare the physical proposition, not just the bedroom count.</p><p className="mt-2 text-sm leading-6 text-white/65">Land, internal space, outdoor space and parking can materially change how similar properties should be compared.</p></div>
@@ -394,7 +402,7 @@ export default async function CustomerReportPage({
                 <SignalCard label="PROPERTY EVIDENCE" value="Listing-backed" detail={`${evidence.length} source records were extracted from the supplied listing; they are not independent valuation evidence.`} />
                 <SignalCard label="PROPERTY FUNDAMENTALS" value="Positive with limits" detail="The physical proposition is useful, but missing characteristics are never assumed to exist." />
                 <SignalCard label="FINANCIAL CLARITY" value="Moderate" detail="Price and illustrative financing are calculable; rental economics and full ownership costs remain incomplete." />
-                <SignalCard label="MARKET POSITION" value={comparableCount > 0 ? 'Evidence available' : 'Unresolved'} detail={comparableCount > 0 ? `${comparableCount} verified comparables inform the signal.` : 'The score is deliberately capped when market evidence is absent.'} tone={comparableCount > 0 ? 'positive' : 'attention'} />
+                <SignalCard label="PRICE FAIRNESS" value={achievedSaleCount >= 3 ? 'Evidence established' : 'Not established'} detail={achievedSaleCount >= 3 ? `${achievedSaleCount} verified achieved sales inform the price signal.` : 'Active asking prices cannot substitute for achieved-sale evidence.'} tone={achievedSaleCount >= 3 ? 'positive' : 'attention'} />
               </div>
               <div className="mt-5 rounded-2xl border border-teal-300/15 bg-teal-300/[0.04] p-6"><p className="text-sm leading-7 text-white/65">EiX separates listing-derived facts from market evidence. A listing fact can describe the property, but it does not independently establish fair market value. When comparable evidence is missing, the report says so instead of presenting the missing market evidence as a score.</p></div>
             </Section>
@@ -419,16 +427,16 @@ export default async function CustomerReportPage({
                   ['Purchase price', price],
                   ['10% deposit', askingPrice !== null ? currency(Math.round(askingPrice * 0.10)) : 'Not available'],
                   ['Transfer duty', askingPrice !== null ? currency(transferDutyCents(askingPrice)) : 'Not available'],
-                  ['Known upfront cash', askingPrice !== null ? currency(Math.round(askingPrice * 0.10) + transferDutyCents(askingPrice)) : 'Not available'],
+                  ['Minimum identified cash', score.minimumIdentifiedCashRequiredCents ? currency(score.minimumIdentifiedCashRequiredCents) : 'Not established'],
                   ['Estimated loan', currency(report.bond_loan_amount_cents)],
-                  ['Illustrative bond', currency(report.bond_monthly_payment_cents)],
+                  ['Illustrative bond @ 10.50%', currency(report.bond_monthly_payment_cents)],
                   ['Known monthly costs', hasKnownMonthlyCosts ? currency(knownMonthlyCostCents) : 'Not established'],
                   ['Known monthly ownership', knownMonthlyOwnershipCents !== null ? currency(knownMonthlyOwnershipCents) : 'Not established'],
                 ].map(([label, value]) => <SignalCard key={label} label={label} value={value} />)}
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Cash requirement</p><p className="mt-2 text-sm leading-6 text-white/70">Deposit plus applicable transfer/acquisition costs and legal/conveyancing costs where relevant.</p></div>
-                <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-amber-200/60">Important</p><p className="mt-2 text-sm leading-6 text-white/70">This is an illustrative financing scenario, not a lending quote.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-white/70">Cash requirement</p><p className="mt-2 text-sm leading-6 text-white/70">This is the minimum identified amount: 10% deposit plus transfer duty under the scenario. It excludes conveyancing, bond registration, lender and other transaction-specific costs because no verified quotes are available.</p></div>
+                <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-amber-200/60">Important</p><p className="mt-2 text-sm leading-6 text-white/70">The 10.50% reference reflects SARB's published prime rate on 11 September 2026. The next MPC decision is scheduled for 23 September 2026. Actual lending pricing depends on the lender and borrower.</p></div>
               </div>
             </Section>
 
@@ -463,7 +471,7 @@ export default async function CustomerReportPage({
               <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">The property is interesting. The price is the test.</h2>
               <p className="mt-5 max-w-4xl text-base leading-8 text-white/70">The physical proposition is reasonably well defined: a {propertyType.toLowerCase()} with {text(facts.bedrooms)} bedrooms, {text(bathrooms)} bathrooms{landM2 !== null ? `, a ${number(landM2)} m² erf` : ''}{floorM2 !== null ? ` and ${number(floorM2)} m² floor area` : ''}{facts.parking !== null && facts.parking !== undefined ? `, ${facts.parking} parking spaces` : ''}{facts.hasGarden ? ', garden' : ''}{facts.hasFibre ? ' and fibre' : ''}.</p>
               <p className="mt-4 max-w-4xl text-base leading-8 text-white/70">The next decision should not be <strong className="text-white">“Do I like the property?”</strong> It should be <strong className="text-white">“Does the market support {price} for this particular property?”</strong></p>
-              <p className="mt-4 max-w-4xl text-base font-semibold leading-8 text-white">{comparableCount === 0 ? 'Resolve that question before committing to an offer.' : 'Review the comparable evidence and property-specific differences before committing to an offer.'}</p>
+              <p className="mt-4 max-w-4xl text-base font-semibold leading-8 text-white">{achievedSaleCount < 3 ? 'Resolve the achieved-sale evidence gap before relying on the asking price.' : 'Review the achieved-sale evidence and property-specific differences before committing to an offer.'}</p>
             </section>
 
             <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.025] p-6 sm:p-8">
