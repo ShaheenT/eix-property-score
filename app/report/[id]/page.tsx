@@ -92,10 +92,16 @@ export default async function CustomerReportPage({
   const title = text(facts.title, 'Property Analysis');
   const propertyType = text(facts.propertyType, 'Property');
   const price = currency(askingPrice);
+  // Description is supporting evidence only. Never derive core facts from it:
+  // Property24 page chrome can contain unrelated calculator/widget text and even
+  // duplicate listing copy. Bedrooms, bathrooms and floor area must come from
+  // structured extraction, not from free-form description text.
   const rawDescription = typeof facts.description === 'string' ? facts.description : '';
   const descriptionMarkers = ['Charming ', 'SOLE MANDATE', 'Observatory has quickly become'];
-  const markerPositions = descriptionMarkers.map((marker) => rawDescription.toLowerCase().indexOf(marker.toLowerCase())).filter((position) => position >= 0);
-  const descriptionStart = markerPositions.length ? Math.min(...markerPositions) : 0;
+  const markerPositions = descriptionMarkers
+    .map((marker) => rawDescription.toLowerCase().indexOf(marker.toLowerCase()))
+    .filter((position) => position >= 0);
+  const descriptionStart = markerPositions.length ? Math.min(...markerPositions) : rawDescription.length;
   let description = rawDescription.slice(descriptionStart);
   const descriptionEnd = description.indexOf('Viewings by appointment only!');
   if (descriptionEnd >= 0) description = description.slice(0, descriptionEnd + 'Viewings by appointment only!'.length);
@@ -108,14 +114,13 @@ export default async function CustomerReportPage({
     .replace(/&mdash;/gi, '—')
     .replace(/&#39;/gi, "'")
     .trim();
-  const bathroomMarker = description.toLowerCase().indexOf('bathrooms:');
-  const bathroomTail = bathroomMarker >= 0 ? description.slice(bathroomMarker + 'bathrooms:'.length).trim() : '';
-  const bathroomToken = bathroomTail.split(/\s+/)[0].replace(/[^0-9.]/g, '');
-  const bathrooms = bathroomToken ? Number(bathroomToken) : facts.bathrooms;
-  const floorMarker = description.toLowerCase().indexOf('floor m2:');
-  const floorTail = floorMarker >= 0 ? description.slice(floorMarker + 'floor m2:'.length).trim() : '';
-  const floorToken = floorTail.split(/\s+/)[0].replace(/[^0-9.]/g, '');
-  const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2) ? facts.floorSizeM2 : floorToken ? Number(floorToken) : null;
+
+  const bathrooms = typeof facts.bathrooms === 'number' && Number.isFinite(facts.bathrooms)
+    ? facts.bathrooms
+    : null;
+  const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2)
+    ? facts.floorSizeM2
+    : null;
   const psm2 = score.subjectPricePerM2Cents ? currency(score.subjectPricePerM2Cents) : pricePerM2(askingPrice, floorM2);
   const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
   const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
