@@ -86,7 +86,6 @@ export default async function CustomerReportPage({
   const landM2 = typeof facts.landSizeM2 === 'number' ? facts.landSizeM2 : null;
   const scoreNumber = typeof report.investment_score === 'number' ? report.investment_score : null;
   const comparableCount = Number(score.marketComparableCount || 0);
-  const psm2 = score.subjectPricePerM2Cents ? currency(score.subjectPricePerM2Cents) : pricePerM2(askingPrice, floorM2);
   const comparableMedian = score.marketMedianAskingPriceCents ? currency(score.marketMedianAskingPriceCents) : 'Not established';
   const vsMedian = comparableCount > 0 ? percent(score.subjectVsMedianPercent) : 'Not established';
   const address = text(facts.address, 'Address not verified');
@@ -109,6 +108,7 @@ export default async function CustomerReportPage({
   const bathrooms = bathroomMatch ? Number(bathroomMatch[1]) : facts.bathrooms;
   const floorMatch = description.match(/Floor\\s*m2:\\s*\\+?-?\\s*([\\d.]+)\\s*m2/i);
   const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2) ? facts.floorSizeM2 : floorMatch ? Number(floorMatch[1]) : null;
+  const psm2 = score.subjectPricePerM2Cents ? currency(score.subjectPricePerM2Cents) : pricePerM2(askingPrice, floorM2);
   const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
   const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
   const floorErfRatio = floorM2 !== null && landM2 !== null && landM2 > 0 ? `${((floorM2 / landM2) * 100).toFixed(0)}%` : 'Not established';
