@@ -83,7 +83,10 @@ export default async function CustomerReportPage({
   const internationalBuyer = (report.international_buyer_analysis || null) as Record<string, any> | null;
 
   const askingPrice = typeof facts.askingPriceCents === 'number' ? facts.askingPriceCents : null;
-  const floorM2 = typeof facts.floorSizeM2 === 'number' ? facts.floorSizeM2 : null;
+  const bathroomMatch = description.match(/Features\\s+Bedrooms:\\s*\\d+(?:\\.\\d+)?\\s+Bathrooms:\\s*(\\d+(?:\\.\\d+)?)\\s+Parking:/i);
+  const bathrooms = bathroomMatch ? Number(bathroomMatch[1]) : bathrooms;
+  const floorMatch = description.match(/Floor\\s*m2:\\s*\\+?-?\\s*([\\d.]+)\\s*m2/i);
+  const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2) ? facts.floorSizeM2 : floorMatch ? Number(floorMatch[1]) : null;
   const landM2 = typeof facts.landSizeM2 === 'number' ? facts.landSizeM2 : null;
   const scoreNumber = typeof report.investment_score === 'number' ? report.investment_score : null;
   const comparableCount = Number(score.marketComparableCount || 0);
@@ -94,7 +97,18 @@ export default async function CustomerReportPage({
   const title = text(facts.title, 'Property Analysis');
   const propertyType = text(facts.propertyType, 'Property');
   const price = currency(askingPrice);
-  const description = text(facts.description, '');
+  const description = typeof facts.description === 'string' ? facts.description
+    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')
+    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')
+    .replace(/window\\\\?\\.loader[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
+    .replace(/resetPasswordUrl[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
+    .replace(/BondCalculatorsDesktop[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
+    .replace(/Bond Calculator[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
+    .replace(/Send Listing[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
+    .replace(/WhatsApp Agent[\\s\\S]*?(?=Charming|SOLE MANDATE|Viewings by appointment|$)/gi, ' ')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&rsquo;/gi, '’').replace(/&ndash;/gi, '–').replace(/&mdash;/gi, '—').replace(/&#39;/gi, "'")
+    .replace(/\\s+/g, ' ').trim() : '';
   const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
   const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
   const floorErfRatio = floorM2 !== null && landM2 !== null && landM2 > 0 ? `${((floorM2 / landM2) * 100).toFixed(0)}%` : 'Not established';
@@ -168,7 +182,7 @@ export default async function CustomerReportPage({
     ['Asking Price', price],
     ['Property Type', propertyType],
     ['Bedrooms', text(facts.bedrooms)],
-    ['Bathrooms', text(facts.bathrooms)],
+    ['Bathrooms', text(bathrooms)],
     ['Floor Size', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
     ['Land Size', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
     ['Parking', text(facts.parking)],
@@ -193,76 +207,77 @@ export default async function CustomerReportPage({
         <div className="mb-5 flex justify-end print:hidden"><ReportPrintButton /></div>
 
         {!isPro && (
-          <section className="overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.07] via-white/[0.025] to-teal-300/[0.04] shadow-2xl shadow-black/20">
-            <div className="grid lg:grid-cols-[1.15fr_.85fr]">
-              <div className="p-6 sm:p-9 lg:p-10">
+          <section className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[#0c1715] shadow-[0_30px_100px_rgba(0,0,0,.4)]">
+            <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-teal-300/10 blur-3xl" />
+            <div className="grid lg:grid-cols-[1.02fr_.98fr]">
+              <div className="relative z-10 p-7 sm:p-10 lg:p-12">
                 <div className="flex items-center gap-2">
                   <img src="/eixproplogo.png" alt="EiX Property Score" className="h-8 w-auto" />
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/45">Founding Beta</span>
+                  <span className="rounded-full border border-teal-300/20 bg-teal-300/[0.07] px-3 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-teal-100">Founding Beta</span>
                 </div>
-                <p className="mt-8 text-[10px] font-bold uppercase tracking-[0.24em] text-teal-200">Property Intelligence</p>
-                <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">{title}</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">{address}</p>
-                <div className="mt-8 flex flex-wrap items-end gap-x-8 gap-y-5">
-                  <div><p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/40">Asking price</p><p className="mt-1 text-3xl font-black tracking-tight">{price}</p></div>
-                  <div><p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/40">Price / m²</p><p className="mt-1 text-2xl font-bold tracking-tight">{psm2}</p></div>
-                  <div><p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/40">Market evidence</p><p className="mt-1 text-lg font-bold text-amber-200">{comparableCount > 0 ? 'Available' : 'Unresolved'}</p></div>
+                <p className="mt-9 text-[10px] font-bold uppercase tracking-[0.28em] text-teal-200">Property Intelligence</p>
+                <h1 className="mt-4 max-w-2xl text-4xl font-black leading-[1.02] tracking-[-0.045em] sm:text-6xl">{title}</h1>
+                <p className="mt-4 max-w-xl text-sm leading-6 text-white/55">{address}</p>
+                <div className="mt-9">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Asking price</p>
+                  <p className="mt-1 text-4xl font-black tracking-[-0.04em] sm:text-5xl">{price}</p>
                 </div>
-                <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {[
                     ['Bedrooms', text(facts.bedrooms)],
-                    ['Bathrooms', text(facts.bathrooms)],
-                    ['Floor', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
-                    ['Erf', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
+                    ['Bathrooms', text(bathrooms)],
+                    ['Floor', floorM2 !== null ? \${number(floorM2)} m² : 'Not verified'],
+                    ['Erf', landM2 !== null ? \${number(landM2)} m² : 'Not verified'],
                   ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                      <p className="text-[9px] uppercase tracking-[0.16em] text-white/35">{label}</p>
-                      <p className="mt-1 text-sm font-bold">{value}</p>
+                    <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/35">{label}</p>
+                      <p className="mt-2 text-lg font-black tracking-tight">{value}</p>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="relative min-h-[330px] border-t border-white/10 bg-black/20 lg:min-h-full lg:border-l lg:border-t-0">
+              <div className="relative min-h-[380px] border-t border-white/10 lg:min-h-full lg:border-l lg:border-t-0">
                 {primaryImageUrl ? (
                   <>
                     <img src={primaryImageUrl} alt="Property listing" className="absolute inset-0 h-full w-full object-cover" loading="eager" referrerPolicy="no-referrer" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
-                    <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/15 bg-black/35 p-4 backdrop-blur-md">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/55">Source image</p>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#0c1715] via-black/5 to-black/20" />
+                    <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/15 bg-black/35 p-4 backdrop-blur-xl">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">Source</p>
                       <p className="mt-1 text-xs text-white/80">Submitted property listing</p>
                     </div>
                   </>
                 ) : (
-                  <div className="flex h-full min-h-[330px] items-center justify-center p-8 text-center">
-                    <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Property image</p><p className="mt-2 text-sm text-white/45">No verified listing image available.</p></div>
+                  <div className="flex h-full min-h-[380px] items-center justify-center bg-gradient-to-br from-teal-300/10 to-black p-8 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">Property image unavailable</p>
                   </div>
                 )}
               </div>
             </div>
-            <div className="border-t border-white/10 p-6 sm:p-7">
-              <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div className="border-t border-white/10 bg-black/20 p-7 sm:p-9">
+              <div className="grid gap-7 lg:grid-cols-[1fr_auto] lg:items-center">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-200/70">EiX Buyer Signal</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-200/75">EiX Buyer Signal</p>
                   <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{buyerSignal}</h2>
-                  <p className="mt-3 max-w-4xl text-sm leading-7 text-white/65">{decisionBody}</p>
+                  <p className="mt-3 max-w-3xl text-sm leading-7 text-white/60">{decisionBody}</p>
                 </div>
-                <div className="flex items-center gap-4 lg:pl-6">
-                  <div className="grid h-28 w-28 shrink-0 place-items-center rounded-full border border-teal-300/30 bg-teal-300/[0.06]">
+                <div className="flex items-center gap-5 lg:min-w-[250px] lg:justify-end">
+                  <div className="grid h-28 w-28 place-items-center rounded-full border border-teal-300/30 bg-teal-300/[0.07] shadow-[0_0_45px_rgba(45,212,191,.08)]">
                     <div className="text-center">
-                      <p className="text-4xl font-black tracking-tighter text-teal-300">{scoreNumber ?? '—'}</p>
-                      <p className="text-[8px] uppercase tracking-[0.16em] text-white/45">/ 100</p>
+                      <p className="text-4xl font-black text-teal-200">{scoreNumber ?? '—'}</p>
+                      <p className="text-[8px] uppercase tracking-[0.2em] text-white/40">of 100</p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/35">Confidence</p>
-                    <p className="mt-1 text-xl font-bold">{report.ai_confidence ?? 0}%</p>
-                    <p className="mt-1 text-xs text-white/45">{report.confidence_label || 'Evidence-limited'}</p>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35">Confidence</p>
+                    <p className="mt-1 text-2xl font-black">{report.ai_confidence ?? 0}%</p>
+                    <p className="mt-1 text-xs text-white/40">{report.confidence_label || 'Evidence-limited'}</p>
                   </div>
                 </div>
               </div>
             </div>
           </section>
-        )}        {!isPro && (
+        )}
+
           <>
             <Section eyebrow="The EiX X-Ray" title="What the listing says is not the same as what it means.">
               <p className="mt-4 max-w-4xl text-sm leading-7 text-white/70">{insight}</p>
@@ -315,7 +330,7 @@ export default async function CustomerReportPage({
                   ['Land', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
                   ['Building', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
                   ['Bedrooms', text(facts.bedrooms)],
-                  ['Bathrooms', text(facts.bathrooms)],
+                  ['Bathrooms', text(bathrooms)],
                   ['Parking', text(facts.parking)],
                   ['Garden', yesNo(facts.hasGarden)],
                 ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-[9px] uppercase tracking-[0.16em] text-white/70">{label}</p><p className="mt-2 text-lg font-bold">{value}</p></div>)}
@@ -394,7 +409,7 @@ export default async function CustomerReportPage({
             <section className="mt-6 overflow-hidden rounded-[30px] border border-teal-300/20 bg-gradient-to-br from-teal-300/[0.09] via-white/[0.025] to-transparent p-7 sm:p-9">
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-teal-200">EiX Bottom Line</p>
               <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">The property is interesting. The price is the test.</h2>
-              <p className="mt-5 max-w-4xl text-base leading-8 text-white/70">The physical proposition is reasonably well defined: a {propertyType.toLowerCase()} with {text(facts.bedrooms)} bedrooms, {text(facts.bathrooms)} bathrooms{landM2 !== null ? `, a ${number(landM2)} m² erf` : ''}{floorM2 !== null ? ` and ${number(floorM2)} m² floor area` : ''}{facts.parking !== null && facts.parking !== undefined ? `, ${facts.parking} parking spaces` : ''}{facts.hasGarden ? ', garden' : ''}{facts.hasFibre ? ' and fibre' : ''}.</p>
+              <p className="mt-5 max-w-4xl text-base leading-8 text-white/70">The physical proposition is reasonably well defined: a {propertyType.toLowerCase()} with {text(facts.bedrooms)} bedrooms, {text(bathrooms)} bathrooms{landM2 !== null ? `, a ${number(landM2)} m² erf` : ''}{floorM2 !== null ? ` and ${number(floorM2)} m² floor area` : ''}{facts.parking !== null && facts.parking !== undefined ? `, ${facts.parking} parking spaces` : ''}{facts.hasGarden ? ', garden' : ''}{facts.hasFibre ? ' and fibre' : ''}.</p>
               <p className="mt-4 max-w-4xl text-base leading-8 text-white/70">The next decision should not be <strong className="text-white">“Do I like the property?”</strong> It should be <strong className="text-white">“Does the market support {price} for this particular property?”</strong></p>
               <p className="mt-4 max-w-4xl text-base font-semibold leading-8 text-white">{comparableCount === 0 ? 'Resolve that question before committing to an offer.' : 'Review the comparable evidence and property-specific differences before committing to an offer.'}</p>
             </section>
