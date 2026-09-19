@@ -229,9 +229,9 @@ function buildLimitations(
   if (!hasValue(facts.floorSizeM2) && !hasValue(facts.landSizeM2)) {
     limitations.push('No verified floor or land size was available.');
   }
-  if (market.comparableCount < 3) {
+  if (market.achievedSaleCount < 3) {
     limitations.push(
-      `Price fairness is not established because at least 3 comparable properties are required; only ${market.comparableCount} were available.`,
+      `Price fairness is not established because at least 3 verified achieved-sale comparables are required; only ${market.achievedSaleCount} were available. Active asking prices are context only.`,
     );
   }
   for (const unknown of decision.unknowns) {
@@ -294,7 +294,22 @@ export function calculateReport(input: ReportEngineInput): ReportEngineOutput {
     bondMonthlyPaymentCents: acquisitionIntelligence.bondMonthlyPaymentCents,
     bondLoanAmountCents: acquisitionIntelligence.loanAmountCents,
     recommendation: mapRecommendation(decision.decision),
-    scoreBreakdown: propertyScore.breakdown,
+    scoreBreakdown: {
+      ...propertyScore.breakdown,
+      achievedSaleComparableCount: marketIntelligence.achievedSaleCount,
+      achievedSaleMedianPriceCents: marketIntelligence.achievedSaleMedianCents ?? 0,
+      subjectVsAchievedSaleMedianPercent:
+        marketIntelligence.subjectVsAchievedSaleMedianPercent ?? 0,
+      activeAskingComparableCount: marketIntelligence.comparableCount,
+      activeAskingMedianPriceCents: marketIntelligence.askingPriceCents.median ?? 0,
+      minimumIdentifiedCashRequiredCents:
+        acquisitionIntelligence.minimumIdentifiedCashRequiredCents ?? 0,
+      financingReferenceRatePercent: acquisitionIntelligence.bondAnnualInterestPercent,
+      rateStress_9_5: acquisitionIntelligence.rateStressTest.find((item) => item.annualInterestPercent === 9.5)?.monthlyPaymentCents ?? 0,
+      rateStress_10_5: acquisitionIntelligence.rateStressTest.find((item) => item.annualInterestPercent === 10.5)?.monthlyPaymentCents ?? 0,
+      rateStress_11_5: acquisitionIntelligence.rateStressTest.find((item) => item.annualInterestPercent === 11.5)?.monthlyPaymentCents ?? 0,
+      rateStress_12_5: acquisitionIntelligence.rateStressTest.find((item) => item.annualInterestPercent === 12.5)?.monthlyPaymentCents ?? 0,
+    },
     assumptions,
     limitations: buildLimitations(input.facts, marketIntelligence, decision),
     marketIntelligence,
