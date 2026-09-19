@@ -28,6 +28,63 @@ function contains(value: unknown, terms: string[]): boolean {
   return terms.some((term) => haystack.includes(term));
 }
 
+function sanitizeListingDescription(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) return '';
+
+  const decoded = value
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)))
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&rsquo;/gi, '’')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&mdash;/gi, '—')
+    .replace(/&#39;/gi, "'")
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\\s+/g, ' ')
+    .trim();
+
+  // Stored reports may contain legacy Property24 page chrome. Never let that
+  // payload reach the customer-facing report, even if the report was generated
+  // before the extractor sanitizer was deployed.
+  const listingMarkers = [
+    'SOLE MANDATE',
+    'Charming ',
+    'Observatory has quickly become',
+  ];
+  const lower = decoded.toLowerCase();
+  const positions = listingMarkers
+    .map((marker) => lower.indexOf(marker.toLowerCase()))
+    .filter((position) => position >= 0);
+
+  if (!positions.length) {
+    const contaminated = [
+      'window.loader',
+      'Bond Calculator',
+      'resetPasswordUrl',
+      'listingSendAgentAMessageActionUrl',
+      'BondCalculatorsDesktop',
+      'for this property.',
+    ].some((marker) => lower.includes(marker.toLowerCase()));
+    return contaminated ? '' : decoded;
+  }
+
+  const start = Math.min(...positions);
+  let cleaned = decoded.slice(start);
+  const endMarkers = [
+    'Read full description',
+    'window.loader.addCallback',
+    'resetPasswordUrl',
+    'listingSendAgentAMessageActionUrl',
+  ];
+  for (const marker of endMarkers) {
+    const index = cleaned.toLowerCase().indexOf(marker.toLowerCase());
+    if (index >= 0) cleaned = cleaned.slice(0, index);
+  }
+
+  return cleaned.trim();
+}
+
 function SignalCard({ label, value, detail, tone = 'neutral' }: { label: string; value: string; detail?: string; tone?: 'positive' | 'attention' | 'neutral' }) {
   const toneClass = tone === 'positive'
     ? 'border-teal-300/20 bg-teal-300/[0.06]'
@@ -96,24 +153,7 @@ export default async function CustomerReportPage({
   // Property24 page chrome can contain unrelated calculator/widget text and even
   // duplicate listing copy. Bedrooms, bathrooms and floor area must come from
   // structured extraction, not from free-form description text.
-  const rawDescription = typeof facts.description === 'string' ? facts.description : '';
-  const descriptionMarkers = ['Charming ', 'SOLE MANDATE', 'Observatory has quickly become'];
-  const markerPositions = descriptionMarkers
-    .map((marker) => rawDescription.toLowerCase().indexOf(marker.toLowerCase()))
-    .filter((position) => position >= 0);
-  const descriptionStart = markerPositions.length ? Math.min(...markerPositions) : rawDescription.length;
-  let description = rawDescription.slice(descriptionStart);
-  const descriptionEnd = description.indexOf('Viewings by appointment only!');
-  if (descriptionEnd >= 0) description = description.slice(0, descriptionEnd + 'Viewings by appointment only!'.length);
-  description = description
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&rsquo;/gi, '’')
-    .replace(/&ndash;/gi, '–')
-    .replace(/&mdash;/gi, '—')
-    .replace(/&#39;/gi, "'")
-    .trim();
+  const description = sanitizeListingDescription(facts.description);
 
   const bathrooms = typeof facts.bathrooms === 'number' && Number.isFinite(facts.bathrooms)
     ? facts.bathrooms
