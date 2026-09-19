@@ -144,7 +144,7 @@ export default async function CustomerReportPage({
   const scoreNumber = typeof report.investment_score === 'number' ? report.investment_score : null;
   const comparableCount = Number(score.marketComparableCount || 0);
   const comparableMedian = score.marketMedianAskingPriceCents ? currency(score.marketMedianAskingPriceCents) : 'Not established';
-  const vsMedian = comparableCount > 0 ? percent(score.subjectVsMedianPercent) : 'Not established';
+  const vsMedian = comparableCount >= 3 ? percent(score.subjectVsMedianPercent) : 'Not established';
   const rawAddress = text(facts.address, '');
   const addressLooksContaminated = /for this property\\.|resetPasswordUrl|listingSendAgentAMessageActionUrl|Bond Calculator|window\\.loader|BondCalculatorsDesktop|googletag\\.|ContactForAddressForm/i.test(rawAddress);
   const address = addressLooksContaminated ? '' : rawAddress;
@@ -189,7 +189,7 @@ export default async function CustomerReportPage({
     hasKnownMonthlyCosts && typeof report.bond_monthly_payment_cents === 'number'
       ? knownMonthlyCostCents + report.bond_monthly_payment_cents
       : null;
-  const buyerSignal = comparableCount === 0
+  const buyerSignal = comparableCount < 3
     ? scoreNumber !== null && scoreNumber >= 60
       ? 'PROCEED — WITH PRICE & MARKET CHECK'
       : scoreNumber !== null && scoreNumber >= 50
@@ -201,11 +201,11 @@ export default async function CustomerReportPage({
         ? 'CONSIDER — REVIEW PRICE & EVIDENCE'
         : 'CAUTION — INVESTIGATE BEFORE COMMITTING';
 
-  const decisionBody = comparableCount === 0
+  const decisionBody = comparableCount < 3
     ? `EiX has established the core physical proposition of this ${propertyType.toLowerCase()}. The unresolved variable is market price: EiX does not yet have enough verified comparable evidence to establish whether ${price} is fair. That becomes the first question to solve before an offer.`
-    : `EiX has a verified comparable set. The market signal should be read alongside this property's size, condition, land, parking, financial scenario and evidence gaps — not as a formal valuation.`;
+    : `EiX has at least three comparable properties. The market signal should be read alongside this property's size, condition, land, parking, financial scenario and evidence gaps — not as a formal valuation.`;
 
-  const assessmentHeadline = comparableCount === 0
+  const assessmentHeadline = comparableCount < 3
     ? scoreNumber !== null && scoreNumber >= 60 ? 'Promising Property — Market Price Requires Verification' : 'Property Requires Further Investigation'
     : report.recommendation === 'Buy' || report.recommendation === 'Strong Buy' ? 'Positive Signal — Review the Evidence' : report.recommendation === 'Consider' ? 'Consider — Review Price & Evidence' : 'Caution — Investigate Before Committing';
 
