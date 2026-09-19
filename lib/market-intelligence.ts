@@ -33,7 +33,7 @@ export interface MarketIntelligence {
     | 'At Comparable Median'
     | 'Above Comparable Median'
     | 'Insufficient Data';
-  methodology: 'active_asking_price';
+  methodology: 'achieved_sales_first';
   disclaimer: 'Active asking-price comparison — not a valuation.';
 }
 
