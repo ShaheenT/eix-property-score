@@ -104,10 +104,14 @@ export default async function CustomerReportPage({
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&rsquo;/gi, '’').replace(/&ndash;/gi, '–').replace(/&mdash;/gi, '—').replace(/&#39;/gi, "'")
     .replace(/\\s+/g, ' ').trim() : '';
-  const bathroomMatch = description.match(/Features\\s+Bedrooms:\\s*\\d+(?:\\.\\d+)?\\s+Bathrooms:\\s*(\\d+(?:\\.\\d+)?)\\s+Parking:/i);
-  const bathrooms = bathroomMatch ? Number(bathroomMatch[1]) : facts.bathrooms;
-  const floorMatch = description.match(/Floor\\s*m2:\\s*\\+?-?\\s*([\\d.]+)\\s*m2/i);
-  const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2) ? facts.floorSizeM2 : floorMatch ? Number(floorMatch[1]) : null;
+  const bathroomMarker = description.toLowerCase().indexOf('bathrooms:');
+  const bathroomTail = bathroomMarker >= 0 ? description.slice(bathroomMarker + 'bathrooms:'.length).trim() : '';
+  const bathroomToken = bathroomTail.split(/\\s+/)[0].replace(/[^0-9.]/g, '');
+  const bathrooms = bathroomToken ? Number(bathroomToken) : facts.bathrooms;
+  const floorMarker = description.toLowerCase().indexOf('floor m2:');
+  const floorTail = floorMarker >= 0 ? description.slice(floorMarker + 'floor m2:'.length).trim() : '';
+  const floorToken = floorTail.split(/\\s+/)[0].replace(/[^0-9.]/g, '');
+  const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2) ? facts.floorSizeM2 : floorToken ? Number(floorToken) : null;
   const psm2 = score.subjectPricePerM2Cents ? currency(score.subjectPricePerM2Cents) : pricePerM2(askingPrice, floorM2);
   const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
   const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
