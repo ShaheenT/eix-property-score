@@ -272,6 +272,14 @@ function decodeHtmlEntities(value: string): string {
     .trim();
 }
 
+function decodeProperty24VisibleText(value: string): string {
+  return decodeHtmlEntities(
+    value
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' '),
+  );
+}
+
 function parseRandCents(value: string): number | null {
   const cleaned = decodeHtmlEntities(value).replace(/[^\d.-]/g, '');
   if (!cleaned) return null;
@@ -343,7 +351,9 @@ function parseProperty24PrimaryListingFacts(
 ): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
   const facts = emptyFacts();
   const evidence: PropertyEvidence[] = [];
-  const text = decodeHtmlEntities(body);
+  // Property24 pages contain large inline JavaScript/config blocks. They are
+  // not listing evidence and must never become part of customer-facing facts.
+  const text = decodeProperty24VisibleText(body);
 
   const add = <K extends keyof PropertyFacts>(
     field: K,
@@ -369,9 +379,15 @@ function parseProperty24PrimaryListingFacts(
     const addressAndFacts = summaryWindow.match(
       /for Sale in\s+[^\n]+?\s+(\d+\s+[^,]+,\s*[^,]+,\s*[^0-9]+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9]+(?:\.\d+)?)\s*m(?:2|²)\b/i,
     );
+    const askingPrice = summaryWindow.match(/\bR\s*([0-9][0-9\s,]*(?:\.\d+)?)\b/i);
 
     add('bedrooms', Number(heading[1]), heading[1]);
     add('propertyType', heading[2], heading[2]);
+
+    if (askingPrice?.[1]) {
+      const cents = parseRandCents(askingPrice[1]);
+      if (cents !== null) add('askingPriceCents', cents, askingPrice[0]);
+    }
 
     if (addressAndFacts) {
       add('address', addressAndFacts[1].trim(), addressAndFacts[1].trim());
@@ -387,8 +403,19 @@ function parseProperty24PrimaryListingFacts(
   const erf = text.match(/\bErf\s*:\s*([0-9]+(?:\.\d+)?)\s*m(?:2|²)\b/i);
   if (erf?.[1]) add('landSizeM2', Number(erf[1]), erf[0]);
 
-  const description = text.match(/\bDescription\s+([\s\S]{80,2200}?)(?=\s+Read full description\b|\s+Property Overview\b|\s+Property Details\b)/i);
-  if (description?.[1]) add('description', description[1].trim(), description[1].trim());
+  // Anchor description extraction to the listing heading. This prevents an
+  // unrelated "Description" key inside Property24's JavaScript/config payload
+  // from swallowing Bond Calculator, modal and widget text into the report.
+  if (heading) {
+    const headingStart = heading.index ?? 0;
+    const listingWindow = text.slice(headingStart, headingStart + 12_000);
+    const description = listingWindow.match(
+      /\bDescription\s+([\s\S]{80,2200}?)(?=\s+Read full description\b)/i,
+    );
+    if (description?.[1]) {
+      add('description', description[1].trim(), description[1].trim());
+    }
+  }
 
   return { facts, evidence };
 }
@@ -545,7 +572,7 @@ function parseProperty24LabeledOverview(
 ): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
   const facts = emptyFacts();
   const evidence: PropertyEvidence[] = [];
-  const text = decodeHtmlEntities(body);
+  const text = decodeProperty24VisibleText(body);
 
   const add = <K extends keyof PropertyFacts>(
     field: K,
