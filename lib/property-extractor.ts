@@ -550,13 +550,34 @@ function parseProperty24LabeledOverview(
   const address = text.match(/\bStreet Address\s+(.+?)\s+(?=Listing Date\b)/i);
   if (address?.[1]) add('address', address[1].trim(), address[1].trim());
 
-  const floorSize = text.match(/\bFloor Size\s*[:\-]?\s*([0-9][0-9\s,]*(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  const propertyType = text.match(/\bType of Property\s+([A-Za-z][A-Za-z -]{1,40}?)(?=\s+(?:Street Address|Listing Date|Erf Size|Floor Size|Rates and Taxes)\b)/i);
+  if (propertyType?.[1]) add('propertyType', propertyType[1].trim(), propertyType[0]);
+
+  const bedrooms = text.match(/\b([0-9]+)\s+Bedrooms?\b/i);
+  if (bedrooms?.[1]) {
+    const parsed = parsePositiveInteger(bedrooms[1]);
+    if (parsed !== null) add('bedrooms', parsed, bedrooms[0]);
+  }
+
+  const bathrooms = text.match(/\b([0-9]+)\s+Bathrooms?\b/i);
+  if (bathrooms?.[1]) {
+    const parsed = parsePositiveInteger(bathrooms[1]);
+    if (parsed !== null) add('bathrooms', parsed, bathrooms[0]);
+  }
+
+  const askingPrice = text.match(/\bR\s*([0-9][0-9\s,]*(?:\.\d+)?)\b/);
+  if (askingPrice?.[1]) {
+    const cents = parseRandCents(askingPrice[1]);
+    if (cents !== null) add('askingPriceCents', cents, askingPrice[0]);
+  }
+
+  const floorSize = text.match(/\bFloor Size\s*[:\-]?\s*([0-9][0-9\s,]*(?:\.\d+)?)\s*m(?:2|\u00b2)(?!\w)/i);
   if (floorSize?.[1]) {
     const parsed = parseProperty24SizeM2(floorSize[1]);
     if (parsed !== null) add('floorSizeM2', parsed, floorSize[0]);
   }
 
-  const landSize = text.match(/\bErf Size\s*[:\-]?\s*([0-9][0-9\s,]*(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  const landSize = text.match(/\bErf Size\s*[:\-]?\s*([0-9][0-9\s,]*(?:\.\d+)?)\s*m(?:2|\u00b2)(?!\w)/i);
   if (landSize?.[1]) {
     const parsed = parseProperty24SizeM2(landSize[1]);
     if (parsed !== null) add('landSizeM2', parsed, landSize[0]);
