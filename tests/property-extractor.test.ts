@@ -406,6 +406,57 @@ test('prefers Property24 listing summary bathrooms over unrelated Bond Calculato
   }
 });
 
+test('removes Property24 scripts and calculator chrome from customer-facing listing description', async () => {
+  const originalFetch = globalThis.fetch;
+  const html = `
+    <html><body>
+      <div class="p24_listing" data-listingnumber="384397043"></div>
+      <script>
+        window.loader.addCallback((renderComponent) => renderComponent({"name":"ContactForAddressForm","props":{"resetPasswordUrl":"/reset-password"}}));
+        window.loader.addCallback((renderComponent) => renderComponent({"name":"BondCalculatorsDesktop","props":{"mortgageUrl":"/calculators/bond"}}));
+      </script>
+      <div>
+        3 Bedroom House for Sale in Observatory
+        28 Falmouth Road, Observatory, Cape Town
+        R 3 500 000
+        3 2 2 200 m²
+      </div>
+      <div>
+        Description
+        Charming 3-Bedroom Home in the Heart of Observatory! The kitchen and bathrooms have been tastefully renovated.
+        There is secure rear parking providing two off-street parking bays.
+        Read full description
+      </div>
+      <div>Bond Calculator Purchase Price R Interest Rate % Loan Term Years 3 Bathrooms</div>
+      <div>Features Bedrooms: 3 Bathrooms: 2 Parking: 2 Pet Friendly Garden</div>
+    </body></html>`;
+  globalThis.fetch = async () =>
+    new Response(html, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    });
+
+  try {
+    const result = await extractPropertyFromUrl(
+      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/384397043',
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.facts.askingPriceCents, 350_000_000);
+    assert.equal(result.facts.bedrooms, 3);
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.parking, 2);
+    assert.equal(result.facts.floorSizeM2, 119);
+    assert.equal(result.facts.landSizeM2, 200);
+    assert.match(result.facts.description ?? '', /Charming 3-Bedroom Home/);
+    assert.match(result.facts.description ?? '', /tastefully renovated/);
+    assert.doesNotMatch(result.facts.description ?? '', /resetPasswordUrl|BondCalculatorsDesktop|Bond Calculator|Send Listing|whatsapp-agent-modal/i);
+    assert.doesNotMatch(result.facts.description ?? '', /listingSendAgentAMessageActionUrl|Purchase Price|Loan Term Years|3 Bathrooms/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('extracts complete Private Property facts from T5586887 fixture', async () => {
   const originalFetch = globalThis.fetch;
   const fixture = readFileSync(
