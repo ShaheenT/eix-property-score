@@ -110,11 +110,11 @@ export default async function CustomerReportPage({
     .trim();
   const bathroomMarker = description.toLowerCase().indexOf('bathrooms:');
   const bathroomTail = bathroomMarker >= 0 ? description.slice(bathroomMarker + 'bathrooms:'.length).trim() : '';
-  const bathroomToken = bathroomTail.split(/\\s+/)[0].replace(/[^0-9.]/g, '');
+  const bathroomToken = bathroomTail.split(/\s+/)[0].replace(/[^0-9.]/g, '');
   const bathrooms = bathroomToken ? Number(bathroomToken) : facts.bathrooms;
   const floorMarker = description.toLowerCase().indexOf('floor m2:');
   const floorTail = floorMarker >= 0 ? description.slice(floorMarker + 'floor m2:'.length).trim() : '';
-  const floorToken = floorTail.split(/\\s+/)[0].replace(/[^0-9.]/g, '');
+  const floorToken = floorTail.split(/\s+/)[0].replace(/[^0-9.]/g, '');
   const floorM2 = typeof facts.floorSizeM2 === 'number' && Number.isFinite(facts.floorSizeM2) ? facts.floorSizeM2 : floorToken ? Number(floorToken) : null;
   const psm2 = score.subjectPricePerM2Cents ? currency(score.subjectPricePerM2Cents) : pricePerM2(askingPrice, floorM2);
   const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
@@ -234,8 +234,8 @@ export default async function CustomerReportPage({
                   {[
                     ['Bedrooms', text(facts.bedrooms)],
                     ['Bathrooms', text(bathrooms)],
-                    ['Floor', floorM2 !== null ? \${number(floorM2)} m² : 'Not verified'],
-                    ['Erf', landM2 !== null ? \${number(landM2)} m² : 'Not verified'],
+                    ['Floor', floorM2 !== null ? `${number(floorM2)} m²` : 'Not verified'],
+                    ['Erf', landM2 !== null ? `${number(landM2)} m²` : 'Not verified'],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4">
                       <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/35">{label}</p>
