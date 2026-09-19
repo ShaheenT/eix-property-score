@@ -70,10 +70,13 @@ export function calculateMarketIntelligence(
 
   const askingPriceMedian = median(askingPrices);
   const subjectPrice = subject.askingPriceCents;
+  const comparableEvidenceThreshold = 3;
+  const hasEnoughComparables = comparables.length >= comparableEvidenceThreshold;
 
   let subjectVsMedianPercent: number | null = null;
 
   if (
+    hasEnoughComparables &&
     subjectPrice !== null &&
     askingPriceMedian !== null &&
     askingPriceMedian > 0
