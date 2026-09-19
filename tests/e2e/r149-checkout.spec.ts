@@ -55,7 +55,9 @@ test('R149: complete South African buyer checkout intake', async ({ page }) => {
     )
     .fill(CUSTOMER.listingUrl);
 
-  await expect(page.getByText('Property24', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('form').getByText('Property24', { exact: true }),
+  ).toBeVisible();
 
   const goalSelect = page
     .locator('label')
