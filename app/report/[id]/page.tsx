@@ -147,7 +147,7 @@ export default async function CustomerReportPage({
   const vsMedian = comparableCount > 0 ? percent(score.subjectVsMedianPercent) : 'Not established';
   const rawAddress = text(facts.address, '');
   const addressLooksContaminated = /for this property\\.|resetPasswordUrl|listingSendAgentAMessageActionUrl|Bond Calculator|window\\.loader|BondCalculatorsDesktop|googletag\\.|ContactForAddressForm/i.test(rawAddress);
-  const address = addressLooksContaminated ? 'Address not verified' : rawAddress || 'Address not verified';
+  const address = addressLooksContaminated ? '' : rawAddress;
   const title = text(facts.title, 'Property Analysis');
   const propertyType = text(facts.propertyType, 'Property');
   const price = currency(askingPrice);
@@ -167,7 +167,28 @@ export default async function CustomerReportPage({
   const primaryImageUrl = typeof facts.primaryImageUrl === 'string' && /^https:\/\//i.test(facts.primaryImageUrl) ? facts.primaryImageUrl : null;
   const renovated = contains(description, ['renovat', 'refurbished', 'modernised', 'modernized', 'newly updated']);
   const floorErfRatio = floorM2 !== null && landM2 !== null && landM2 > 0 ? `${((floorM2 / landM2) * 100).toFixed(0)}%` : 'Not established';
-
+  const transferDutyCents = (purchasePriceCents: number): number => {
+    const thresholds = [
+      { upper: 1_210_000 * 100, base: 0, rate: 0, lower: 0 },
+      { upper: 1_663_800 * 100, base: 0, rate: 0.03, lower: 1_210_000 * 100 },
+      { upper: 2_329_300 * 100, base: 13_614 * 100, rate: 0.06, lower: 1_663_800 * 100 },
+      { upper: 2_994_800 * 100, base: 53_544 * 100, rate: 0.08, lower: 2_329_300 * 100 },
+      { upper: 13_310_000 * 100, base: 106_784 * 100, rate: 0.11, lower: 2_994_800 * 100 },
+    ];
+    if (purchasePriceCents <= thresholds[0].upper) return 0;
+    for (const bracket of thresholds.slice(1)) {
+      if (purchasePriceCents <= bracket.upper) return Math.round(bracket.base + (purchasePriceCents - bracket.lower) * bracket.rate);
+    }
+    return Math.round(1_241_456 * 100 + (purchasePriceCents - 13_310_000 * 100) * 0.13);
+  };
+  const knownMonthlyCostCents =
+    (typeof facts.leviesCents === 'number' ? facts.leviesCents : 0) +
+    (typeof facts.ratesAndTaxesCents === 'number' ? facts.ratesAndTaxesCents : 0);
+  const hasKnownMonthlyCosts = typeof facts.leviesCents === 'number' || typeof facts.ratesAndTaxesCents === 'number';
+  const knownMonthlyOwnershipCents =
+    hasKnownMonthlyCosts && typeof report.bond_monthly_payment_cents === 'number'
+      ? knownMonthlyCostCents + report.bond_monthly_payment_cents
+      : null;
   const buyerSignal = comparableCount === 0
     ? scoreNumber !== null && scoreNumber >= 60
       ? 'PROCEED — WITH PRICE & MARKET CHECK'
@@ -282,7 +303,7 @@ export default async function CustomerReportPage({
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-teal-700">Property Intelligence</p>
                   <h1 className="mt-3 max-w-4xl text-3xl font-black leading-[1.04] tracking-[-0.04em] sm:text-5xl">{title}</h1>
-                  <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">{address}</p>
+                  {address && <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">{address}</p>}
                 </div>
                 <div className="lg:text-right">
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Asking price</p>
@@ -368,14 +389,14 @@ export default async function CustomerReportPage({
               </div>
             </Section>
 
-            <Section eyebrow="Why EiX Scored It" title={`${scoreNumber ?? '—'}/100 — explained in buyer language.`}>
+            <Section eyebrow="Decision Signal" title="What EiX can and cannot establish.">
               <div className="mt-6 grid gap-3 md:grid-cols-2">
-                <SignalCard label="PROPERTY EVIDENCE" value="Strong" detail={`${evidence.length} evidence records support the current analysis.`} tone="positive" />
+                <SignalCard label="PROPERTY EVIDENCE" value="Listing-backed" detail={`${evidence.length} source records were extracted from the supplied listing; they are not independent valuation evidence.`} />
                 <SignalCard label="PROPERTY FUNDAMENTALS" value="Positive with limits" detail="The physical proposition is useful, but missing characteristics are never assumed to exist." />
                 <SignalCard label="FINANCIAL CLARITY" value="Moderate" detail="Price and illustrative financing are calculable; rental economics and full ownership costs remain incomplete." />
                 <SignalCard label="MARKET POSITION" value={comparableCount > 0 ? 'Evidence available' : 'Unresolved'} detail={comparableCount > 0 ? `${comparableCount} verified comparables inform the signal.` : 'The score is deliberately capped when market evidence is absent.'} tone={comparableCount > 0 ? 'positive' : 'attention'} />
               </div>
-              <div className="mt-5 rounded-2xl border border-teal-300/15 bg-teal-300/[0.04] p-6"><p className="text-sm leading-7 text-white/65">The score is not a valuation. It tells you how much useful decision signal EiX can establish from the available property evidence and financial profile, while protecting the customer from a false market conclusion.</p></div>
+              <div className="mt-5 rounded-2xl border border-teal-300/15 bg-teal-300/[0.04] p-6"><p className="text-sm leading-7 text-white/65">EiX separates listing-derived facts from market evidence. A listing fact can describe the property, but it does not independently establish fair market value. When comparable evidence is missing, the report says so instead of presenting the missing market evidence as a score.</p></div>
             </Section>
 
             <Section eyebrow="Before You Make an Offer" title="Five questions EiX says you should answer.">
@@ -397,8 +418,12 @@ export default async function CustomerReportPage({
                 {[
                   ['Purchase price', price],
                   ['10% deposit', askingPrice !== null ? currency(Math.round(askingPrice * 0.10)) : 'Not available'],
+                  ['Transfer duty', askingPrice !== null ? currency(transferDutyCents(askingPrice)) : 'Not available'],
+                  ['Known upfront cash', askingPrice !== null ? currency(Math.round(askingPrice * 0.10) + transferDutyCents(askingPrice)) : 'Not available'],
                   ['Estimated loan', currency(report.bond_loan_amount_cents)],
-                  ['Illustrative monthly bond', currency(report.bond_monthly_payment_cents)],
+                  ['Illustrative bond', currency(report.bond_monthly_payment_cents)],
+                  ['Known monthly costs', hasKnownMonthlyCosts ? currency(knownMonthlyCostCents) : 'Not established'],
+                  ['Known monthly ownership', knownMonthlyOwnershipCents !== null ? currency(knownMonthlyOwnershipCents) : 'Not established'],
                 ].map(([label, value]) => <SignalCard key={label} label={label} value={value} />)}
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
