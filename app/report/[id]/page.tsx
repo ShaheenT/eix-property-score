@@ -247,7 +247,6 @@ export default async function CustomerReportPage({
 
   const risks = [
     achievedSaleCount < 3 ? 'Price fairness is unresolved: verified achieved-sale evidence is insufficient to establish whether the asking price is supported.' : null,
-    comparableCount === 0 ? 'Market price is unresolved: verified comparable evidence is insufficient to call the asking price fair or unfair.' : null,
     report.rental_yield_percent === null ? 'Rental economics are unresolved because verified rental evidence is unavailable.' : null,
     facts.leviesCents === null || facts.leviesCents === undefined ? 'Levies or other recurring ownership costs were not established.' : null,
     facts.ratesAndTaxesCents === null || facts.ratesAndTaxesCents === undefined ? 'Rates and taxes were not established from the supplied evidence.' : null,
