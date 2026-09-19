@@ -17,13 +17,16 @@ export interface AcquisitionIntelligence {
     leviesCents: number | null;
     ratesAndTaxesCents: number | null;
   };
+  minimumIdentifiedCashRequiredCents: number | null;
   knownUpfrontCashRequiredCents: number | null;
+  rateStressTest: Array<{ annualInterestPercent: number; monthlyPaymentCents: number | null }>;
+  bondRateReference: 'SARB_PRIME_10_50_2026_09_11';
   assumptions: string[];
   unknownCosts: string[];
 }
 
 const DEFAULT_DEPOSIT_PERCENT = 10;
-const DEFAULT_BOND_INTEREST_PERCENT = 10.25;
+const DEFAULT_BOND_INTEREST_PERCENT = 10.5;
 const DEFAULT_BOND_TERM_YEARS = 20;
 
 function calculateTransferDutyCents(purchasePriceCents: number): number {
@@ -107,17 +110,27 @@ export function calculateAcquisitionIntelligence(
       ? recurringCosts.reduce((sum, value) => sum + value, 0)
       : null;
 
-  const knownUpfrontCashRequiredCents =
+  const minimumIdentifiedCashRequiredCents =
     depositCents !== null && transferDutyCents !== null
       ? depositCents + transferDutyCents
       : null;
 
+  const rateStressPoints = [9.5, 10.5, 11.5, 12.5];
+  const rateStressTest = rateStressPoints.map((annualInterestPercent) => ({
+    annualInterestPercent,
+    monthlyPaymentCents:
+      loanAmountCents === null
+        ? null
+        : calculateBondPaymentCents(loanAmountCents, annualInterestPercent, bondTermYears),
+  }));
+
   const assumptions = [
     'Deposit scenario assumes 10% of asking price.',
-    'Bond scenario assumes 90% loan-to-value, 11.5% annual interest and a 20-year term.',
+    'Bond scenario assumes 90% loan-to-value, a 20-year term and a 10.50% annual prime reference as at 11 September 2026.',
     'Transfer duty uses the SARS 2026/2027 schedule effective from 1 April 2026.',
     'Transfer duty is calculated on asking price for scenario planning; the final duty basis must be confirmed for the transaction.',
     'Transfer duty is included only where the transaction is not subject to VAT.',
+    'The 10.50% prime reference is a scenario assumption, not a personalised lending quote; actual bank pricing depends on borrower and lender terms.',
   ];
 
   const unknownCosts = [
@@ -145,7 +158,10 @@ export function calculateAcquisitionIntelligence(
       leviesCents,
       ratesAndTaxesCents,
     },
-    knownUpfrontCashRequiredCents,
+    minimumIdentifiedCashRequiredCents,
+    knownUpfrontCashRequiredCents: minimumIdentifiedCashRequiredCents,
+    rateStressTest,
+    bondRateReference: 'SARB_PRIME_10_50_2026_09_11',
     assumptions,
     unknownCosts,
   };
