@@ -91,11 +91,11 @@ function statusFromLimitations(limitations: string[], keywords: string[]): 'veri
 function StatusRow({ label, state, detail }: { label: string; state: 'verified' | 'missing' | 'unknown'; detail?: string }) {
   const Icon = state === 'verified' ? CheckCircle2 : state === 'missing' ? AlertTriangle : CircleHelp;
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[.035] p-4">
-      <Icon className={state === 'verified' ? 'mt-0.5 h-5 w-5 text-teal-300' : state === 'missing' ? 'mt-0.5 h-5 w-5 text-amber-300' : 'mt-0.5 h-5 w-5 text-white/40'} />
+    <div className="flex items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,.03)]">
+      <Icon className={state === 'verified' ? 'mt-0.5 h-5 w-5 text-[#2563EB]' : state === 'missing' ? 'mt-0.5 h-5 w-5 text-[#F59E0B]' : 'mt-0.5 h-5 w-5 text-[#94A3B8]'} />
       <div>
         <p className="font-semibold">{label}</p>
-        {detail && <p className="mt-1 text-sm text-white/55">{detail}</p>}
+        {detail && <p className="mt-1 text-sm text-[#64748B]">{detail}</p>}
       </div>
     </div>
   );
@@ -151,69 +151,77 @@ export default async function CustomerReportPage({ params, searchParams }: { par
   const documentEvidence = statusFromLimitations(limitations, ['building plans', 'compliance', 'inspection', 'title', 'heritage']);
 
   return (
-    <main className="min-h-screen bg-midnight px-6 py-10 text-white sm:px-10">
-      <div className="mx-auto max-w-4xl">
-        <header className="mb-8 flex items-center justify-between gap-4">
-          <img src="/eixproplogo.png" alt="EiX Property Score" className="h-10 w-auto sm:h-12" />
+    <main className="min-h-screen bg-[#F5F7FA] text-[#0B1220] selection:bg-[#2563EB]/20">
+      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-8 sm:py-8">
+        <header className="mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3"><img src="/eixproplogo.png" alt="EiX Property Score" className="h-9 w-auto sm:h-10" /><span className="hidden h-5 w-px bg-[#D8DEE8] sm:block" /><span className="hidden text-xs font-semibold uppercase tracking-[.18em] text-[#64748B] sm:block">Buyer Intelligence</span></div>
           <ReportPrintButton />
         </header>
 
-        <section className="glass-strong overflow-hidden rounded-3xl">
+        <section className="overflow-hidden rounded-[28px] border border-[#E2E8F0] bg-white shadow-[0_24px_70px_rgba(15,23,42,.10)]">
           {facts.primaryImageUrl ? (
-            <div className="relative h-64 w-full overflow-hidden sm:h-80 lg:h-[420px]">
+            <div className="relative h-[300px] w-full overflow-hidden sm:h-[390px] lg:h-[500px]">
               <img src={facts.primaryImageUrl} alt={text(facts.title, 'Property')} className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#071A3D] via-[#071A3D]/20 to-transparent" />
-              <div className="absolute bottom-5 left-5 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">Property image from supplied listing evidence</div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#071A3D]/85 via-[#071A3D]/10 to-transparent" />
+              <div className="absolute bottom-5 left-5 rounded-full border border-white/20 bg-black/25 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">Property image from supplied listing evidence</div>
             </div>
           ) : (
-            <div className="flex h-48 items-center justify-center bg-white/[.03] text-sm text-white/40 sm:h-64">Property image not verified from the supplied source</div>
+            <div className="flex h-48 items-center justify-center bg-white/[.03] text-sm text-[#94A3B8] sm:h-64">Property image not verified from the supplied source</div>
           )}
-          <div className="p-8 sm:p-10">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-teal-300">
+          <div className="p-6 sm:p-9">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.20em] text-[#2563EB]">
             <ShieldCheck className="h-4 w-4" /> EiX Buyer Intelligence Report™
           </div>
-          <div className="mt-6 grid gap-6 md:grid-cols-[1.5fr_.8fr] md:items-end">
+          <div className="mt-5 grid gap-7 md:grid-cols-[1.5fr_.8fr] md:items-end">
             <div>
-              <p className="text-sm text-white/45">{text(facts.propertyType, 'Property')}</p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">{text(facts.title, 'Property analysis')}</h1>
-              <p className="mt-2 flex items-center gap-1.5 text-sm text-white/55"><MapPin className="h-4 w-4" />{text(facts.address)}</p>
-              <div className="mt-5 flex flex-wrap gap-2 text-sm text-white/70">
-                <span className="rounded-full bg-white/10 px-3 py-1.5">{text(facts.bedrooms, '—')} Bed</span>
+              <p className="text-sm font-medium text-[#64748B]">{text(facts.propertyType, 'Property')}</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-[-.035em] text-[#0B1220] sm:text-5xl">{text(facts.title, 'Property analysis')}</h1>
+              <p className="mt-2 flex items-center gap-1.5 text-sm text-[#64748B]"><MapPin className="h-4 w-4" />{text(facts.address)}</p>
+              <div className="mt-5 flex flex-wrap gap-2 text-sm text-[#475569]">
+                <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">{text(facts.bedrooms, '—')} Bed</span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">{text(facts.bathrooms, '—')} Bath</span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">{facts.floorSizeM2 ? `${facts.floorSizeM2} m²` : '— m²'}</span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">{text(facts.propertyType, 'Type')}</span>
               </div>
             </div>
-            <div className="rounded-3xl border border-teal-300/20 bg-teal-300/[.07] p-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-white/45">Asking price</p>
-              <p className="mt-2 text-3xl font-black text-teal-200">{money(price)}</p>
-              <p className="mt-4 text-xs font-bold uppercase tracking-widest text-white/45">Decision state</p>
-              <p className="mt-1 text-lg font-black text-white">{state.label}</p>
-              <p className="mt-2 text-sm leading-relaxed text-white/60">{state.detail}</p>
+            <div className="rounded-[24px] border border-[#DCE6F7] bg-[#F7FAFF] p-5 shadow-[0_10px_30px_rgba(37,99,235,.06)]">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#64748B]">Asking price</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight text-[#0B1220]">{money(price)}</p>
+              <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[#64748B]">Decision state</p>
+              <p className="mt-1 text-lg font-black text-[#2563EB]">{state.label}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#64748B]">{state.detail}</p>
             </div>
           </div>
         </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">The EiX X-Ray</p>
+        <nav className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm sm:grid-cols-5">
+          {['Decision','Cost to own','Price fairness','Property DNA','Due diligence'].map((item, i) => (
+            <div key={item} className="border-b border-[#E2E8F0] px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[.12em] text-[#64748B] sm:border-b-0 sm:border-r last:border-r-0">
+              <span className="mr-1 text-[#2563EB]">0{i + 1}</span>{item}
+            </div>
+          ))}
+        </nav>
+
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <p className="text-[11px] font-bold uppercase tracking-[.20em] text-[#2563EB]">01 · Decision intelligence</p><p className="mt-3 text-xs font-bold uppercase tracking-[.18em] text-[#64748B]">The EiX X-Ray</p>
           <h2 className="mt-1 text-2xl font-bold">What the listing says is not the same as what it means.</h2>
-          <p className="mt-3 text-sm leading-relaxed text-white/60">The property profile is useful, but the central decision question is whether the asking price is supported by verified market evidence and whether the remaining transaction risks have been resolved.</p>
-          <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[.05] p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-amber-200/70">The Biggest Question</p>
+          <p className="mt-3 text-sm leading-relaxed text-[#64748B]">The property profile is useful, but the central decision question is whether the asking price is supported by verified market evidence and whether the remaining transaction risks have been resolved.</p>
+          <div className="mt-5 rounded-2xl border border-[#F5D9A6] bg-[#FFF8EB] p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#B45309]">The Biggest Question</p>
             <p className="mt-2 text-xl font-bold">Does the market support the asking price for this particular property?</p>
-            <p className="mt-2 text-sm leading-relaxed text-white/55">Until the required evidence is available, EiX does not manufacture a price opinion.</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#64748B]">Until the required evidence is available, EiX does not manufacture a price opinion.</p>
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">Signature evidence layer</p>
+              <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Signature evidence layer</p>
               <h2 className="mt-1 text-2xl font-bold">Offer Confidence™</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">How much confidence can be placed in the current decision, based on the evidence available to EiX—not a prediction of future value and not a formal valuation.</p>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#64748B]">How much confidence can be placed in the current decision, based on the evidence available to EiX—not a prediction of future value and not a formal valuation.</p>
             </div>
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[8px] border-teal-300/25 bg-teal-300/[.06] text-3xl font-black text-teal-200">{confidence}%</div>
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[8px] border-teal-300/25 bg-[#F0F6FF] text-3xl font-black text-[#0B1220]">{confidence}%</div>
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <StatusRow label="Property facts" state={factCompleteness >= 6 ? 'verified' : 'unknown'} detail={`${factCompleteness}/8 core property fields available`} />
@@ -223,8 +231,8 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <div className="flex items-center gap-2"><WalletCards className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Real Cost to Own</h2></div>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <div className="flex items-center gap-2"><WalletCards className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Real Cost to Own</h2></div>
           {acquisition ? (
             <>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -233,61 +241,61 @@ export default async function CustomerReportPage({ params, searchParams }: { par
                   ['Transfer duty', money(acquisition.duty)],
                   ['Loan scenario', money(acquisition.loan)],
                   ['Known cash to close*', money(acquisition.knownEntry)],
-                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[.035] p-4"><p className="text-xs uppercase tracking-wider text-white/40">{label}</p><p className="mt-2 text-xl font-bold">{value}</p></div>)}
+                ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 text-xl font-bold">{value}</p></div>)}
               </div>
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4 text-sm text-white/55">*Known cash to close includes the 10% deposit plus scenario transfer duty. Conveyancing, bond registration, bank charges, inspection and other transaction costs are not included unless verified.</div>
+              <div className="mt-4 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-sm text-[#64748B]">*Known cash to close includes the 10% deposit plus scenario transfer duty. Conveyancing, bond registration, bank charges, inspection and other transaction costs are not included unless verified.</div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 p-4"><p className="text-xs uppercase text-white/40">Bond @ 10.5%</p><p className="mt-2 text-xl font-bold">{money(acquisition.scenarios[1].payment)}</p></div>
-                <div className="rounded-2xl border border-white/10 p-4"><p className="text-xs uppercase text-white/40">Rates + levy</p><p className="mt-2 text-xl font-bold">{acquisition.recurring === null ? 'Not verified' : money(acquisition.recurring)}</p></div>
-                <div className="rounded-2xl border border-teal-300/20 bg-teal-300/[.06] p-4"><p className="text-xs uppercase text-teal-200/60">Known monthly cost</p><p className="mt-2 text-xl font-bold text-teal-100">{acquisition.recurring === null ? 'Not verified' : money(acquisition.scenarios[1].payment + acquisition.recurring)}</p></div>
+                <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Bond @ 10.5%</p><p className="mt-2 text-xl font-bold">{money(acquisition.scenarios[1].payment)}</p></div>
+                <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Rates + levy</p><p className="mt-2 text-xl font-bold">{acquisition.recurring === null ? 'Not verified' : money(acquisition.recurring)}</p></div>
+                <div className="rounded-2xl border border-[#DCE6F7] bg-[#F0F6FF] p-4"><p className="text-xs uppercase text-[#0B1220]/60">Known monthly cost</p><p className="mt-2 text-xl font-bold text-[#0B1220]">{acquisition.recurring === null ? 'Not verified' : money(acquisition.scenarios[1].payment + acquisition.recurring)}</p></div>
               </div>
             </>
-          ) : <p className="mt-4 text-sm text-white/55">A verified asking price is required before acquisition scenarios can be calculated.</p>}
+          ) : <p className="mt-4 text-sm text-[#64748B]">A verified asking price is required before acquisition scenarios can be calculated.</p>}
         </section>
 
         {acquisition && (
-          <section className="mt-6 glass rounded-2xl p-6">
-            <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Bond Stress Test</h2></div>
-            <p className="mt-2 text-sm text-white/50">Reference scenario: 10.50% annual interest, 10% deposit, 20-year term. Illustrative stress testing only.</p>
+          <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+            <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Bond Stress Test</h2></div>
+            <p className="mt-2 text-sm text-[#64748B]">Reference scenario: 10.50% annual interest, 10% deposit, 20-year term. Illustrative stress testing only.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {acquisition.scenarios.map((s) => <div key={s.rate} className={`rounded-2xl border p-4 ${s.rate === 10.5 ? 'border-teal-300/30 bg-teal-300/[.06]' : 'border-white/10 bg-white/[.025]'}`}><p className="text-xs uppercase tracking-wider text-white/40">{s.rate === 10.5 ? 'Reference' : 'Stress'} · {s.rate}%</p><p className="mt-2 text-xl font-bold">{money(s.payment)}</p><p className="mt-1 text-xs text-white/40">monthly bond</p></div>)}
+              {acquisition.scenarios.map((s) => <div key={s.rate} className={`rounded-2xl border p-4 ${s.rate === 10.5 ? 'border-[#BFD3F5] bg-[#F0F6FF]' : 'border-[#E2E8F0] bg-[#F8FAFC]'}`}><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{s.rate === 10.5 ? 'Reference' : 'Stress'} · {s.rate}%</p><p className="mt-2 text-xl font-bold">{money(s.payment)}</p><p className="mt-1 text-xs text-[#94A3B8]">monthly bond</p></div>)}
             </div>
           </section>
         )}
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider text-teal-300">Core question</p><h2 className="mt-1 text-xl font-bold">Price Fairness</h2></div><span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold">{achievedCount} verified sales</span></div>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Core question</p><h2 className="mt-1 text-xl font-bold">Price Fairness</h2></div><span className="rounded-full border border-[#E2E8F0] px-3 py-1 text-xs font-semibold">{achievedCount} verified sales</span></div>
           {achievedCount >= 3 && score.achievedSaleMedianPriceCents ? (
             <div className="mt-5">
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 p-4"><p className="text-xs uppercase text-white/40">Asking</p><p className="mt-2 text-2xl font-bold">{money(price)}</p></div>
-                <div className="rounded-2xl border border-white/10 p-4"><p className="text-xs uppercase text-white/40">Achieved-sale benchmark</p><p className="mt-2 text-2xl font-bold">{money(score.achievedSaleMedianPriceCents)}</p></div>
-                <div className="rounded-2xl border border-teal-300/20 bg-teal-300/[.06] p-4"><p className="text-xs uppercase text-teal-200/60">Subject vs benchmark</p><p className="mt-2 text-2xl font-bold text-teal-100">{numberValue(score.subjectVsMedianPercent)?.toFixed(1) ?? '—'}%</p></div>
+                <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Asking</p><p className="mt-2 text-2xl font-bold">{money(price)}</p></div>
+                <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Achieved-sale benchmark</p><p className="mt-2 text-2xl font-bold">{money(score.achievedSaleMedianPriceCents)}</p></div>
+                <div className="rounded-2xl border border-[#DCE6F7] bg-[#F0F6FF] p-4"><p className="text-xs uppercase text-[#0B1220]/60">Subject vs benchmark</p><p className="mt-2 text-2xl font-bold text-[#0B1220]">{numberValue(score.subjectVsMedianPercent)?.toFixed(1) ?? '—'}%</p></div>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-white/55">This conclusion is based on {achievedCount} verified achieved-sale comparables. Active asking listings are shown separately and do not establish price fairness.</p>
+              <p className="mt-4 text-sm leading-relaxed text-[#64748B]">This conclusion is based on {achievedCount} verified achieved-sale comparables. Active asking listings are shown separately and do not establish price fairness.</p>
             </div>
           ) : (
-            <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[.05] p-5">
-              <p className="text-lg font-bold text-amber-100">Price fairness: Not yet established</p>
-              <p className="mt-2 text-sm leading-relaxed text-white/60">EiX has {achievedCount} verified achieved-sale comparable{achievedCount === 1 ? '' : 's'}. At least 3 are required before the report can establish an achieved-sale price benchmark.</p>
-              {(activeCount > 0 || pendingCount > 0) && <p className="mt-3 text-sm text-white/50">For context only: {activeCount} active listing{activeCount === 1 ? '' : 's'} and {pendingCount} pending sale{pendingCount === 1 ? '' : 's'} were identified. These are not treated as achieved sales.</p>}
+            <div className="mt-5 rounded-2xl border border-[#F5D9A6] bg-[#FFF8EB] p-5">
+              <p className="text-lg font-bold text-[#92400E]">Price fairness: Not yet established</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#64748B]">EiX has {achievedCount} verified achieved-sale comparable{achievedCount === 1 ? '' : 's'}. At least 3 are required before the report can establish an achieved-sale price benchmark.</p>
+              {(activeCount > 0 || pendingCount > 0) && <p className="mt-3 text-sm text-[#64748B]">For context only: {activeCount} active listing{activeCount === 1 ? '' : 's'} and {pendingCount} pending sale{pendingCount === 1 ? '' : 's'} were identified. These are not treated as achieved sales.</p>}
             </div>
           )}
         </section>
 
         {acquisition && (
-          <section className="mt-6 glass rounded-2xl p-6">
+          <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
             <h2 className="text-xl font-bold">Break-Even Analysis</h2>
-            <p className="mt-2 text-sm text-white/50">Shows how quickly annual appreciation would mathematically recover the known transfer-duty component of the acquisition cost. It is not a property-price forecast.</p>
+            <p className="mt-2 text-sm text-[#64748B]">Shows how quickly annual appreciation would mathematically recover the known transfer-duty component of the acquisition cost. It is not a property-price forecast.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              {acquisition.breakEven.map(x => <div key={x.rate} className="rounded-2xl border border-white/10 p-4"><p className="text-xs uppercase text-white/40">{x.rate}% annual appreciation</p><p className="mt-2 text-2xl font-bold">{x.years === null ? '—' : `${x.years.toFixed(1)} yrs`}</p></div>)}
+              {acquisition.breakEven.map(x => <div key={x.rate} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">{x.rate}% annual appreciation</p><p className="mt-2 text-2xl font-bold">{x.years === null ? '—' : `${x.years.toFixed(1)} yrs`}</p></div>)}
             </div>
           </section>
         )}
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <div className="flex items-center gap-2"><Home className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Property Anatomy™</h2></div>
-          <p className="mt-2 text-sm text-white/50">Physical characteristics are translated into buyer signals only where the property evidence supports them.</p>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <div className="flex items-center gap-2"><Home className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Property Anatomy™</h2></div>
+          <p className="mt-2 text-sm text-[#64748B]">Physical characteristics are translated into buyer signals only where the property evidence supports them.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatusRow label="Bedrooms" state={facts.bedrooms !== null ? 'verified' : 'unknown'} detail={text(facts.bedrooms)} />
             <StatusRow label="Bathrooms" state={facts.bathrooms !== null ? 'verified' : 'unknown'} detail={text(facts.bathrooms)} />
@@ -300,8 +308,8 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">Property DNA™</p>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Property DNA™</p>
           <h2 className="mt-1 text-xl font-bold">Buyer signals from the available property evidence</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatusRow label="Owner-occupier fit" state={facts.bedrooms !== null && facts.bathrooms !== null ? 'verified' : 'unknown'} detail="Profile established only from supplied property facts." />
@@ -311,9 +319,9 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <div className="flex items-center gap-2"><Home className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Neighbourhood DNA™</h2></div>
-          <p className="mt-2 text-sm text-white/50">Location intelligence is shown only where the report contains supporting evidence. EiX does not manufacture neighbourhood scores from missing data.</p>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <div className="flex items-center gap-2"><Home className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Neighbourhood DNA™</h2></div>
+          <p className="mt-2 text-sm text-[#64748B]">Location intelligence is shown only where the report contains supporting evidence. EiX does not manufacture neighbourhood scores from missing data.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ['Location', text(facts.suburb || facts.city)],
@@ -324,19 +332,19 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Safety indicators', 'Evidence required'],
               ['Parks / recreation', 'Evidence required'],
               ['Market momentum', achievedCount >= 3 ? 'Market evidence available' : 'Evidence limited'],
-            ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 p-4"><p className="text-xs uppercase tracking-wider text-white/40">{label}</p><p className="mt-2 font-semibold">{value}</p></div>)}
+            ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 font-semibold">{value}</p></div>)}
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-300" /><h2 className="text-xl font-bold">Risks & Missing Evidence</h2></div>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-[#F59E0B]" /><h2 className="text-xl font-bold">Risks & Missing Evidence</h2></div>
           <div className="mt-5 space-y-3">
-            {(limitations.length ? limitations : ['No material limitations were recorded in the report.']).map((item: string) => <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-sm leading-relaxed text-white/65">{item}</p></div>)}
+            {(limitations.length ? limitations : ['No material limitations were recorded in the report.']).map((item: string) => <div key={item} className="flex gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#F59E0B]" /><p className="text-sm leading-relaxed text-[#475569]">{item}</p></div>)}
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <div className="flex items-center gap-2"><FileCheck2 className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Buyer Document Pack</h2></div>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <div className="flex items-center gap-2"><FileCheck2 className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Buyer Document Pack</h2></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <StatusRow label="Listing / property facts" state={factCompleteness >= 6 ? 'verified' : 'unknown'} />
             <StatusRow label="Comparable sales evidence" state={achievedCount >= 3 ? 'verified' : 'missing'} />
@@ -347,8 +355,8 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">Your next move</p>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Your next move</p>
           <h2 className="mt-1 text-2xl font-bold">Questions for the agent</h2>
           <ol className="mt-5 space-y-3">
             {[
@@ -359,23 +367,23 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               'Are there any known structural defects, notices, disputes, servitudes or title restrictions?',
               'Can you confirm the latest municipal rates account and any outstanding amounts?',
               'What exactly is included in the sale, and are there any conditions or occupation terms I should know before making an offer?',
-            ].map((q, i) => <li key={q} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-300/15 text-xs font-bold text-teal-200">{i + 1}</span><span className="text-sm leading-relaxed text-white/70">{q}</span></li>)}
+            ].map((q, i) => <li key={q} className="flex gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-300/15 text-xs font-bold text-[#0B1220]">{i + 1}</span><span className="text-sm leading-relaxed text-[#475569]">{q}</span></li>)}
           </ol>
-          <div className="mt-6 rounded-2xl border border-white/10 bg-black/10 p-5">
-            <p className="text-xs uppercase tracking-wider text-white/40">EiX Buyer Position</p>
+          <div className="mt-6 rounded-2xl border border-[#E2E8F0] bg-black/10 p-5">
+            <p className="text-xs uppercase tracking-wider text-[#94A3B8]">EiX Buyer Position</p>
             <p className="mt-2 text-xl font-bold">{state.label}</p>
-            <p className="mt-2 text-sm leading-relaxed text-white/55">{state.detail}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#64748B]">{state.detail}</p>
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">Evidence audit</p>
+              <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Evidence audit</p>
               <h2 className="mt-1 text-xl font-bold">What EiX actually knows</h2>
-              <p className="mt-2 text-sm leading-relaxed text-white/50">Every material fact is shown with its current evidence state. Missing information is left missing rather than inferred.</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#64748B]">Every material fact is shown with its current evidence state. Missing information is left missing rather than inferred.</p>
             </div>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold">{evidence.length} recorded</span>
+            <span className="rounded-full border border-[#E2E8F0] px-3 py-1 text-xs font-semibold">{evidence.length} recorded</span>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {[
@@ -393,22 +401,22 @@ export default async function CustomerReportPage({ params, searchParams }: { par
                 ? (present ? money(value) : 'Not verified')
                 : (present ? String(value) : 'Not verified');
               return (
-                <div key={label as string} className="rounded-2xl border border-white/10 bg-white/[.025] p-4">
+                <div key={label as string} className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-semibold">{label as string}</p>
-                    <span className={present ? 'text-xs font-semibold text-teal-300' : 'text-xs font-semibold text-amber-300'}>{present ? 'AVAILABLE' : 'MISSING'}</span>
+                    <span className={present ? 'text-xs font-semibold text-[#2563EB]' : 'text-xs font-semibold text-[#F59E0B]'}>{present ? 'AVAILABLE' : 'MISSING'}</span>
                   </div>
                   <p className="mt-2 text-lg font-bold">{display}</p>
-                  <p className="mt-1 text-xs text-white/40">{basis as string}</p>
+                  <p className="mt-1 text-xs text-[#94A3B8]">{basis as string}</p>
                 </div>
               );
             })}
           </div>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Offer Plan</h2></div>
-          <p className="mt-2 text-sm leading-relaxed text-white/50">The report turns the evidence gaps into concrete actions before you commit to an offer.</p>
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Offer Plan</h2></div>
+          <p className="mt-2 text-sm leading-relaxed text-[#64748B]">The report turns the evidence gaps into concrete actions before you commit to an offer.</p>
           <div className="mt-5 grid gap-3">
             {[
               achievedCount < 3
@@ -420,26 +428,26 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               'Make the offer conditional on satisfactory building inspection, required compliance certificates and approved plans where applicable.',
               'Confirm the latest municipal rates account and any outstanding amounts before signing.',
             ].map((step, i) => (
-              <div key={step} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[.025] p-4">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-300/15 text-xs font-bold text-teal-200">{i + 1}</span>
-                <p className="text-sm leading-relaxed text-white/70">{step}</p>
+              <div key={step} className="flex items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-300/15 text-xs font-bold text-[#0B1220]">{i + 1}</span>
+                <p className="text-sm leading-relaxed text-[#475569]">{step}</p>
               </div>
             ))}
           </div>
-          <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[.05] p-4 text-sm text-amber-100/80">
+          <div className="mt-5 rounded-2xl border border-[#F5D9A6] bg-[#FFF8EB] p-4 text-sm text-[#92400E]/80">
             EiX does not turn an evidence gap into a price opinion. If the required market evidence is missing, the correct next action is to gather it.
           </div>
         </section>
 
-        <section className="mt-6 rounded-3xl border border-teal-300/20 bg-gradient-to-br from-teal-300/[.10] to-white/[.03] p-8 text-center">
-          <p className="text-xs font-bold uppercase tracking-[.22em] text-teal-300">EiX Buyer Intelligence Report™</p>
+        <section className="mt-6 rounded-3xl border border-[#DCE6F7] bg-gradient-to-br from-teal-300/[.10] to-white/[.03] p-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-[.22em] text-[#2563EB]">EiX Buyer Intelligence Report™</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight">Evidence before opinion.</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/60">EiX helps buyers make decisions with verified evidence, transparent assumptions and clear next steps—not manufactured certainty.</p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[#64748B]">EiX helps buyers make decisions with verified evidence, transparent assumptions and clear next steps—not manufactured certainty.</p>
         </section>
 
-        <section className="mt-6 glass rounded-2xl p-6">
-          <div className="flex items-center gap-2"><Info className="h-5 w-5 text-white/50" /><h2 className="text-lg font-bold">Method & limitations</h2></div>
-          <ul className="mt-4 space-y-2 text-sm leading-relaxed text-white/50">
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <div className="flex items-center gap-2"><Info className="h-5 w-5 text-[#64748B]" /><h2 className="text-lg font-bold">Method & limitations</h2></div>
+          <ul className="mt-4 space-y-2 text-sm leading-relaxed text-[#64748B]">
             {(report.assumptions || []).map((a: string) => <li key={a}>• {a}</li>)}
             <li>• Price fairness requires at least 3 verified achieved-sale comparables; active listings and pending sales are displayed separately.</li>
             <li>• Acquisition figures are scenario estimates and are not formal lending, tax, legal or valuation advice.</li>
