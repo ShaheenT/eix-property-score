@@ -89,6 +89,9 @@ const evidence: PropertyEvidence[] = [
 
 const market: MarketIntelligence = {
   comparableCount: 3,
+  verifiedAchievedSaleCount: 0,
+  pendingSaleCount: 0,
+  activeListingCount: 3,
   askingPriceCents: {
     min: 220000000,
     median: 240000000,
@@ -99,12 +102,14 @@ const market: MarketIntelligence = {
     median: 750000,
     max: 875000,
   },
+  achievedSalePriceCents: { min: null, median: null, max: null },
+  achievedPricePerM2Cents: { min: null, median: null, max: null },
   subjectPricePerM2Cents: 781250,
   subjectVsMedianPercent: 4.1667,
   marketPosition: 'Above Comparable Median',
-  methodology: 'active_asking_price',
+  methodology: 'achieved_sales_first',
   disclaimer:
-    'Active asking-price comparison — not a valuation.',
+    'Achieved-sale evidence is used for price fairness; active asking listings are context only. This is not a formal valuation.',
 };
 
 const acquisition: AcquisitionIntelligence = {
