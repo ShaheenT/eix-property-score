@@ -9,6 +9,7 @@ on:
       - feature/intelligence-os-foundation
       - feature/intelligence-provider-layer-v2
       - release/eixpropscore-r149-verified
+      - feat/eix-buyer-intelligence-report-r149
   pull_request:
     branches:
       - main
