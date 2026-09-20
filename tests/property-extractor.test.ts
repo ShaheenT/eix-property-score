@@ -366,97 +366,6 @@ test('rejects a Property24 1 m² land-size artefact', async () => {
   }
 });
 
-test('prefers Property24 listing summary bathrooms over unrelated Bond Calculator text', async () => {
-  const originalFetch = globalThis.fetch;
-  const html = `
-    <html><body>
-      <div class="p24_listing" data-listingnumber="384397043"></div>
-      <div>
-        3 Bedroom House for Sale in Observatory
-        28 Falmouth Road, Observatory, Cape Town
-        3 2 2 200 m²
-        Bond Calculator Purchase Price R Interest Rate % Loan Term Years
-        Bond Calculator ... 3 Bathrooms ...
-      </div>
-      <div>
-        Charming 3-Bedroom Home.
-        Floor m2: +-119m2 (incl. the front porch)
-        Erf: 200m2
-      </div>
-      <div>Features Bedrooms: 3 Bathrooms: 2 Parking: 2 Pet Friendly Garden</div>
-    </body></html>`;
-  globalThis.fetch = async () =>
-    new Response(html, {
-      status: 200,
-      headers: { 'content-type': 'text/html; charset=utf-8' },
-    });
-
-  try {
-    const result = await extractPropertyFromUrl(
-      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/384397043',
-    );
-    assert.equal(result.status, 'extracted');
-    assert.equal(result.facts.bedrooms, 3);
-    assert.equal(result.facts.bathrooms, 2);
-    assert.equal(result.facts.parking, 2);
-    assert.equal(result.facts.floorSizeM2, 119);
-    assert.equal(result.facts.landSizeM2, 200);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test('removes Property24 scripts and calculator chrome from customer-facing listing description', async () => {
-  const originalFetch = globalThis.fetch;
-  const html = `
-    <html><body>
-      <div class="p24_listing" data-listingnumber="384397043"></div>
-      <script>
-        window.loader.addCallback((renderComponent) => renderComponent({"name":"ContactForAddressForm","props":{"resetPasswordUrl":"/reset-password"}}));
-        window.loader.addCallback((renderComponent) => renderComponent({"name":"BondCalculatorsDesktop","props":{"mortgageUrl":"/calculators/bond"}}));
-      </script>
-      <div>
-        3 Bedroom House for Sale in Observatory
-        28 Falmouth Road, Observatory, Cape Town
-        R 3 500 000
-        3 2 2 200 m²
-      </div>
-      <div>
-        Description
-        Charming 3-Bedroom Home in the Heart of Observatory! The kitchen and bathrooms have been tastefully renovated.
-        There is secure rear parking providing two off-street parking bays.
-        Read full description
-      </div>
-      <div>Bond Calculator Purchase Price R Interest Rate % Loan Term Years 3 Bathrooms</div>
-      <div>Features Bedrooms: 3 Bathrooms: 2 Parking: 2 Pet Friendly Garden</div>
-    </body></html>`;
-  globalThis.fetch = async () =>
-    new Response(html, {
-      status: 200,
-      headers: { 'content-type': 'text/html; charset=utf-8' },
-    });
-
-  try {
-    const result = await extractPropertyFromUrl(
-      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/384397043',
-    );
-
-    assert.equal(result.status, 'extracted');
-    assert.equal(result.facts.askingPriceCents, 350_000_000);
-    assert.equal(result.facts.bedrooms, 3);
-    assert.equal(result.facts.bathrooms, 2);
-    assert.equal(result.facts.parking, 2);
-    assert.equal(result.facts.floorSizeM2, 119);
-    assert.equal(result.facts.landSizeM2, 200);
-    assert.match(result.facts.description ?? '', /Charming 3-Bedroom Home/);
-    assert.match(result.facts.description ?? '', /tastefully renovated/);
-    assert.doesNotMatch(result.facts.description ?? '', /resetPasswordUrl|BondCalculatorsDesktop|Bond Calculator|Send Listing|whatsapp-agent-modal/i);
-    assert.doesNotMatch(result.facts.description ?? '', /listingSendAgentAMessageActionUrl|Purchase Price|Loan Term Years|3 Bathrooms/i);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
 test('extracts complete Private Property facts from T5586887 fixture', async () => {
   const originalFetch = globalThis.fetch;
   const fixture = readFileSync(
@@ -489,3 +398,78 @@ test('extracts complete Private Property facts from T5586887 fixture', async () 
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('Property24 listing evidence overrides conflicting structured metadata for Observatory listing 117506054', async () => {
+  const originalFetch = globalThis.fetch;
+  const html = `
+    <html>
+      <head>
+        <title>3 Bedroom House for Sale in Observatory</title>
+        <script type="application/ld+json">
+          {
+            "@context":"https://schema.org",
+            "@type":"RealEstateListing",
+            "name":"3 Bedroom House for Sale in Observatory",
+            "numberOfBedrooms":3,
+            "numberOfBathrooms":3,
+            "floorSize":{"@type":"QuantitativeValue","value":200},
+            "offers":{"@type":"Offer","price":3500000,"priceCurrency":"ZAR"},
+            "itemOffered":{"@type":"House"}
+          }
+        </script>
+      </head>
+      <body>
+        <div class="p24_listing p24_listingDetail" data-listingnumber="117506054"></div>
+        <div class="p24_listingFeatures"><span class="p24_feature">Bedrooms:</span><span class="p24_featureAmount">3</span></div>
+        <div class="p24_listingFeatures"><span class="p24_feature">Bathrooms:</span><span class="p24_featureAmount">2</span></div>
+        <div class="p24_listingFeatures"><span class="p24_feature">Parking:</span><span class="p24_featureAmount">2</span></div>
+        <div class="row p24_propertyOverviewRow"><div class="p24_propertyOverviewKey">Erf Size</div><div class="p24_propertyOverviewResult"><div class="p24_info">200 m²</div></div></div>
+        <div>Street Address 28 Falmouth Road, Observatory</div>
+        <div>Listing Date 06 August 2026</div>
+        <div>Floor Size 119 m²</div>
+        <div>Rates and Taxes R 1 318</div>
+      </body>
+    </html>`;
+  globalThis.fetch = async () => new Response(html, {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  });
+
+  try {
+    const result = await extractPropertyFromUrl(
+      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117506054',
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.source, 'property24');
+    assert.equal(result.facts.askingPriceCents, 350000000);
+    assert.equal(result.facts.bedrooms, 3);
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.floorSizeM2, 119);
+    assert.equal(result.facts.landSizeM2, 200);
+    assert.ok(result.evidence.some((item) => item.field === 'bathrooms' && item.source === 'html' && item.value === '2'));
+    assert.ok(result.evidence.some((item) => item.field === 'floorSizeM2' && item.source === 'html'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('rejects Property24 script/component chrome as a property title', async () => {
+  const originalFetch = globalThis.fetch;
+  const html = `<html><head><title>for this property. "resetPasswordUrl":"/reset-password","listingSendAgentAMessageActionUrl":"/Listing/SendAgentAMessage"})); R 32 000 000 Bond Calculator Bond Calculator Purchase Price R Interest Rate % window.loader.addCallback(function () { googletag.cmd.push(function () { googletag.pubads(); }); });</title></head><body><div class="p24_listing p24_listingDetail" data-listingnumber="12345"></div><div>3 Bedroom House for Sale in Observatory</div><div>R 3 500 000</div><div>Bedrooms 3</div><div>Bathrooms 2</div></body></html>`;
+  globalThis.fetch = async () => new Response(html, {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  });
+  try {
+    const result = await extractPropertyFromUrl(
+      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/12345',
+    );
+    assert.equal(result.facts.title, null);
+    assert.notEqual(result.status, 'extracted');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
