@@ -304,18 +304,82 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <h2 className="mt-1 text-2xl font-bold">Questions for the agent</h2>
           <ol className="mt-5 space-y-3">
             {[
-              'Can you provide recent achieved comparable sales supporting the asking price?',
+              'Can you provide 3–6 recent achieved comparable sales for genuinely similar properties nearby?',
+              'What is the measured floor area, and can it be supported by plans or another reliable record?',
               'Can you provide the approved building plans and confirm they match the current property?',
-              'Are all additions and alterations approved?',
-              'Are current compliance certificates available?',
-              'Are there any known structural defects, notices, disputes or restrictions?',
-              'Can you confirm current municipal rates and any outstanding amounts?',
+              'Are all additions and alterations approved, and are the required compliance certificates current?',
+              'Are there any known structural defects, notices, disputes, servitudes or title restrictions?',
+              'Can you confirm the latest municipal rates account and any outstanding amounts?',
+              'What exactly is included in the sale, and are there any conditions or occupation terms I should know before making an offer?',
             ].map((q, i) => <li key={q} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-300/15 text-xs font-bold text-teal-200">{i + 1}</span><span className="text-sm leading-relaxed text-white/70">{q}</span></li>)}
           </ol>
           <div className="mt-6 rounded-2xl border border-white/10 bg-black/10 p-5">
             <p className="text-xs uppercase tracking-wider text-white/40">EiX Buyer Position</p>
             <p className="mt-2 text-xl font-bold">{state.label}</p>
             <p className="mt-2 text-sm leading-relaxed text-white/55">{state.detail}</p>
+          </div>
+        </section>
+
+        <section className="mt-6 glass rounded-2xl p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">Evidence audit</p>
+              <h2 className="mt-1 text-xl font-bold">What EiX actually knows</h2>
+              <p className="mt-2 text-sm leading-relaxed text-white/50">Every material fact is shown with its current evidence state. Missing information is left missing rather than inferred.</p>
+            </div>
+            <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold">{evidence.length} recorded</span>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {[
+              ['Asking price', facts.askingPriceCents, 'supplied / extracted'],
+              ['Bedrooms', facts.bedrooms, 'supplied / extracted'],
+              ['Bathrooms', facts.bathrooms, 'supplied / extracted'],
+              ['Floor area', facts.floorSizeM2, 'required for R/m² analysis'],
+              ['Erf / land area', facts.landSizeM2, 'property evidence'],
+              ['Rates', facts.ratesAndTaxesCents, 'municipal cost input'],
+              ['Levy', facts.leviesCents, 'body corporate cost input'],
+              ['Comparable sales', achievedCount, '3+ required for price fairness'],
+            ].map(([label, value, basis]) => {
+              const present = value !== null && value !== undefined && value !== '' && !(typeof value === 'number' && value === 0 && label !== 'Comparable sales');
+              const display = label === 'Asking price' || label === 'Rates' || label === 'Levy'
+                ? (present ? money(value) : 'Not verified')
+                : (present ? String(value) : 'Not verified');
+              return (
+                <div key={label as string} className="rounded-2xl border border-white/10 bg-white/[.025] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold">{label as string}</p>
+                    <span className={present ? 'text-xs font-semibold text-teal-300' : 'text-xs font-semibold text-amber-300'}>{present ? 'AVAILABLE' : 'MISSING'}</span>
+                  </div>
+                  <p className="mt-2 text-lg font-bold">{display}</p>
+                  <p className="mt-1 text-xs text-white/40">{basis as string}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="mt-6 glass rounded-2xl p-6">
+          <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Offer Plan</h2></div>
+          <p className="mt-2 text-sm leading-relaxed text-white/50">The report turns the evidence gaps into concrete actions before you commit to an offer.</p>
+          <div className="mt-5 grid gap-3">
+            {[
+              achievedCount < 3
+                ? 'Obtain 3–6 recent achieved sales of genuinely comparable properties before treating the asking price as market-supported.'
+                : 'Review the achieved-sale comparables and confirm the subject property differences justify any price gap.',
+              !facts.floorSizeM2
+                ? 'Get the measured floor area so R/m² comparisons can be tested.'
+                : 'Confirm the stated floor area against plans or another reliable property record.',
+              'Make the offer conditional on satisfactory building inspection, required compliance certificates and approved plans where applicable.',
+              'Confirm the latest municipal rates account and any outstanding amounts before signing.',
+            ].map((step, i) => (
+              <div key={step} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[.025] p-4">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-300/15 text-xs font-bold text-teal-200">{i + 1}</span>
+                <p className="text-sm leading-relaxed text-white/70">{step}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[.05] p-4 text-sm text-amber-100/80">
+            EiX does not turn an evidence gap into a price opinion. If the required market evidence is missing, the correct next action is to gather it.
           </div>
         </section>
 
