@@ -103,7 +103,7 @@ test('returns NEGOTIATE when a buy-to-live property is below the comparable medi
   assert.equal(result.confidence, 'medium');
   assert.ok(
     result.reasons.some((reason) =>
-      reason.includes('below the active comparable asking-price median'),
+      reason.includes('below the verified achieved-sale median'),
     ),
   );
 });
@@ -234,7 +234,7 @@ test('returns INVESTIGATE when comparable market evidence is unavailable', () =>
   assert.equal(result.decision, 'INVESTIGATE');
   assert.ok(
     result.unknowns.some((unknown) =>
-      unknown.includes('Comparable-market position'),
+      unknown.includes('Price fairness cannot be established'),
     ),
   );
 });
@@ -274,7 +274,7 @@ test('returns BUY when affordability passes and asking price is below the compar
   assert.equal(result.confidence, 'medium');
   assert.ok(
     result.reasons.some((reason) =>
-      reason.includes('below the active comparable asking-price median'),
+      reason.includes('below the verified achieved-sale median'),
     ),
   );
   assert.ok(
