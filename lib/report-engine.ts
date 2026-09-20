@@ -148,6 +148,7 @@ function calculatePropertyScore(
       score: null,
       breakdown: {
         marketComparableCount: market.comparableCount,
+        achievedSaleMedianPriceCents: market.achievedSalePriceCents.median ?? 0,
         verifiedAchievedSaleCount: market.verifiedAchievedSaleCount,
         activeListingCount: market.activeListingCount,
         pendingSaleCount: market.pendingSaleCount,
