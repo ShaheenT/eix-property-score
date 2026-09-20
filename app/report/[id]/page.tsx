@@ -286,6 +286,32 @@ export default async function CustomerReportPage({ params, searchParams }: { par
         )}
 
         <section className="mt-6 glass rounded-2xl p-6">
+          <div className="flex items-center gap-2"><Home className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Property Anatomy™</h2></div>
+          <p className="mt-2 text-sm text-white/50">Physical characteristics are translated into buyer signals only where the property evidence supports them.</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatusRow label="Bedrooms" state={facts.bedrooms !== null ? 'verified' : 'unknown'} detail={text(facts.bedrooms)} />
+            <StatusRow label="Bathrooms" state={facts.bathrooms !== null ? 'verified' : 'unknown'} detail={text(facts.bathrooms)} />
+            <StatusRow label="Floor area" state={facts.floorSizeM2 !== null ? 'verified' : 'missing'} detail={facts.floorSizeM2 ? String(facts.floorSizeM2) + ' m²' : 'Required for R/m² analysis'} />
+            <StatusRow label="Land area" state={facts.landSizeM2 !== null ? 'verified' : 'missing'} detail={facts.landSizeM2 ? String(facts.landSizeM2) + ' m²' : 'Property evidence required'} />
+            <StatusRow label="Parking" state={facts.parking !== null ? 'verified' : 'unknown'} detail={text(facts.parking)} />
+            <StatusRow label="Garden" state={facts.hasGarden !== null ? 'verified' : 'unknown'} detail={yesNo(facts.hasGarden)} />
+            <StatusRow label="Fibre" state={facts.hasFibre !== null ? 'verified' : 'unknown'} detail={yesNo(facts.hasFibre)} />
+            <StatusRow label="Solar / backup" state={facts.hasSolar !== null || facts.hasBatteryBackup !== null ? 'verified' : 'unknown'} detail={facts.hasSolar === true || facts.hasBatteryBackup === true ? 'Indicated' : 'Not verified'} />
+          </div>
+        </section>
+
+        <section className="mt-6 glass rounded-2xl p-6">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">Property DNA™</p>
+          <h2 className="mt-1 text-xl font-bold">Buyer signals from the available property evidence</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatusRow label="Owner-occupier fit" state={facts.bedrooms !== null && facts.bathrooms !== null ? 'verified' : 'unknown'} detail="Profile established only from supplied property facts." />
+            <StatusRow label="Investment" state={report.rental_yield_percent !== null ? 'verified' : 'unknown'} detail={report.rental_yield_percent !== null ? String(report.rental_yield_percent) + '% rental yield input' : 'Rental evidence required'} />
+            <StatusRow label="Outdoor living" state={facts.hasGarden === true ? 'verified' : 'unknown'} detail={facts.hasGarden === true ? 'Garden indicated' : 'Evidence required'} />
+            <StatusRow label="Market certainty" state={achievedCount >= 3 ? 'verified' : 'missing'} detail={achievedCount >= 3 ? 'Comparable evidence available' : 'Achieved-sale evidence limited'} />
+          </div>
+        </section>
+
+        <section className="mt-6 glass rounded-2xl p-6">
           <div className="flex items-center gap-2"><Home className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Neighbourhood DNA™</h2></div>
           <p className="mt-2 text-sm text-white/50">Location intelligence is shown only where the report contains supporting evidence. EiX does not manufacture neighbourhood scores from missing data.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
