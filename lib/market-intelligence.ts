@@ -3,16 +3,25 @@ import type { ComparableProperty } from '@/lib/property24-comparables';
 
 export interface MarketIntelligence {
   comparableCount: number;
-  achievedSaleCount: number;
-  achievedSaleMedianCents: number | null;
-  subjectVsAchievedSaleMedianPercent: number | null;
-  priceFairnessStatus: 'Established From Achieved Sales' | 'Not Established';
+  verifiedAchievedSaleCount: number;
+  pendingSaleCount: number;
+  activeListingCount: number;
   askingPriceCents: {
     min: number | null;
     median: number | null;
     max: number | null;
   };
+  achievedSalePriceCents: {
+    min: number | null;
+    median: number | null;
+    max: number | null;
+  };
   pricePerM2Cents: {
+    min: number | null;
+    median: number | null;
+    max: number | null;
+  };
+  achievedPricePerM2Cents: {
     min: number | null;
     median: number | null;
     max: number | null;
@@ -24,8 +33,8 @@ export interface MarketIntelligence {
     | 'At Comparable Median'
     | 'Above Comparable Median'
     | 'Insufficient Data';
-  methodology: 'achieved_sales_preferred_active_asking_context';
-  disclaimer: 'Achieved-sale evidence is preferred for price fairness; active asking-price comparisons are context only and are not a valuation.';
+  methodology: 'achieved_sales_first';
+  disclaimer: 'Achieved-sale evidence is used for price fairness; active asking listings are context only. This is not a formal valuation.';
 }
 
 function median(values: number[]): number | null {
@@ -55,17 +64,35 @@ export function calculateMarketIntelligence(
   subject: PropertyFacts,
   comparables: ComparableProperty[],
 ): MarketIntelligence {
-  const achievedSales = comparables
-    .filter((comparable) => comparable.evidenceType === 'registered_sale' && comparable.salePriceCents !== null)
-    .map((comparable) => comparable.salePriceCents as number);
+  const achievedSales = comparables.filter(
+    (comparable) => comparable.saleStatus === 'registered_sale',
+  );
+  const pendingSales = comparables.filter(
+    (comparable) => comparable.saleStatus === 'pending_sale',
+  );
+  const activeListings = comparables.filter(
+    (comparable) => !comparable.saleStatus || comparable.saleStatus === 'active_listing',
+  );
 
-  const achievedSaleMedianCents = median(achievedSales);
-
-  const askingPrices = comparables
+  // Only registered achieved sales can establish price fairness.
+  const activeAskingPrices = activeListings
     .map((comparable) => comparable.facts.askingPriceCents)
     .filter((value): value is number => value !== null);
 
-  const comparablePricePerM2 = comparables
+  const achievedSalePrices = achievedSales
+    .map((comparable) => comparable.facts.askingPriceCents)
+    .filter((value): value is number => value !== null);
+
+  const activeComparablePricePerM2 = activeListings
+    .map((comparable) => {
+      const price = comparable.facts.askingPriceCents;
+      const floor = comparable.facts.floorSizeM2;
+      if (price === null || floor === null || floor <= 0) return null;
+      return price / floor;
+    })
+    .filter((value): value is number => value !== null);
+
+  const achievedComparablePricePerM2 = achievedSales
     .map((comparable) => {
       const price = comparable.facts.askingPriceCents;
       const floor = comparable.facts.floorSizeM2;
@@ -78,18 +105,20 @@ export function calculateMarketIntelligence(
     })
     .filter((value): value is number => value !== null);
 
-  const askingPriceMedian = median(askingPrices);
+  const askingPriceMedian = median(activeAskingPrices);
+  const achievedSaleMedian = median(achievedSalePrices);
   const subjectPrice = subject.askingPriceCents;
-  const comparableEvidenceThreshold = 3;
-  const hasEnoughComparables = comparables.length >= comparableEvidenceThreshold;
 
   let subjectVsMedianPercent: number | null = null;
-  let subjectVsAchievedSaleMedianPercent: number | null = null;
 
-  if (achievedSales.length >= comparableEvidenceThreshold && subjectPrice !== null && achievedSaleMedianCents !== null && achievedSaleMedianCents > 0) {
-    subjectVsAchievedSaleMedianPercent =
-      ((subjectPrice - achievedSaleMedianCents) / achievedSaleMedianCents) * 100;
-    subjectVsMedianPercent = subjectVsAchievedSaleMedianPercent;
+  if (
+    subjectPrice !== null &&
+    achievedSaleMedian !== null &&
+    achievedSaleMedian > 0 &&
+    achievedSales.length >= 3
+  ) {
+    subjectVsMedianPercent =
+      ((subjectPrice - achievedSaleMedian) / achievedSaleMedian) * 100;
   }
 
   let marketPosition: MarketIntelligence['marketPosition'] =
@@ -107,30 +136,45 @@ export function calculateMarketIntelligence(
 
   return {
     comparableCount: comparables.length,
-    achievedSaleCount: achievedSales.length,
-    achievedSaleMedianCents,
-    subjectVsAchievedSaleMedianPercent,
-    priceFairnessStatus: subjectVsAchievedSaleMedianPercent === null ? 'Not Established' : 'Established From Achieved Sales',
+    verifiedAchievedSaleCount: achievedSales.length,
+    pendingSaleCount: pendingSales.length,
+    activeListingCount: activeListings.length,
     askingPriceCents: {
-      min: askingPrices.length > 0 ? Math.min(...askingPrices) : null,
+      min: activeAskingPrices.length > 0 ? Math.min(...activeAskingPrices) : null,
       median: askingPriceMedian,
-      max: askingPrices.length > 0 ? Math.max(...askingPrices) : null,
+      max: activeAskingPrices.length > 0 ? Math.max(...activeAskingPrices) : null,
+    },
+    achievedSalePriceCents: {
+      min: achievedSalePrices.length > 0 ? Math.min(...achievedSalePrices) : null,
+      median: achievedSaleMedian,
+      max: achievedSalePrices.length > 0 ? Math.max(...achievedSalePrices) : null,
     },
     pricePerM2Cents: {
       min:
-        comparablePricePerM2.length > 0
-          ? Math.min(...comparablePricePerM2)
+        activeComparablePricePerM2.length > 0
+          ? Math.min(...activeComparablePricePerM2)
           : null,
-      median: median(comparablePricePerM2),
+      median: median(activeComparablePricePerM2),
       max:
-        comparablePricePerM2.length > 0
-          ? Math.max(...comparablePricePerM2)
+        activeComparablePricePerM2.length > 0
+          ? Math.max(...activeComparablePricePerM2)
+          : null,
+    },
+    achievedPricePerM2Cents: {
+      min:
+        achievedComparablePricePerM2.length > 0
+          ? Math.min(...achievedComparablePricePerM2)
+          : null,
+      median: median(achievedComparablePricePerM2),
+      max:
+        achievedComparablePricePerM2.length > 0
+          ? Math.max(...achievedComparablePricePerM2)
           : null,
     },
     subjectPricePerM2Cents: subjectPricePerM2(subject),
     subjectVsMedianPercent,
     marketPosition,
-    methodology: 'achieved_sales_preferred_active_asking_context',
-    disclaimer: 'Achieved-sale evidence is preferred for price fairness; active asking-price comparisons are context only and are not a valuation.',
+    methodology: 'achieved_sales_first',
+    disclaimer: 'Achieved-sale evidence is used for price fairness; active asking listings are context only. This is not a formal valuation.',
   };
 }
