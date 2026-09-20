@@ -4,19 +4,11 @@ on:
   push:
     branches:
       - main
-      - feature/international-buyer-intelligence
-      - feature/secure-extraction-engine
-      - feature/intelligence-os-foundation
-      - feature/intelligence-provider-layer-v2
-      - launch/r149-final
+      - release/r149
   pull_request:
     branches:
       - main
-      - feature/international-buyer-intelligence
-      - feature/secure-extraction-engine
-      - feature/intelligence-os-foundation
-      - feature/intelligence-provider-layer-v2
-      - launch/r149-final
+      - release/r149
 
 jobs:
   quality:
@@ -33,7 +25,7 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
       - name: Run tests
         run: npm test
       - name: Typecheck
