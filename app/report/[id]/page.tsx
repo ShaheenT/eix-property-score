@@ -158,7 +158,17 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <ReportPrintButton />
         </header>
 
-        <section className="glass-strong rounded-3xl p-8 sm:p-10">
+        <section className="glass-strong overflow-hidden rounded-3xl">
+          {facts.primaryImageUrl ? (
+            <div className="relative h-64 w-full overflow-hidden sm:h-80 lg:h-[420px]">
+              <img src={facts.primaryImageUrl} alt={text(facts.title, 'Property')} className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#071A3D] via-[#071A3D]/20 to-transparent" />
+              <div className="absolute bottom-5 left-5 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">Property image from supplied listing evidence</div>
+            </div>
+          ) : (
+            <div className="flex h-48 items-center justify-center bg-white/[.03] text-sm text-white/40 sm:h-64">Property image not verified from the supplied source</div>
+          )}
+          <div className="p-8 sm:p-10">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-teal-300">
             <ShieldCheck className="h-4 w-4" /> EiX Buyer Intelligence Report™
           </div>
@@ -181,6 +191,18 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               <p className="mt-1 text-lg font-black text-white">{state.label}</p>
               <p className="mt-2 text-sm leading-relaxed text-white/60">{state.detail}</p>
             </div>
+          </div>
+        </div>
+        </section>
+
+        <section className="mt-6 glass rounded-2xl p-6">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">The EiX X-Ray</p>
+          <h2 className="mt-1 text-2xl font-bold">What the listing says is not the same as what it means.</h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/60">The property profile is useful, but the central decision question is whether the asking price is supported by verified market evidence and whether the remaining transaction risks have been resolved.</p>
+          <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[.05] p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-200/70">The Biggest Question</p>
+            <p className="mt-2 text-xl font-bold">Does the market support the asking price for this particular property?</p>
+            <p className="mt-2 text-sm leading-relaxed text-white/55">Until the required evidence is available, EiX does not manufacture a price opinion.</p>
           </div>
         </section>
 
@@ -381,6 +403,12 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[.05] p-4 text-sm text-amber-100/80">
             EiX does not turn an evidence gap into a price opinion. If the required market evidence is missing, the correct next action is to gather it.
           </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-teal-300/20 bg-gradient-to-br from-teal-300/[.10] to-white/[.03] p-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-[.22em] text-teal-300">EiX Buyer Intelligence Report™</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight">Evidence before opinion.</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/60">EiX helps buyers make decisions with verified evidence, transparent assumptions and clear next steps—not manufactured certainty.</p>
         </section>
 
         <section className="mt-6 glass rounded-2xl p-6">
