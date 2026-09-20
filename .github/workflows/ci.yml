@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release/eixpropscore-r149-verified
       - feature/international-buyer-intelligence
       - feature/secure-extraction-engine
       - feature/intelligence-os-foundation
