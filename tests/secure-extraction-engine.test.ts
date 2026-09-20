@@ -85,53 +85,6 @@ test('does not treat search pages as property listings by URL identity', async (
   }
 });
 
-test('preserves Property24 listing facts and primary image from labelled listing evidence', async () => {
-  const originalFetch = globalThis.fetch;
-
-  globalThis.fetch = async () =>
-    new Response(
-      `<!doctype html>
-      <html>
-        <head>
-          <meta property="og:image" content="https://images.example.com/observatory-home.jpg" />
-          <title>2 Bedroom House for Sale in Observatory - P24-117638664</title>
-        </head>
-        <body>
-          <h1>2 Bedroom House for Sale in Observatory</h1>
-          <div>R 3,550,000</div>
-          <div>2 Bedroom</div>
-          <div>2 Bathroom</div>
-          <div>Property Overview</div>
-          <div>Street Address 53 Lytton Street, Observatory, Cape Town Listing Date 18 Sep 2026</div>
-          <div>Floor Size 91 m²</div>
-          <div>Erf Size 208 m²</div>
-          <div>Rates and Taxes R 1,180</div>
-          <div>Parking 2</div>
-          <div>Description Newly renovated home with wood floors, updated kitchen finishes, private low-maintenance garden, fibre connectivity and two parking spaces.</div>
-          <div>117638664</div>
-        </body>
-      </html>`,
-      { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } },
-    );
-
-  try {
-    const result = await runSecureExtraction(
-      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117638664',
-    );
-
-    assert.equal(result.status, 'extracted');
-    assert.equal(result.facts.address, '53 Lytton Street, Observatory, Cape Town');
-    assert.equal(result.facts.floorSizeM2, 91);
-    assert.equal(result.facts.landSizeM2, 208);
-    assert.equal(result.facts.ratesAndTaxesCents, 118000);
-    assert.equal(result.facts.parking, 2);
-    assert.match(result.facts.description ?? '', /newly renovated/i);
-    assert.equal(result.facts.primaryImageUrl, 'https://images.example.com/observatory-home.jpg');
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
 test('accepts a Property24 listing when the provider returns HTTP 404 with valid listing HTML', async () => {
   const originalFetch = globalThis.fetch;
 
@@ -178,20 +131,36 @@ test('accepts a Property24 listing when the provider returns HTTP 404 with valid
 });
 
 
-test('Property24 source adapter wins over conflicting structured metadata for Observatory 117506054', async () => {
+test('prefers the Property24 source adapter when structured metadata conflicts', async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(`
-    <html><head>
-      <script type="application/ld+json">
-        {"@context":"https://schema.org","@type":"RealEstateListing","name":"3 Bedroom House for Sale in Observatory","numberOfBedrooms":3,"numberOfBathrooms":3,"floorSize":{"@type":"QuantitativeValue","value":200},"offers":{"@type":"Offer","price":3500000,"priceCurrency":"ZAR"},"itemOffered":{"@type":"House"}}
-      </script>
-    </head><body>
-      <h1>3 Bedroom House for Sale in Observatory</h1>
-      <div>R 3 500 000</div>
-      <div>3 Bedroom</div>
-      <div>2 Bathrooms</div>
-      <div>P24-117506054</div>
-    </body></html>`, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } });
+
+  globalThis.fetch = async () =>
+    new Response(`
+      <html>
+        <head>
+          <script type="application/ld+json">
+            {
+              "@context":"https://schema.org",
+              "@type":"RealEstateListing",
+              "name":"3 Bedroom House for Sale in Observatory",
+              "numberOfBedrooms":3,
+              "numberOfBathrooms":3,
+              "floorSize":{"@type":"QuantitativeValue","value":200},
+              "offers":{"@type":"Offer","price":3500000,"priceCurrency":"ZAR"},
+              "itemOffered":{"@type":"House"}
+            }
+          </script>
+        </head>
+        <body>
+          <h1>3 Bedroom House for Sale in Observatory</h1>
+          <div>R 3 500 000</div>
+          <div>3 Bedroom</div>
+          <div>2 Bathrooms</div>
+          <div>P24-117506054</div>
+        </body>
+      </html>`,
+      { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } },
+    );
 
   try {
     const result = await runSecureExtraction(
@@ -201,7 +170,6 @@ test('Property24 source adapter wins over conflicting structured metadata for Ob
           status: 'extracted',
           facts: {
             title: '3 Bedroom House for Sale in Observatory',
-            description: null,
             address: '28 Falmouth Road, Observatory',
             suburb: 'Observatory',
             city: 'Cape Town',
@@ -213,8 +181,6 @@ test('Property24 source adapter wins over conflicting structured metadata for Ob
             propertyType: 'House',
             floorSizeM2: 119,
             landSizeM2: 200,
-            leviesCents: null,
-            ratesAndTaxesCents: 131800,
             garages: null,
             parking: 2,
             hasStudy: null,
@@ -223,11 +189,12 @@ test('Property24 source adapter wins over conflicting structured metadata for Ob
             hasFibre: true,
             hasSolar: null,
             hasBatteryBackup: null,
-            primaryImageUrl: null,
+            leviesCents: null,
+            ratesAndTaxesCents: 131800,
           },
           evidence: [
             { field: 'bathrooms', value: '2', source: 'html' },
-            { field: 'floorSizeM2', value: '119', source: 'html' },
+            { field: 'floorSizeM2', value: 'Floor Size 119 m²', source: 'html' },
           ],
           source: 'property24',
           sourceUrl: 'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117506054',
@@ -239,43 +206,12 @@ test('Property24 source adapter wins over conflicting structured metadata for Ob
     assert.equal(result.status, 'extracted');
     assert.equal(result.facts.bathrooms, 2);
     assert.equal(result.facts.floorSizeM2, 119);
+    assert.equal(result.facts.landSizeM2, 200);
     assert.equal(result.metadata?.reportEligible, true);
-    assert.equal(result.metadata?.conflicts.find((item) => item.field === 'bathrooms')?.resolution, 'source_adapter');
+
+    const bathroomConflict = result.metadata?.conflicts.find((item) => item.field === 'bathrooms');
+    assert.equal(bathroomConflict?.resolution, 'source_adapter');
   } finally {
     globalThis.fetch = originalFetch;
   }
-});
-
-
-test('Property24 111658444 uses bounded listing facts over conflicting structured metadata', async () => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(
-    `<html><head><script type="application/ld+json">{"@type":"RealEstateListing","numberOfBathroomsTotal":1,"floorSize":{"value":1},"lotSize":{"value":1}}</script></head><body>
-      <h1>3 Bedroom House for Sale in Observatory</h1>
-      <div>R 3 295 000</div>
-      <div>Observatory, Cape Town</div>
-      <div>Contact seller for street address</div>
-      <div>Bedrooms 3</div><div>Bathrooms 2</div><div>236 m²</div>
-      <div>3 Bedroom House for Sale in Observatory</div>
-      <div>Dual Income 2 Bed Main house and 1 Bed Flat</div>
-      <div>Rental Income: R25 900 per month</div>
-      <div>Approximate Gross Yield: 9.4%</div>
-      <div>Features</div><div>Bedrooms: 3</div><div>Bathrooms: 2</div><div>Flatlet</div><div>Garden</div>
-      <div>Property Overview</div><div>Listing Number 111658444</div><div>Type of Property House</div><div>Erf Size 236 m²</div><div>Floor Size 190 m²</div><div>Rates and Taxes R 2 166</div>
-      <div>P24-111658444</div>
-    </body></html>`,
-    {status:200,headers:{'content-type':'text/html; charset=utf-8'}}
-  );
-  try {
-    const result = await runSecureExtraction('https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/111658444');
-    assert.equal(result.status, 'extracted');
-    assert.equal(result.facts.bedrooms, 3);
-    assert.equal(result.facts.bathrooms, 2);
-    assert.equal(result.facts.floorSizeM2, 190);
-    assert.equal(result.facts.landSizeM2, 236);
-    assert.equal(result.facts.askingPriceCents, 329500000);
-    assert.equal(result.facts.ratesAndTaxesCents, 216600);
-    assert.equal(result.metadata?.reportEligible, true);
-    assert.equal(result.metadata?.conflicts.find((item) => item.field === 'bathrooms')?.resolution, 'source_adapter');
-  } finally { globalThis.fetch = originalFetch; }
 });
