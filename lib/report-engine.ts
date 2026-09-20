@@ -95,14 +95,15 @@ function calculateConfidence(
     (field) => hasValue(facts[field]) && evidence.some((item) => item.field === field),
   ).length;
 
-  return Math.round(
-    Math.min(
-      100,
-      (identity / 3) * 25 +
-        (material / 5) * 45 +
-        (evidenced / Math.max(material, 1)) * 30,
-    ),
-  );
+  const evidenceCoverage = (identity / 3) * 25 + (material / 5) * 45 + (evidenced / Math.max(material, 1)) * 30;
+
+  // Offer Confidence must reflect the decision bottleneck, not merely how many
+  // listing fields were populated. Without achieved-sale evidence, the report
+  // cannot establish price fairness, so confidence is deliberately capped.
+  const hasAchievedSaleBenchmark = evidence.some((item) => item.field === 'comparableSales' || item.field === 'achievedSaleComparable');
+  const comparableEvidenceCap = hasAchievedSaleBenchmark ? 100 : 70;
+
+  return Math.round(Math.min(comparableEvidenceCap, evidenceCoverage));
 }
 
 function componentScore(facts: PropertyFacts, fields: (keyof PropertyFacts)[]): number {
