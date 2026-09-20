@@ -88,6 +88,7 @@ const hasValue = (value: unknown) =>
 function calculateConfidence(
   facts: PropertyFacts,
   evidence: PropertyEvidence[],
+  achievedSaleCount: number,
 ): number {
   const identity = IDENTITY_FIELDS.filter((field) => hasValue(facts[field])).length;
   const material = MATERIAL_FIELDS.filter((field) => hasValue(facts[field])).length;
@@ -95,14 +96,14 @@ function calculateConfidence(
     (field) => hasValue(facts[field]) && evidence.some((item) => item.field === field),
   ).length;
 
-  return Math.round(
-    Math.min(
-      100,
-      (identity / 3) * 25 +
-        (material / 5) * 45 +
-        (evidenced / Math.max(material, 1)) * 30,
-    ),
-  );
+  const evidenceCoverage = (identity / 3) * 25 + (material / 5) * 45 + (evidenced / Math.max(material, 1)) * 30;
+
+  // Offer Confidence must reflect the decision bottleneck, not merely how many
+  // listing fields were populated. Without achieved-sale evidence, the report
+  // cannot establish price fairness, so confidence is deliberately capped.
+  const comparableEvidenceCap = achievedSaleCount >= 3 ? 100 : 70;
+
+  return Math.round(Math.min(comparableEvidenceCap, evidenceCoverage));
 }
 
 function componentScore(facts: PropertyFacts, fields: (keyof PropertyFacts)[]): number {
@@ -258,12 +259,12 @@ function buildLimitations(
 }
 
 export function calculateReport(input: ReportEngineInput): ReportEngineOutput {
-  const confidence = calculateConfidence(input.facts, input.evidence);
   const acquisitionIntelligence = calculateAcquisitionIntelligence(input.facts);
   const marketIntelligence = calculateMarketIntelligence(
     input.facts,
     input.comparables ?? [],
   );
+  const confidence = calculateConfidence(input.facts, input.evidence, marketIntelligence.verifiedAchievedSaleCount);
   const propertyScore = calculatePropertyScore(
     input.facts,
     input.evidence,

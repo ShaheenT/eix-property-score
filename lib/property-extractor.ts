@@ -68,19 +68,12 @@ function emptyFacts(): PropertyFacts {
 }
 
 function parseProperty24SizeM2(value: string): number | null {
-  const normalized = value.replace(/,/g, " ").trim();
-
-  // Property24 can expose placeholder/artefact values such as "1 m²".
-  // Do not persist these as verified land-size evidence.
-  const match = normalized.match(/[0-9]+(?:\.[0-9]+)?/);
-  if (!match) return null;
-
-  const parsed = Number(match[0]);
-
-  if (!Number.isFinite(parsed) || parsed <= 1) {
-    return null;
-  }
-
+  const normalized = decodeHtmlEntities(value).replace(/,/g, ' ').trim();
+  const m2Match = normalized.match(/([0-9][0-9\s]*(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  const raw = m2Match?.[1] ?? normalized.match(/[0-9][0-9\s]*(?:\.\d+)?/)?.[0];
+  if (!raw) return null;
+  const parsed = Number(raw.replace(/\s/g, ''));
+  if (!Number.isFinite(parsed) || parsed <= 1) return null;
   return parsed;
 }
 
@@ -530,6 +523,25 @@ function parseProperty24LabeledOverview(
   return { facts, evidence };
 }
 
+function parseProperty24Heading(body: string): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+  const candidates = [
+    /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
+    /<div\b[^>]*class=["'][^"']*p24_listingTitle[^"']*["'][^>]*>([\s\S]*?)<\\/div>/i,
+  ];
+  for (const pattern of candidates) {
+    const match = body.match(pattern);
+    if (!match) continue;
+    const title = decodeHtmlEntities(match[1]);
+    if (!title || title.length > 180 || /window\.loader|addCallback|renderComponent|bond calculator/i.test(title)) continue;
+    facts.title = title;
+    evidence.push({ field: 'title', value: title, source: 'html' });
+    break;
+  }
+  return { facts, evidence };
+}
+
 function parseProperty24Facts(
   body: string,
   sourceUrl: string,
@@ -542,6 +554,7 @@ function parseProperty24Facts(
   const overview = parseProperty24Overview(body);
   const labeledOverview = parseProperty24LabeledOverview(body);
   const keyFeatures = parseProperty24KeyFeatures(body);
+  const heading = parseProperty24Heading(body);
 
   return {
     facts: mergeFacts(
@@ -549,12 +562,14 @@ function parseProperty24Facts(
       overview.facts,
       labeledOverview.facts,
       keyFeatures.facts,
+      heading.facts,
     ),
     evidence: mergeEvidence(
       [],
       overview.evidence,
       labeledOverview.evidence,
       keyFeatures.evidence,
+      heading.evidence,
     ),
   };
 }
@@ -574,9 +589,15 @@ function parseMetaAttributes(body: string): { facts: PropertyFacts; evidence: Pr
     if (!content) continue;
 
     if (name === 'og:title' || name === 'twitter:title') {
-      if (!facts.title) {
+      if (!facts.title && !/property24/i.test(content)) {
         facts.title = content;
         evidence.push({ field: 'title', value: content, source: 'open_graph' });
+      }
+    }
+    if (name === 'og:image' || name === 'twitter:image') {
+      if (!facts.primaryImageUrl && /^https?:\/\//i.test(content)) {
+        facts.primaryImageUrl = content;
+        evidence.push({ field: 'primaryImageUrl', value: content, source: 'open_graph' });
       }
     }
     if (name === 'og:street-address' || name === 'property:street_address') {

@@ -19,8 +19,8 @@ const evidence: PropertyEvidence[] = [
 test('complete verified listing does not receive a market-facing score without three achieved sales', () => {
   const result = calculateReport({ facts, evidence, goal: 'Buy to Live' });
   assert.equal(result.investmentScore, null);
-  assert.equal(result.aiConfidence, 100);
-  assert.equal(result.confidenceLabel, 'High');
+  assert.equal(result.aiConfidence, 70);
+  assert.equal(result.confidenceLabel, 'Medium');
   assert.equal(result.scoreBreakdown.verifiedAchievedSaleCount, 0);
   assert.ok(result.limitations.some((item) => item.includes('Market position is evidence-limited')));
 });
