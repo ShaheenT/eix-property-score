@@ -1,7 +1,5 @@
-'use client';
-
-import { useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
+import { supabaseAdmin } from '@/lib/supabase';
 import {
   AlertTriangle, ArrowRight, CheckCircle2, CircleHelp, FileCheck2,
   Home, Info, MapPin, ShieldCheck, TrendingUp, WalletCards, Waves
@@ -103,10 +101,12 @@ function StatusRow({ label, state, detail }: { label: string; state: 'verified' 
   );
 }
 
-export default function CustomerReportPage({ report }: { report: Report }) {
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-
+export default async function CustomerReportPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ token?: string }> }) {
+  const { id } = await params;
+  const { token } = await searchParams;
+  if (!token) notFound();
+  const { data: report } = await supabaseAdmin.from('reports').select('id,status,report_type,investment_score,ai_confidence,property_facts,property_evidence,score_breakdown,assumptions,limitations,rental_yield_percent,bond_monthly_payment_cents,bond_loan_amount_cents,risk_level,recommendation,confidence_label,access_token,processed_at,investor_analysis,international_buyer_analysis').eq('id', id).eq('access_token', token).single();
+  if (!report || !['completed','sent'].includes(report.status)) notFound();
   const facts = report.property_facts || {};
   const limitations = report.limitations || [];
   const evidence = Array.isArray(report.property_evidence) ? report.property_evidence : [];
@@ -121,7 +121,7 @@ export default function CustomerReportPage({ report }: { report: Report }) {
   const confidence = numberValue(report.ai_confidence) ?? 0;
   const state = decisionState(report, achievedCount);
 
-  const acquisition = useMemo(() => {
+  const acquisition = (() => {
     if (price === null) return null;
     const deposit = Math.round(price * .10);
     const loan = price - deposit;
@@ -139,7 +139,7 @@ export default function CustomerReportPage({ report }: { report: Report }) {
       years: rate > 0 ? Math.log(1 + dutyPct / 100) / Math.log(1 + rate / 100) : null
     }));
     return { deposit, loan, duty, recurring, scenarios, knownEntry, breakEven };
-  }, [price, facts.ratesAndTaxesCents, facts.leviesCents]);
+  })();
 
   const factCompleteness = [
     facts.title, facts.address, facts.propertyType, facts.askingPriceCents,
@@ -149,8 +149,6 @@ export default function CustomerReportPage({ report }: { report: Report }) {
   const marketEvidence = achievedCount >= 3 ? 'verified' : (activeCount > 0 || pendingCount > 0 ? 'unknown' : 'missing');
   const costEvidence = price !== null && (facts.ratesAndTaxesCents !== null || facts.leviesCents !== null) ? 'verified' : 'unknown';
   const documentEvidence = statusFromLimitations(limitations, ['building plans', 'compliance', 'inspection', 'title', 'heritage']);
-
-  if (!token || !report) return null;
 
   return (
     <main className="min-h-screen bg-midnight px-4 py-6 text-white sm:px-8 sm:py-10">
