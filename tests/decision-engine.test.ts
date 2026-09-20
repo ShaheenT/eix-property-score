@@ -53,7 +53,7 @@ const acquisition: AcquisitionIntelligence = {
   knownUpfrontCashRequiredCents: 641_115_600,
   assumptions: [
     'Deposit scenario assumes 10% of asking price.',
-    'Bond scenario assumes 90% loan-to-value, 11.5% annual interest and a 20-year term.',
+    'Bond scenario assumes 90% loan-to-value, 10.5% annual interest and a 20-year term.',
   ],
   unknownCosts: [
     'Conveyancing and transfer attorney fees are not included.',
