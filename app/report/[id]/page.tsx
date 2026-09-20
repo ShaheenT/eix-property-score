@@ -179,9 +179,9 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               <p className="mt-2 flex items-center gap-1.5 text-sm text-[#64748B]"><MapPin className="h-4 w-4" />{text(facts.address)}</p>
               <div className="mt-5 flex flex-wrap gap-2 text-sm text-[#475569]">
                 <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">{text(facts.bedrooms, '—')} Bed</span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5">{text(facts.bathrooms, '—')} Bath</span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5">{facts.floorSizeM2 ? `${facts.floorSizeM2} m²` : '— m²'}</span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5">{text(facts.propertyType, 'Type')}</span>
+                <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">{text(facts.bathrooms, '—')} Bath</span>
+                <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">{facts.floorSizeM2 ? `${facts.floorSizeM2} m²` : '— m²'}</span>
+                <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">{text(facts.propertyType, 'Type')}</span>
               </div>
             </div>
             <div className="rounded-[24px] border border-[#DCE6F7] bg-[#F7FAFF] p-5 shadow-[0_10px_30px_rgba(37,99,235,.06)]">
@@ -221,7 +221,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               <h2 className="mt-1 text-2xl font-bold">Offer Confidence™</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#64748B]">How much confidence can be placed in the current decision, based on the evidence available to EiX—not a prediction of future value and not a formal valuation.</p>
             </div>
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[8px] border-teal-300/25 bg-[#F0F6FF] text-3xl font-black text-[#0B1220]">{confidence}%</div>
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[8px] border-[#DCE6F7] bg-[#F0F6FF] text-3xl font-semibold text-[#0B1220]">{confidence}%</div>
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <StatusRow label="Property facts" state={factCompleteness >= 6 ? 'verified' : 'unknown'} detail={`${factCompleteness}/8 core property fields available`} />
