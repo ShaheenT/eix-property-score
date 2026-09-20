@@ -148,6 +148,7 @@ function calculatePropertyScore(
       score: null,
       breakdown: {
         marketComparableCount: market.comparableCount,
+        achievedSaleMedianPriceCents: market.achievedSalePriceCents.median ?? 0,
         verifiedAchievedSaleCount: market.verifiedAchievedSaleCount,
         activeListingCount: market.activeListingCount,
         pendingSaleCount: market.pendingSaleCount,
@@ -189,6 +190,7 @@ function calculatePropertyScore(
       financialClarity: financialComponent,
       ...(marketComponent === null ? {} : { marketPosition: marketComponent }),
       marketComparableCount: market.comparableCount,
+      achievedSaleMedianPriceCents: market.achievedSalePriceCents.median ?? 0,
       marketMedianAskingPriceCents: market.askingPriceCents.median ?? 0,
       marketMinAskingPriceCents: market.askingPriceCents.min ?? 0,
       marketMaxAskingPriceCents: market.askingPriceCents.max ?? 0,

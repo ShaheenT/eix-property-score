@@ -594,8 +594,19 @@ function parseVisibleTitle(body: string): { facts: PropertyFacts; evidence: Prop
   const evidence: PropertyEvidence[] = [];
   const titleMatch = body.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
   if (!titleMatch) return { facts, evidence };
-  const title = titleMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const title = decodeHtmlEntities(titleMatch[1]);
   if (!title) return { facts, evidence };
+
+  // Property portals can return client-rendered script/component payloads as
+  // document-title content. Never persist page chrome as the property title.
+  const looksLikePageChrome =
+    title.length > 180 ||
+    /window\.loader|addCallback|renderComponent|googletag|<script|function\s*\(/i.test(title) ||
+    /resetPasswordUrl|listingSendAgentAMessageActionUrl|bond calculator|tell us what you think/i.test(title);
+
+  if (looksLikePageChrome) return { facts, evidence };
+
   facts.title = title;
   evidence.push({ field: 'title', value: title, source: 'html' });
   return { facts, evidence };

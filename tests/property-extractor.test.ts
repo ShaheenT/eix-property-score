@@ -454,3 +454,22 @@ test('Property24 listing evidence overrides conflicting structured metadata for 
     globalThis.fetch = originalFetch;
   }
 });
+
+test('rejects Property24 script/component chrome as a property title', async () => {
+  const originalFetch = globalThis.fetch;
+  const html = `<html><head><title>for this property. "resetPasswordUrl":"/reset-password","listingSendAgentAMessageActionUrl":"/Listing/SendAgentAMessage"})); R 32 000 000 Bond Calculator Bond Calculator Purchase Price R Interest Rate % window.loader.addCallback(function () { googletag.cmd.push(function () { googletag.pubads(); }); });</title></head><body><div class="p24_listing p24_listingDetail" data-listingnumber="12345"></div><div>3 Bedroom House for Sale in Observatory</div><div>R 3 500 000</div><div>Bedrooms 3</div><div>Bathrooms 2</div></body></html>`;
+  globalThis.fetch = async () => new Response(html, {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  });
+  try {
+    const result = await extractPropertyFromUrl(
+      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/12345',
+    );
+    assert.equal(result.facts.title, null);
+    assert.notEqual(result.status, 'extracted');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+

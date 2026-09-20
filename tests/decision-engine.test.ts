@@ -53,7 +53,7 @@ const acquisition: AcquisitionIntelligence = {
   knownUpfrontCashRequiredCents: 641_115_600,
   assumptions: [
     'Deposit scenario assumes 10% of asking price.',
-    'Bond scenario assumes 90% loan-to-value, 11.5% annual interest and a 20-year term.',
+    'Bond scenario assumes 90% loan-to-value, 10.5% annual interest and a 20-year term.',
   ],
   unknownCosts: [
     'Conveyancing and transfer attorney fees are not included.',
@@ -68,6 +68,9 @@ function market(
 ): MarketIntelligence {
   return {
     comparableCount: 2,
+    verifiedAchievedSaleCount: 0,
+    pendingSaleCount: 0,
+    activeListingCount: 2,
     askingPriceCents: {
       min: 2_900_000_000,
       median: 3_300_000_000,
@@ -78,11 +81,13 @@ function market(
       median: 10_000_000,
       max: 11_000_000,
     },
+    achievedSalePriceCents: { min: null, median: null, max: null },
+    achievedPricePerM2Cents: { min: null, median: null, max: null },
     subjectPricePerM2Cents: 9_771_987,
     subjectVsMedianPercent,
     marketPosition: position,
-    methodology: 'active_asking_price',
-    disclaimer: 'Active asking-price comparison — not a valuation.',
+    methodology: 'achieved_sales_first',
+    disclaimer: 'Achieved-sale evidence is used for price fairness; active asking listings are context only. This is not a formal valuation.',
   };
 }
 

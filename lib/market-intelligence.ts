@@ -34,7 +34,7 @@ export interface MarketIntelligence {
     | 'Above Comparable Median'
     | 'Insufficient Data';
   methodology: 'achieved_sales_first';
-  disclaimer: 'Active asking-price comparison — not a valuation.';
+  disclaimer: 'Achieved-sale evidence is used for price fairness; active asking listings are context only. This is not a formal valuation.';
 }
 
 function median(values: number[]): number | null {
@@ -174,7 +174,7 @@ export function calculateMarketIntelligence(
     subjectPricePerM2Cents: subjectPricePerM2(subject),
     subjectVsMedianPercent,
     marketPosition,
-    methodology: 'active_asking_price',
-    disclaimer: 'Active asking-price comparison — not a valuation.',
+    methodology: 'achieved_sales_first',
+    disclaimer: 'Achieved-sale evidence is used for price fairness; active asking listings are context only. This is not a formal valuation.',
   };
 }

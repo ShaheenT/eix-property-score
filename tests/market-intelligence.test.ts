@@ -120,11 +120,11 @@ test('returns insufficient data when there are no usable comparables', () => {
   assert.equal(result.marketPosition, 'Insufficient Data');
 });
 
-test('does not describe active asking prices as a valuation', () => {
+test('labels the achieved-sale-first methodology correctly', () => {
   const result = calculateMarketIntelligence(subject, []);
 
   assert.equal(
     result.disclaimer,
-    'Active asking-price comparison — not a valuation.',
+    'Achieved-sale evidence is used for price fairness; active asking listings are context only. This is not a formal valuation.',
   );
 });
