@@ -527,14 +527,14 @@ function parseProperty24Heading(body: string): { facts: PropertyFacts; evidence:
   const facts = emptyFacts();
   const evidence: PropertyEvidence[] = [];
   const candidates = [
-    /<h1\\b[^>]*>([\\s\\S]*?)<\\/h1>/i,
-    /<div\\b[^>]*class=["'][^"']*p24_listingTitle[^"']*["'][^>]*>([\\s\\S]*?)<\\/div>/i,
+    /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
+    /<div\b[^>]*class=["'][^"']*p24_listingTitle[^"']*["'][^>]*>([\s\S]*?)<\\/div>/i,
   ];
   for (const pattern of candidates) {
     const match = body.match(pattern);
     if (!match) continue;
     const title = decodeHtmlEntities(match[1]);
-    if (!title || title.length > 180 || /window\\.loader|addCallback|renderComponent|bond calculator/i.test(title)) continue;
+    if (!title || title.length > 180 || /window\.loader|addCallback|renderComponent|bond calculator/i.test(title)) continue;
     facts.title = title;
     evidence.push({ field: 'title', value: title, source: 'html' });
     break;
