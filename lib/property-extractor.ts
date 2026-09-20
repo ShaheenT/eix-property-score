@@ -528,7 +528,7 @@ function parseProperty24Heading(body: string): { facts: PropertyFacts; evidence:
   const evidence: PropertyEvidence[] = [];
   const candidates = [
     /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
-    /<div\b[^>]*class=["'][^"']*p24_listingTitle[^"']*["'][^>]*>([\s\S]*?)<\\/div>/i,
+    /<div\b[^>]*class=["'][^"']*p24_listingTitle[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
   ];
   for (const pattern of candidates) {
     const match = body.match(pattern);
