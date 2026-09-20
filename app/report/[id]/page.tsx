@@ -151,14 +151,14 @@ export default async function CustomerReportPage({ params, searchParams }: { par
   const documentEvidence = statusFromLimitations(limitations, ['building plans', 'compliance', 'inspection', 'title', 'heritage']);
 
   return (
-    <main className="min-h-screen bg-midnight px-4 py-6 text-white sm:px-8 sm:py-10">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-6 flex items-center justify-between gap-4">
+    <main className="min-h-screen bg-midnight px-6 py-10 text-white sm:px-10">
+      <div className="mx-auto max-w-4xl">
+        <header className="mb-8 flex items-center justify-between gap-4">
           <img src="/eixproplogo.png" alt="EiX Property Score" className="h-10 w-auto sm:h-12" />
           <ReportPrintButton />
         </header>
 
-        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[.08] to-white/[.025] p-5 shadow-2xl sm:p-8">
+        <section className="glass-strong rounded-3xl p-8 sm:p-10">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-teal-300">
             <ShieldCheck className="h-4 w-4" /> EiX Buyer Intelligence Report™
           </div>
@@ -184,7 +184,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-5 rounded-3xl border border-teal-300/20 bg-white/[.045] p-5 sm:p-7">
+        <section className="mt-6 glass rounded-2xl p-6">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">Signature evidence layer</p>
@@ -201,7 +201,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
+        <section className="mt-6 glass rounded-2xl p-6">
           <div className="flex items-center gap-2"><WalletCards className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Real Cost to Own</h2></div>
           {acquisition ? (
             <>
@@ -224,7 +224,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
         </section>
 
         {acquisition && (
-          <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
+          <section className="mt-6 glass rounded-2xl p-6">
             <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Bond Stress Test</h2></div>
             <p className="mt-2 text-sm text-white/50">Reference scenario: 10.50% annual interest, 10% deposit, 20-year term. Illustrative stress testing only.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -233,7 +233,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </section>
         )}
 
-        <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
+        <section className="mt-6 glass rounded-2xl p-6">
           <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider text-teal-300">Core question</p><h2 className="mt-1 text-xl font-bold">Price Fairness</h2></div><span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold">{achievedCount} verified sales</span></div>
           {achievedCount >= 3 && score.achievedSaleMedianPriceCents ? (
             <div className="mt-5">
@@ -254,7 +254,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
         </section>
 
         {acquisition && (
-          <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
+          <section className="mt-6 glass rounded-2xl p-6">
             <h2 className="text-xl font-bold">Break-Even Analysis</h2>
             <p className="mt-2 text-sm text-white/50">Shows how quickly annual appreciation would mathematically recover the known transfer-duty component of the acquisition cost. It is not a property-price forecast.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -263,7 +263,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </section>
         )}
 
-        <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
+        <section className="mt-6 glass rounded-2xl p-6">
           <div className="flex items-center gap-2"><Home className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Neighbourhood DNA™</h2></div>
           <p className="mt-2 text-sm text-white/50">Location intelligence is shown only where the report contains supporting evidence. EiX does not manufacture neighbourhood scores from missing data.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -280,14 +280,14 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
+        <section className="mt-6 glass rounded-2xl p-6">
           <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-300" /><h2 className="text-xl font-bold">Risks & Missing Evidence</h2></div>
           <div className="mt-5 space-y-3">
             {(limitations.length ? limitations : ['No material limitations were recorded in the report.']).map((item: string) => <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-sm leading-relaxed text-white/65">{item}</p></div>)}
           </div>
         </section>
 
-        <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
+        <section className="mt-6 glass rounded-2xl p-6">
           <div className="flex items-center gap-2"><FileCheck2 className="h-5 w-5 text-teal-300" /><h2 className="text-xl font-bold">Buyer Document Pack</h2></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <StatusRow label="Listing / property facts" state={factCompleteness >= 6 ? 'verified' : 'unknown'} />
@@ -299,7 +299,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-5 rounded-3xl border border-teal-300/20 bg-teal-300/[.045] p-5 sm:p-7">
+        <section className="mt-6 glass rounded-2xl p-6">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-teal-300">Your next move</p>
           <h2 className="mt-1 text-2xl font-bold">Questions for the agent</h2>
           <ol className="mt-5 space-y-3">
@@ -319,7 +319,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
         </section>
 
-        <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
+        <section className="mt-6 glass rounded-2xl p-6">
           <div className="flex items-center gap-2"><Info className="h-5 w-5 text-white/50" /><h2 className="text-lg font-bold">Method & limitations</h2></div>
           <ul className="mt-4 space-y-2 text-sm leading-relaxed text-white/50">
             {(report.assumptions || []).map((a: string) => <li key={a}>• {a}</li>)}
