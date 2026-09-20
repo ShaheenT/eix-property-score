@@ -283,7 +283,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
         <section className="mt-5 rounded-3xl border border-white/10 bg-white/[.035] p-5 sm:p-7">
           <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-300" /><h2 className="text-xl font-bold">Risks & Missing Evidence</h2></div>
           <div className="mt-5 space-y-3">
-            {(limitations.length ? limitations : ['No material limitations were recorded in the report.']).map(item => <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-sm leading-relaxed text-white/65">{item}</p></div>)}
+            {(limitations.length ? limitations : ['No material limitations were recorded in the report.']).map((item: string) => <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-sm leading-relaxed text-white/65">{item}</p></div>)}
           </div>
         </section>
 
