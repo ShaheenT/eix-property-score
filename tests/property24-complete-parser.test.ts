@@ -56,3 +56,25 @@ test('extracts the real Property24 Woodstock source-document surface', () => {
   assert.ok(result.evidence.some(e => e.field === 'description'));
   assert.ok(result.evidence.some(e => e.field === 'property24RecentSales'));
 });
+
+
+test('does not retain duplicated Property24 description or zero calculator values', () => {
+  const html = `
+    <h1>4 Bedroom House for Sale in Woodstock</h1>
+    <div>Street Address 42 Queens Rd, Woodstock, Cape Town Listing Date 09 April 2026</div>
+    <div>Positioned in the heart of Woodstock, this character-rich Victorian residence presents a rare blend of heritage, design, and income potential. The property has been carefully reimagined into four individual studio suites, each offering a considered open-plan kitchen and living space. Currently, three of the suites operate as curated Airbnb accommodations, while the fourth is secured with a long-term tenant. Property Overview</div>
+    <h2>Property Overview</h2><div>Listing Number 117106348 Type of Property House Erf Size 110 m² Floor Size 200 m² Rates and Taxes R 1,232</div>
+    <h2>Rooms</h2><div>Bedrooms 4 Bathrooms 4 Reception Rooms 4</div>
+    <h2>Bond Calculator</h2><div>Monthly Repayment: R 47 423 Total Once-off Costs: R 459 300 Min Gross Monthly Income: R 158 076</div>
+    <h2>Recent Sales in and around Woodstock</h2>
+    <a href="/property-values/19-devon-street/woodstock/cape-town/western-cape/x">19 Devon Street</a>
+    <h2>Trends and Statistics</h2>
+  `;
+  const result = parseProperty24CompleteSections(html);
+  assert.equal(result.facts.property24MonthlyRepaymentCents, 4742300);
+  assert.equal(result.facts.property24OnceOffCostsCents, 45930000);
+  assert.equal(result.facts.property24MinimumGrossMonthlyIncomeCents, 15807600);
+  assert.equal(result.facts.receptionRooms, 4);
+  assert.equal((result.facts.description?.match(/Positioned in the heart of Woodstock/g) || []).length, 1);
+  assert.ok(!result.facts.description?.includes('Property Overview'));
+});
