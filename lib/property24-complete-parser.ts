@@ -112,10 +112,12 @@ export function parseProperty24CompleteSections(body: string): {
   if (levies) { const n=moneyCents(levies); if(n!==null){facts.leviesCents=n;addEvidence(evidence,'leviesCents',levies);} }
 
   const rooms = sectionText(normalized,'Rooms');
+  const featureSummary = normalized.match(/Features\s+Bedrooms:\s*(\d+(?:\.\d+)?)\s+Bathrooms:\s*(\d+(?:\.\d+)?)/i);
   for (const [field,label] of [['bedrooms','Bedrooms'],['bathrooms','Bathrooms'],['kitchens','Kitchens'],['receptionRooms','Reception Rooms']] as const) {
-    const source = rooms || normalized;
-    const m = source.match(new RegExp(label.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&') + String.raw`\s+(\d+(?:\.\d+)?)`, 'i'));
-    if(m){ const n=Number(m[1]); (facts as any)[field]=n; addEvidence(evidence,field as keyof PropertyFacts,m[1]); }
+    const summaryValue = field === 'bedrooms' ? featureSummary?.[1] : field === 'bathrooms' ? featureSummary?.[2] : null;
+    const source = summaryValue ? label + ' ' + summaryValue : (rooms || normalized);
+    const m = source.match(new RegExp(label + "\\s*:?\\s*(\\d+(?:\\.\\d+)?)", 'i'));
+    if (m) { const value = Number(m[1]); (facts as any)[field] = value; addEvidence(evidence, field as keyof PropertyFacts, m[1]); }
   }
 
   const externalFeatures = sectionText(normalized,'External Features');
