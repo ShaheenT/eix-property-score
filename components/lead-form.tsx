@@ -28,7 +28,11 @@ export function LeadForm() {
   const [detectedSource, setDetectedSource] = useState<PropertySource | null>(null);
   const handleChange = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
   const internationalPage = typeof window !== 'undefined' && window.location.pathname === '/international-buyers';
-  const buyerType = internationalPage && !isSouthAfricanWhatsApp(form.whatsapp) ? 'international' : form.buyer_type;
+  const buyerType = isSouthAfricanWhatsApp(form.whatsapp)
+    ? 'south_african'
+    : internationalPage
+      ? 'international'
+      : form.buyer_type;
   const price = buyerType === 'international' ? INTERNATIONAL_PRICE : STANDARD_PRICE;
   const priceLabel = buyerType === 'international' ? 'R1,495 equivalent' : 'R149';
 
