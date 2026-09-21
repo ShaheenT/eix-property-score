@@ -43,7 +43,7 @@ function moneyCents(value: string): number | null {
 }
 function firstMoneyAfterLabel(normalized: string, labels: string[]): number | null {
   for (const label of labels) {
-    const match = normalized.match(new RegExp(String.raw`(?:${label})\s*: ?\s*R\s*([\d\s,.]+)`, 'i'));
+    const match = normalized.match(new RegExp(String.raw`(?:${label})\s*:?\s*R\s*([\d\s,.]+)`, 'i'));
     if (match?.[1]) {
       const value = moneyCents(match[1]);
       if (value !== null) return value;
@@ -90,7 +90,8 @@ export function parseProperty24CompleteSections(body: string): {
   const listingId = normalized.match(/(?:Listing Number\s+|P24-)(\d{6,})/i)?.[1] ?? null;
   const listingDate = normalized.match(/Listing Date\s+(.+?)(?=\s+(?:Erf Size|Floor Size|Rates and Taxes|Levies|Pets Allowed|$))/i)?.[1]?.trim() ?? null;
   const title = decode(body.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? '') || null;
-  const address = normalized.match(/Street Address\s+(.+?)(?=\s+Listing Date\b)/i)?.[1]?.trim() ?? null;
+  const rawAddress = normalized.match(/Street Address\s+(.+?)(?=\s+Listing Date\b)/i)?.[1]?.trim() ?? null;
+  const address = rawAddress && rawAddress.length <= 180 && !/(WhatsApp Agent|By continuing|Terms (?:&|and) Conditions|Tell us what you think|Upper Woodstock four bed family home|Property24)/i.test(rawAddress) ? rawAddress : null;
 
   if (listingId) { facts.listingNumber=listingId; addEvidence(evidence,'listingNumber',listingId); }
   if (listingDate) { facts.listingDate=listingDate; addEvidence(evidence,'listingDate',listingDate); }
@@ -198,9 +199,7 @@ export function parseProperty24CompleteSections(body: string): {
     const titleIndex = title ? beforeOverview.lastIndexOf(title) : -1;
     if (titleIndex >= 0 && title) rawDescription = beforeOverview.slice(titleIndex + title.length).trim();
   }
-  const descriptionStart = rawDescription.match(/(?:This charming|Positioned|Situated|Located|This [A-Za-z]+(?: Victorian)? home|The property is)/i);
-  if (descriptionStart?.index != null) rawDescription = rawDescription.slice(descriptionStart.index);
-  rawDescription = rawDescription.replace(/\s*Features\s+Bedrooms:.*$/i, '').trim();
+  rawDescription = rawDescription.replace(/^(?:Upper Woodstock\s+four bed family home\s*)/i, '').replace(/^(?:located\s+)/i, '').replace(/\s*Features\s+Bedrooms:.*$/i, '').trim();
   const description = rawDescription ? collapseRepeatedDescription(rawDescription) : null;
   if(description){facts.description=description;addEvidence(evidence,'description',description);}
 
