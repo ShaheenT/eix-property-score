@@ -34,7 +34,7 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function titleLocation(title: string | null): string | null {
+export function listingLocationFromTitle(title: string | null): string | null {
   const value = clean(title);
   if (!value) return null;
 
@@ -110,7 +110,7 @@ function locationFromFields(facts: PropertyFacts, fallbackArea: string | null): 
 }
 
 async function geocode(facts: PropertyFacts): Promise<NeighbourhoodIntelligence['location']> {
-  const derivedArea = titleLocation(facts.title);
+  const derivedArea = listingLocationFromTitle(facts.title);
   const fieldLocation = locationFromFields(facts, derivedArea);
   const exactAddress = clean(facts.address);
 
