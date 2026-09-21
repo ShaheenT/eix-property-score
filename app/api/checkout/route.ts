@@ -13,6 +13,7 @@ const INVESTOR_REPORT_PRO_PRICE_ZAR = 349;
 function isValidEmail(value: unknown): value is string { return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()); }
 function cleanString(value: unknown, maxLength: number): string | null { if (typeof value !== 'string') return null; const trimmed = value.trim(); if (!trimmed || trimmed.length > maxLength) return null; return trimmed; }
 function normaliseWhatsApp(value: string): string | null { const digits = value.replace(/\D/g, ''); if (digits.length < 8 || digits.length > 15) return null; return `+${digits}`; }
+function isSouthAfricanWhatsApp(value: string): boolean { const digits = value.replace(/\D/g, ''); return digits.startsWith('27') && digits.length === 11; }
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     const goal = typeof body.goal === 'string' ? body.goal.trim() : '';
     const submissionId = typeof body.submission_id === 'string' ? body.submission_id.trim() : '';
     const product = typeof body.product === 'string' ? body.product : 'standard_report';
-    const buyerType = typeof body.buyer_type === 'string' ? body.buyer_type.trim() : 'south_african';
+    const requestedBuyerType = typeof body.buyer_type === 'string' ? body.buyer_type.trim() : 'south_african';
     const buyerCountry = cleanString(body.buyer_country, 80);
     const buyerPurpose = cleanString(body.buyer_purpose, 80);
     const buyerBudget = cleanString(body.buyer_budget, 40);
@@ -36,10 +37,13 @@ export async function POST(req: NextRequest) {
     if (product === 'standard_report' && !isValidEmail(email)) return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
     if (product === 'standard_report' && !ALLOWED_GOALS.has(goal)) return NextResponse.json({ error: 'Please select a valid property goal.' }, { status: 400 });
     if (!ALLOWED_PRODUCTS.has(product)) return NextResponse.json({ error: 'Invalid report product.' }, { status: 400 });
-    if (!ALLOWED_BUYER_TYPES.has(buyerType)) return NextResponse.json({ error: 'Invalid buyer type.' }, { status: 400 });
+    if (!ALLOWED_BUYER_TYPES.has(requestedBuyerType)) return NextResponse.json({ error: 'Invalid buyer type.' }, { status: 400 });
 
     const normalisedWhatsapp = product === 'standard_report' ? normaliseWhatsApp(whatsapp) : null;
     if (product === 'standard_report' && !normalisedWhatsapp) return NextResponse.json({ error: 'Please enter a valid international WhatsApp number.' }, { status: 400 });
+    const buyerType = product === 'standard_report' && normalisedWhatsapp && isSouthAfricanWhatsApp(normalisedWhatsapp)
+      ? 'south_african'
+      : requestedBuyerType;
     if (whatsapp.length > 40) return NextResponse.json({ error: 'WhatsApp number is too long.' }, { status: 400 });
 
     const prod = product as 'standard_report' | 'investor_report_pro';
