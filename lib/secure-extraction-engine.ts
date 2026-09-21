@@ -111,7 +111,7 @@ const property24Complete = definition.source === 'property24'
   ? parseProperty24CompleteSections(fetched.body)
   : null;
 if (property24Complete) {
-  facts = mergeFacts(facts, property24Complete.facts as PropertyFacts);
+  facts = mergeFacts({ ...emptyFacts(), ...(property24Complete.facts as PropertyFacts) }, facts);
   sourceDocument = property24Complete.sourceDocument;
   evidence.push(...property24Complete.evidence.map(item => ({
     ...item,
