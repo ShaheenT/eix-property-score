@@ -116,6 +116,28 @@ export function parseProperty24CompleteSections(body: string): {
     if(m){ const n=Number(m[1]); (facts as any)[field]=n; addEvidence(evidence,field as keyof PropertyFacts,m[1]); }
   }
 
+  const featureText = [sectionText(normalized,'External Features'), sectionText(normalized,'Building'), sectionText(normalized,'Other Features')].filter(Boolean).join(' ');
+  const captureList = (patterns: RegExp[]): string[] => {
+    const values: string[] = [];
+    for (const pattern of patterns) {
+      for (const m of featureText.matchAll(pattern)) {
+        const value = (m[1] ?? m[0]).replace(/\\s+/g, ' ').trim();
+        if (value) values.push(value);
+      }
+    }
+    return unique(values, v => v);
+  };
+  const parking = captureList([/(?:Parking|Parking Spaces?)\\s*[:\\-]?\\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  if (parking.length) { facts.parkingDetails = parking; facts.parking = parking.length; parking.forEach(v => addEvidence(evidence,'parkingDetails',v)); }
+  const water = captureList([/(?:Backup Water|Water Backup|Water)\\s*[:\\-]?\\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  if (water.length) { facts.backupWater = water; water.forEach(v => addEvidence(evidence,'backupWater',v)); }
+  const power = captureList([/(?:Backup Power|Power Backup|Solar|Inverter|Generator)\\s*[:\\-]?\\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  if (power.length) { facts.backupPower = power; power.forEach(v => addEvidence(evidence,'backupPower',v)); }
+  const flooring = captureList([/(?:Flooring)\\s*[:\\-]?\\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  if (flooring.length) { facts.flooring = flooring; flooring.forEach(v => addEvidence(evidence,'flooring',v)); }
+  const flatletMatch = featureText.match(/\\bflatlet\\b|\\bgranny flat\\b|\\bseparate cottage\\b/i);
+  if (flatletMatch) { facts.flatlet = true; addEvidence(evidence,'flatlet',true); }
+
   const calculator = sectionText(normalized,'Bond Calculator');
   const monthly = firstMoneyAfterLabel(calculator, ['Monthly Repayment']) ?? firstMoneyAfterLabel(normalized, ['Monthly Repayment']);
   const onceOff = firstMoneyAfterLabel(calculator, ['Total Once-off Costs','Total Once Off Costs','Once-off Costs']) ?? firstMoneyAfterLabel(normalized, ['Total Once-off Costs','Total Once Off Costs','Once-off Costs']);
