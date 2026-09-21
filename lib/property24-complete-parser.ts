@@ -325,6 +325,16 @@ export function parseProperty24CompleteSections(
         recentSales.push({ address, priceCents: null, soldDate: null, sourceUrl });
       }
     }
+
+    if (recentSales.length === 0) {
+      const plainSales = decode(salesBlock);
+      for (const match of plainSales.matchAll(/\b(\d+\s+[A-Za-z0-9' .-]+?\s+(?:Street|Road|Avenue|Rd|St|Ave))\b/gi)) {
+        const address = match[1].replace(/\s+/g, ' ').trim();
+        if (!recentSales.some((sale) => sale.address.toLowerCase() === address.toLowerCase())) {
+          recentSales.push({ address, priceCents: null, soldDate: null, sourceUrl: null });
+        }
+      }
+    }
   }
 
   const calc = {
