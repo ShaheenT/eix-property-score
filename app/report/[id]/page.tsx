@@ -454,6 +454,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {[
+              ['Address', facts.address, 'Property24 source address; independent title verification not performed'],
               ['Asking price', facts.askingPriceCents, 'supplied / extracted'],
               ['Bedrooms', facts.bedrooms, 'supplied / extracted'],
               ['Bathrooms', facts.bathrooms, 'supplied / extracted'],
