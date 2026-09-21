@@ -5,6 +5,7 @@ import {
   mergeEvidence,
 } from '@/lib/property-parser';
 import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
+import { parseProperty24CompleteSections } from '@/lib/property24-complete-parser';
 
 export type PropertyExtractionStatus =
   | 'extracted'
@@ -19,6 +20,7 @@ export interface PropertyExtractionResult {
   source: string;
   sourceUrl: string;
   errors: string[];
+  sourceDocument?: import('@/lib/property24-complete-parser').Property24SourceDocument;
 }
 
 export const DEFAULT_EXTRACTION_TIMEOUT_MS = 10_000;
@@ -68,19 +70,12 @@ function emptyFacts(): PropertyFacts {
 }
 
 function parseProperty24SizeM2(value: string): number | null {
-  const normalized = value.replace(/,/g, " ").trim();
-
-  // Property24 can expose placeholder/artefact values such as "1 m²".
-  // Do not persist these as verified land-size evidence.
-  const match = normalized.match(/[0-9]+(?:\.[0-9]+)?/);
-  if (!match) return null;
-
-  const parsed = Number(match[0]);
-
-  if (!Number.isFinite(parsed) || parsed <= 1) {
-    return null;
-  }
-
+  const normalized = decodeHtmlEntities(value).replace(/,/g, ' ').trim();
+  const m2Match = normalized.match(/([0-9][0-9\s]*(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  const raw = m2Match?.[1] ?? normalized.match(/[0-9][0-9\s]*(?:\.\d+)?/)?.[0];
+  if (!raw) return null;
+  const parsed = Number(raw.replace(/\s/g, ''));
+  if (!Number.isFinite(parsed) || parsed <= 1) return null;
   return parsed;
 }
 
@@ -331,6 +326,7 @@ function hasMatchingProperty24Listing(body: string, listingId: string): boolean 
     new RegExp(`data-listingnumber\\s*=\\s*["']${escaped}["']`, 'i'),
     new RegExp(`listing(?:Number|number)\\s*[:=]\\s*["']?${escaped}["']?`, 'i'),
     new RegExp(`Listing Number\\s*${escaped}`, 'i'),
+    new RegExp(`P24-${escaped}\\b`, 'i'),
   ];
   return patterns.some((pattern) => pattern.test(body));
 }
@@ -482,6 +478,72 @@ function parseProperty24KeyFeatures(
   return { facts, evidence };
 }
 
+function parseProperty24LabeledOverview(
+  body: string,
+): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+  const text = decodeHtmlEntities(body);
+
+  const add = <K extends keyof PropertyFacts>(
+    field: K,
+    value: Exclude<PropertyFacts[K], null>,
+    raw: string,
+  ) => {
+    if (facts[field] !== null && facts[field] !== undefined) return;
+    facts[field] = value;
+    evidence.push({ field, value: raw, source: 'html' });
+  };
+
+  const address = text.match(/\bStreet Address\s+(.+?)\s+(?=Listing Date\b)/i);
+  if (address?.[1]) add('address', address[1].trim(), address[1].trim());
+
+  const floorSize = text.match(/\bFloor Size\s*[:\-]?\s*([0-9][0-9\s,]*(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  if (floorSize?.[1]) {
+    const parsed = parseProperty24SizeM2(floorSize[1]);
+    if (parsed !== null) add('floorSizeM2', parsed, floorSize[0]);
+  }
+
+  const landSize = text.match(/\bErf Size\s*[:\-]?\s*([0-9][0-9\s,]*(?:\.\d+)?)\s*m(?:2|²)\b/i);
+  if (landSize?.[1]) {
+    const parsed = parseProperty24SizeM2(landSize[1]);
+    if (parsed !== null) add('landSizeM2', parsed, landSize[0]);
+  }
+
+  const rates = text.match(/\bRates and Taxes\s*[:\-]?\s*R\s*([0-9][0-9\s,]*(?:\.\d+)?)\b/i);
+  if (rates?.[1]) {
+    const cents = parseRandCents(rates[1]);
+    if (cents !== null) add('ratesAndTaxesCents', cents, rates[0]);
+  }
+
+  const parking = text.match(/\bParking\s*[:\-]?\s*([0-9]+)\b/i);
+  if (parking?.[1]) {
+    const parsed = parsePositiveInteger(parking[1]);
+    if (parsed !== null) add('parking', parsed, parking[0]);
+  }
+
+  return { facts, evidence };
+}
+
+function parseProperty24Heading(body: string): { facts: PropertyFacts; evidence: PropertyEvidence[] } {
+  const facts = emptyFacts();
+  const evidence: PropertyEvidence[] = [];
+  const candidates = [
+    /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
+    /<div\b[^>]*class=["'][^"']*p24_listingTitle[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+  ];
+  for (const pattern of candidates) {
+    const match = body.match(pattern);
+    if (!match) continue;
+    const title = decodeHtmlEntities(match[1]);
+    if (!title || title.length > 180 || /window\.loader|addCallback|renderComponent|bond calculator/i.test(title)) continue;
+    facts.title = title;
+    evidence.push({ field: 'title', value: title, source: 'html' });
+    break;
+  }
+  return { facts, evidence };
+}
+
 function parseProperty24Facts(
   body: string,
   sourceUrl: string,
@@ -492,11 +554,28 @@ function parseProperty24Facts(
   }
 
   const overview = parseProperty24Overview(body);
+  const labeledOverview = parseProperty24LabeledOverview(body);
   const keyFeatures = parseProperty24KeyFeatures(body);
+  const heading = parseProperty24Heading(body);
+  const complete = parseProperty24CompleteSections(body);
 
   return {
-    facts: mergeFacts(emptyFacts(), overview.facts, keyFeatures.facts),
-    evidence: mergeEvidence([], overview.evidence, keyFeatures.evidence),
+    facts: mergeFacts(
+      emptyFacts(),
+      overview.facts,
+      labeledOverview.facts,
+      keyFeatures.facts,
+      heading.facts,
+      complete.facts,
+    ),
+    evidence: mergeEvidence(
+      [],
+      overview.evidence,
+      labeledOverview.evidence,
+      keyFeatures.evidence,
+      heading.evidence,
+      complete.evidence,
+    ),
   };
 }
 
@@ -515,9 +594,15 @@ function parseMetaAttributes(body: string): { facts: PropertyFacts; evidence: Pr
     if (!content) continue;
 
     if (name === 'og:title' || name === 'twitter:title') {
-      if (!facts.title) {
+      if (!facts.title && !/property24/i.test(content)) {
         facts.title = content;
         evidence.push({ field: 'title', value: content, source: 'open_graph' });
+      }
+    }
+    if (name === 'og:image' || name === 'twitter:image') {
+      if (!facts.primaryImageUrl && /^https?:\/\//i.test(content)) {
+        facts.primaryImageUrl = content;
+        evidence.push({ field: 'primaryImageUrl', value: content, source: 'open_graph' });
       }
     }
     if (name === 'og:street-address' || name === 'property:street_address') {
@@ -535,8 +620,19 @@ function parseVisibleTitle(body: string): { facts: PropertyFacts; evidence: Prop
   const evidence: PropertyEvidence[] = [];
   const titleMatch = body.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
   if (!titleMatch) return { facts, evidence };
-  const title = titleMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const title = decodeHtmlEntities(titleMatch[1]);
   if (!title) return { facts, evidence };
+
+  // Property portals can return client-rendered script/component payloads as
+  // document-title content. Never persist page chrome as the property title.
+  const looksLikePageChrome =
+    title.length > 180 ||
+    /window\.loader|addCallback|renderComponent|googletag|<script|function\s*\(/i.test(title) ||
+    /resetPasswordUrl|listingSendAgentAMessageActionUrl|bond calculator|tell us what you think/i.test(title);
+
+  if (looksLikePageChrome) return { facts, evidence };
+
   facts.title = title;
   evidence.push({ field: 'title', value: title, source: 'html' });
   return { facts, evidence };
@@ -816,6 +912,10 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
     }
 
     const fallback = parseFallbackFacts(fetched.body, fetched.finalUrl);
+    const property24Complete =
+      source === 'property24'
+        ? parseProperty24CompleteSections(fetched.body)
+        : { facts: emptyFacts(), evidence: [] as PropertyEvidence[] };
 
     if (source === 'property24' && !jsonLd.facts.city) {
       const property24City = getProperty24City(fetched.finalUrl);
@@ -829,15 +929,18 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
         });
       }
     }
+    // Property24's visible listing summary / overview is the bounded source evidence
+    // for listing-specific physical facts. Structured metadata can conflict with it
+    // (e.g. bathrooms), so do not let JSON-LD silently override the listing page.
     const facts =
       source === 'private_property'
         ? mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts)
-        : mergeFacts(emptyFacts(), jsonLd.facts, fallback.facts);
+        : mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts, property24Complete.facts);
 
     const evidence =
       source === 'private_property'
         ? mergeEvidence([], fallback.evidence, jsonLd.evidence)
-        : mergeEvidence([], jsonLd.evidence, fallback.evidence);
+        : mergeEvidence([], fallback.evidence, jsonLd.evidence, property24Complete.evidence);
     const factCount = countExtractedFacts(facts);
 
     if (factCount === 0 || !hasMinimumPropertyEvidence(facts)) {

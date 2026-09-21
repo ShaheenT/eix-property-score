@@ -273,7 +273,7 @@ export function evaluateDecision(
 
   if (market.subjectVsMedianPercent === null) {
     unknowns.push(
-      'Comparable-market position cannot be established from the available asking-price evidence.',
+      'Price fairness cannot be established because at least 3 verified achieved-sale comparables are required; active asking prices are context only.',
     );
 
     return {
@@ -281,7 +281,7 @@ export function evaluateDecision(
       decision: 'INVESTIGATE',
       confidence: 'medium',
       reasons: [
-        'Property price can be verified, but there is insufficient comparable-market evidence to support a buy or negotiate conclusion.',
+        'The asking price is known, but the available evidence does not yet establish what comparable properties actually achieved in the market.',
       ],
       verifiedFactsUsed,
       assumptionsUsed,
@@ -290,12 +290,19 @@ export function evaluateDecision(
   }
 
   verifiedFactsUsed.push(
-    `Subject position versus comparable median: ${market.subjectVsMedianPercent.toFixed(2)}%.`,
+    `Subject position versus achieved-sale median: ${market.subjectVsMedianPercent.toFixed(2)}%.`,
   );
 
-  if (market.marketPosition === 'Below Comparable Median') {
+  const achievedSalePosition =
+    market.subjectVsMedianPercent < -0.5
+      ? 'Below Comparable Median'
+      : market.subjectVsMedianPercent > 0.5
+        ? 'Above Comparable Median'
+        : 'At Comparable Median';
+
+  if (achievedSalePosition === 'Below Comparable Median') {
     reasons.push(
-      'The subject asking price is below the active comparable asking-price median.',
+      'The subject asking price is below the verified achieved-sale median.',
     );
     reasons.push(
       'Active asking-price comparisons are not a valuation and should support negotiation rather than establish intrinsic value.',
@@ -328,9 +335,9 @@ export function evaluateDecision(
     };
   }
 
-  if (market.marketPosition === 'Above Comparable Median') {
+  if (achievedSalePosition === 'Above Comparable Median') {
     reasons.push(
-      'The subject asking price is above the active comparable asking-price median.',
+      'The subject asking price is above the verified achieved-sale median.',
     );
     reasons.push(
       'The premium requires investigation before proceeding because the current evidence does not establish a corresponding valuation.',
@@ -348,7 +355,7 @@ export function evaluateDecision(
   }
 
   reasons.push(
-    'The subject asking price is approximately aligned with the active comparable asking-price median.',
+    'The subject asking price is approximately aligned with the verified achieved-sale median.',
   );
 
   if (!hasAffordabilityConstraint(constraints)) {

@@ -11,6 +11,8 @@ export interface PropertyFacts {
   propertyType: string | null;
   floorSizeM2: number | null;
   landSizeM2: number | null;
+  description?: string | null;
+  primaryImageUrl?: string | null;
 
   // Verified Property24 fields
   leviesCents: number | null;
@@ -23,6 +25,37 @@ export interface PropertyFacts {
   hasFibre: boolean | null;
   hasSolar: boolean | null;
   hasBatteryBackup: boolean | null;
+  // Complete Property24-native evidence
+  listingNumber?: string | null;
+  listingDate?: string | null;
+  kitchens?: number | null;
+  receptionRooms?: number | null;
+  petsAllowed?: boolean | null;
+  parkingDetails?: string[];
+  flooring?: string[];
+  backupWater?: string[];
+  backupPower?: string[];
+  flatlet?: boolean | null;
+  pointsOfInterest?: Array<{
+    category: string | null;
+    name: string;
+    distanceKm: number;
+  }>;
+  property24MonthlyRepaymentCents?: number | null;
+  property24OnceOffCostsCents?: number | null;
+  property24MinimumGrossMonthlyIncomeCents?: number | null;
+  property24NarrativeClaims?: Array<{
+    type: string;
+    text: string;
+    verification: 'listing_claim';
+  }>;
+  property24RecentSales?: Array<{
+    address: string;
+    priceCents: number | null;
+    soldDate: string | null;
+    sourceUrl: string | null;
+  }>;
+
 }
 
 export interface PropertyEvidence {

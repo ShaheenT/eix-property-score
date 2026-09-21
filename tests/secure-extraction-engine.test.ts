@@ -84,3 +84,175 @@ test('does not treat search pages as property listings by URL identity', async (
     assert.equal(result.metadata.reportEligible, false);
   }
 });
+
+test('accepts a Property24 listing when the provider returns HTTP 404 with valid listing HTML', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      `<!doctype html>
+      <html>
+        <head>
+          <title>3 Bedroom House for sale in Steenberg Golf Estate - P24-117227369</title>
+        </head>
+        <body>
+          <h1>3 Bedroom House for sale in Steenberg Golf Estate</h1>
+          <div>R 30,000,000</div>
+          <div>3 Bedroom</div>
+          <div>2 Bathroom</div>
+          <div>Steenberg Golf Estate</div>
+          <div>117227369</div>
+        </body>
+      </html>`,
+      {
+        status: 404,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+        },
+      },
+    );
+
+  try {
+    const result = await runSecureExtraction(
+      'https://www.property24.com/for-sale/steenberg-golf-estate/cape-town/western-cape/15183/117227369',
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.source, 'property24');
+    assert.equal(result.metadata?.pageType, 'property_listing');
+    assert.equal(result.metadata?.listingId, '117227369');
+    assert.equal(result.metadata?.reportEligible, true);
+    assert.equal(result.facts.bedrooms, 3);
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.askingPriceCents, 3_000_000_000);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
+test('extracts Property24 nearby places and source calculator from listing sections', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`
+    <html><body>
+      <h1>3 Bedroom House for Sale in Woodstock</h1>
+      <div>R 4 995 000</div>
+      <div>Property Overview</div>
+      <div>Type of Property House</div>
+      <div>Street Address 101 Chamberlain Street, Woodstock</div>
+      <div>Listing Date 02 December 2025</div>
+      <div>Erf Size 262 m²</div>
+      <div>Rates and Taxes R 2 000</div>
+      <div>Rooms Bedrooms 3 Bathrooms 1 Kitchens 1 Lounges 1 Dining Rooms 1</div>
+      <div>External Features Parking 1 Gardens 1</div>
+      <div>Other Features Fibre Internet</div>
+      <div>Points of Interest</div>
+      <div>Transport/Public Services Glass recycling bins 0.09 km Woodstock 1.00 km</div>
+      <div>Education Mountain Road Primary 0.11 km Queen'S Park High School 0.35 km</div>
+      <div>Food/Entertainment Woodstock Lounge 0.14 km Jamaica me Crazy 0.15 km</div>
+      <div>Shopping Standard Bank 0.16 km Standard Bank 0.38 km</div>
+      <div>Bond Calculator Monthly Repayment R 49 869 Total Once-off Costs R 490 815 Min Gross Monthly Income R 166 230</div>
+    </body></html>`, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } });
+  try {
+    const result = await runSecureExtraction(
+      'https://www.property24.com/for-sale/woodstock/cape-town/western-cape/103/116707712',
+    );
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.facts.bathrooms, 1);
+    assert.equal(result.facts.kitchens, 1);
+    assert.equal(result.facts.landSizeM2, 262);
+    assert.equal(result.facts.property24MonthlyRepaymentCents, 4986900);
+    assert.equal(result.facts.property24OnceOffCostsCents, 49081500);
+    assert.equal(result.facts.property24MinimumGrossMonthlyIncomeCents, 16623000);
+    assert.equal(result.facts.pointsOfInterest?.length, 8);
+    assert.ok(result.facts.pointsOfInterest?.some(p => p.name === 'Mountain Road Primary' && p.category === 'Education'));
+    assert.ok(result.facts.pointsOfInterest?.some(p => p.name === 'Standard Bank' && p.category === 'Shopping'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('prefers the Property24 source adapter when structured metadata conflicts', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(`
+      <html>
+        <head>
+          <script type="application/ld+json">
+            {
+              "@context":"https://schema.org",
+              "@type":"RealEstateListing",
+              "name":"3 Bedroom House for Sale in Observatory",
+              "numberOfBedrooms":3,
+              "numberOfBathrooms":3,
+              "floorSize":{"@type":"QuantitativeValue","value":200},
+              "offers":{"@type":"Offer","price":3500000,"priceCurrency":"ZAR"},
+              "itemOffered":{"@type":"House"}
+            }
+          </script>
+        </head>
+        <body>
+          <h1>3 Bedroom House for Sale in Observatory</h1>
+          <div>R 3 500 000</div>
+          <div>3 Bedroom</div>
+          <div>2 Bathrooms</div>
+          <div>P24-117506054</div>
+        </body>
+      </html>`,
+      { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } },
+    );
+
+  try {
+    const result = await runSecureExtraction(
+      'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117506054',
+      {
+        legacyExtract: async () => ({
+          status: 'extracted',
+          facts: {
+            title: '3 Bedroom House for Sale in Observatory',
+            address: '28 Falmouth Road, Observatory',
+            suburb: 'Observatory',
+            city: 'Cape Town',
+            province: 'Western Cape',
+            postalCode: null,
+            askingPriceCents: 350000000,
+            bedrooms: 3,
+            bathrooms: 2,
+            propertyType: 'House',
+            floorSizeM2: 119,
+            landSizeM2: 200,
+            garages: null,
+            parking: 2,
+            hasStudy: null,
+            hasPool: null,
+            hasGarden: true,
+            hasFibre: true,
+            hasSolar: null,
+            hasBatteryBackup: null,
+            leviesCents: null,
+            ratesAndTaxesCents: 131800,
+          },
+          evidence: [
+            { field: 'bathrooms', value: '2', source: 'html' },
+            { field: 'floorSizeM2', value: 'Floor Size 119 m²', source: 'html' },
+          ],
+          source: 'property24',
+          sourceUrl: 'https://www.property24.com/for-sale/observatory/cape-town/western-cape/10157/117506054',
+          errors: [],
+        }),
+      },
+    );
+
+    assert.equal(result.status, 'extracted');
+    assert.equal(result.facts.bathrooms, 2);
+    assert.equal(result.facts.floorSizeM2, 119);
+    assert.equal(result.facts.landSizeM2, 200);
+    assert.equal(result.metadata?.reportEligible, true);
+
+    const bathroomConflict = result.metadata?.conflicts.find((item) => item.field === 'bathrooms');
+    assert.equal(bathroomConflict?.resolution, 'source_adapter');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

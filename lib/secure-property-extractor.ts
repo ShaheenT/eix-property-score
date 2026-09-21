@@ -3,7 +3,7 @@ import { runSecureExtraction, type SecureExtractionResult } from '@/lib/secure-e
 import { supabaseAdmin } from '@/lib/supabase';
 import type { PropertyFacts } from '@/lib/property-types';
 
-const EXTRACTION_VERSION = '2.1.0';
+const EXTRACTION_VERSION = '2.2.0';
 
 function errorCode(result: SecureExtractionResult): string | null {
   if (result.status === 'extracted') return null;

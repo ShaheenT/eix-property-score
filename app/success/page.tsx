@@ -17,6 +17,7 @@ export default function SuccessPage() {
     const params = new URLSearchParams(window.location.search);
     const currentSubmissionId = params.get('submission_id')?.trim() || '';
     const currentPaymentId = params.get('payment_id')?.trim() || '';
+    const currentReference = params.get('reference')?.trim() || '';
     setSubmissionId(currentSubmissionId || null);
 
     if (!currentSubmissionId && !currentPaymentId) {
@@ -34,12 +35,13 @@ export default function SuccessPage() {
         const query = new URLSearchParams();
         if (currentSubmissionId) query.set('submission_id', currentSubmissionId);
         if (currentPaymentId) query.set('payment_id', currentPaymentId);
+        if (currentReference) query.set('reference', currentReference);
 
         const response = await fetch(`/api/report/status?${query.toString()}`, { cache: 'no-store' });
         const data = await response.json().catch(() => ({}));
 
         if (response.status === 404) {
-          setStatus('We could not match the PayFast payment to your property submission. Please contact EiX support before submitting another payment.');
+          setStatus('We could not match the Paystack payment to your property submission. Please contact EiX support before submitting another payment.');
           setFailed(true);
           return;
         }
@@ -59,7 +61,7 @@ export default function SuccessPage() {
           return;
         }
         if (data.status === 'awaiting_payment') {
-          setStatus('Confirming your payment with PayFast…');
+          setStatus('Confirming your payment with Paystack…');
         } else if (data.status === 'processing' || data.status === 'queued') {
           setPaymentConfirmed(true);
           setStatus('Your property analysis is being prepared…');
@@ -85,6 +87,10 @@ export default function SuccessPage() {
     ? `/upsell/pro?submission_id=${encodeURIComponent(submissionId)}`
     : '/upsell/pro';
 
+  const whatsappHref = reportUrl
+    ? `https://wa.me/?text=${encodeURIComponent(`Hi EiX, my Property Score report is ready. Here is my secure report link: ${window.location.origin}${reportUrl.startsWith('/') ? reportUrl : new URL(reportUrl).pathname + new URL(reportUrl).search}`)}`
+    : null;
+
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-midnight flex items-center justify-center px-6 py-20">
       <div className="pointer-events-none fixed inset-0 grid-pattern opacity-40" />
@@ -93,7 +99,7 @@ export default function SuccessPage() {
         <div className="mb-8 flex items-center justify-center"><img src="/eixproplogo.png" alt="EiX Property Score" className="h-16 w-auto object-contain" /></div>
         <SuccessCard
           title={paymentConfirmed ? 'Payment Received' : 'Confirming Your Payment'}
-          message="Your EiX Property Score™ request is being checked securely. Once PayFast confirms the payment, we prepare the report from the property listing you submitted."
+          message="Your EiX Property Score™ request is being checked securely. Once Paystack confirms the payment, we prepare the report from the property listing you submitted."
           steps={[
             'Payment confirmation is checked securely.',
             'Your submitted property listing is analysed.',
@@ -105,7 +111,10 @@ export default function SuccessPage() {
           {reportUrl ? <>
             <CheckCircle2 className="mx-auto h-8 w-8 text-teal-400" />
             <p className="mt-3 text-lg font-semibold">Your R149 report is ready</p>
-            <a href={reportUrl} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-teal-400 px-8 py-4 text-sm font-bold text-midnight-900 transition-all hover:brightness-110">View My Report<ArrowRight className="h-4 w-4" /></a>
+            <div className="mt-5 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <a href={reportUrl} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-8 py-4 text-sm font-bold text-midnight-900 transition-all hover:brightness-110">View My Report<ArrowRight className="h-4 w-4" /></a>
+              {whatsappHref && <a href={whatsappHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-white/10">Open WhatsApp &amp; Send Report</a>}
+            </div>
           </> : <>
             <Loader2 className={`mx-auto h-8 w-8 text-teal-400 ${failed ? '' : 'animate-spin'}`} />
             <p className="mt-3 text-sm text-white/60">{status}</p>
