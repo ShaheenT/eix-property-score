@@ -31,7 +31,7 @@ type Report = {
 };
 
 function money(cents: unknown): string {
-  return typeof cents !== 'number' || !Number.isFinite(cents)
+  return typeof cents !== 'number' || !Number.isFinite(cents) || cents <= 0
     ? 'Not verified'
     : `R ${(cents / 100).toLocaleString('en-ZA', { maximumFractionDigits: 0 })}`;
 }
@@ -316,7 +316,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               <div className="mt-4 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-sm text-[#64748B]">*Known cash to close includes the 10% deposit plus scenario transfer duty. Conveyancing, bond registration, bank charges, inspection and other transaction costs are not included unless verified.</div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Bond @ 10.5%</p><p className="mt-2 text-xl font-bold">{money(acquisition.scenarios[1].payment)}</p></div>
-                <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Rates + levy</p><p className="mt-2 text-xl font-bold">{acquisition.recurring === null ? 'Not verified' : money(acquisition.recurring)}</p></div>
+                <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Rates</p><p className="mt-2 text-xl font-bold">{facts.ratesAndTaxesCents !== null ? money(facts.ratesAndTaxesCents) : 'Not verified'}</p></div>
                 <div className="rounded-2xl border border-[#DCE6F7] bg-[#F0F6FF] p-4"><p className="text-xs uppercase text-[#0B1220]/60">Known monthly cost</p><p className="mt-2 text-xl font-bold text-[#0B1220]">{acquisition.recurring === null ? 'Not verified' : money(acquisition.scenarios[1].payment + acquisition.recurring)}</p></div>
               </div>
             </>
