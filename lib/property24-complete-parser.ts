@@ -112,7 +112,7 @@ export function parseProperty24CompleteSections(body: string): {
   const rooms = sectionText(normalized,'Rooms');
   for (const [field,label] of [['bedrooms','Bedrooms'],['bathrooms','Bathrooms'],['kitchens','Kitchens'],['receptionRooms','Reception Rooms']] as const) {
     const source = rooms || normalized;
-    const m=source.match(new RegExp(label.replace(/[.*+?^${}()|[\\]\\]/g, '\\new RegExp(label+'\s+(\d+(?:\\.\d+)?)','i')') + String.raw`\s+(\d+(?:\.\d+)?)`, 'i'));
+    const m = source.match(new RegExp(label.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&') + String.raw`\s+(\d+(?:\.\d+)?)`, 'i'));
     if(m){ const n=Number(m[1]); (facts as any)[field]=n; addEvidence(evidence,field as keyof PropertyFacts,m[1]); }
   }
 
