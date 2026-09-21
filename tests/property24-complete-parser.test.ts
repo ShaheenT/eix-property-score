@@ -5,6 +5,8 @@ import { parseProperty24CompleteSections } from '@/lib/property24-complete-parse
 test('extracts the real Property24 Woodstock source-document surface', () => {
   const html = `
     <div class="p24_listing" data-listingnumber="117106348"></div>
+    <script>window.loader.addCallback(function(){ renderComponent({"name":"BondCalculatorsDesktop","props":{"monthly":"R 999"}}); });</script>
+    <style>.noise{display:none}</style>
     <h1>4 Bedroom House for Sale in Woodstock</h1>
     <div>42 Queens Rd, Woodstock, Cape Town</div>
     <div>Street Address 42 Queens Rd, Woodstock, Cape Town Listing Date 09 April 2026</div>
@@ -42,6 +44,8 @@ test('extracts the real Property24 Woodstock source-document surface', () => {
   assert.equal(result.facts.property24OnceOffCostsCents, 45930000);
   assert.equal(result.facts.property24MinimumGrossMonthlyIncomeCents, 15807600);
   assert.ok(result.facts.description?.includes('four individual studio suites'));
+  assert.ok(!result.facts.description?.includes('window.loader'));
+  assert.ok(!result.facts.description?.includes('BondCalculatorsDesktop'));
   assert.ok(result.facts.property24NarrativeClaims?.some(claim => claim.type === 'studio_suites'));
   assert.ok(result.facts.property24NarrativeClaims?.some(claim => claim.type === 'rental_use'));
   assert.ok(result.facts.property24NarrativeClaims?.some(claim => claim.type === 'tenant'));
