@@ -911,6 +911,10 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
     }
 
     const fallback = parseFallbackFacts(fetched.body, fetched.finalUrl);
+    const property24Complete =
+      source === 'property24'
+        ? parseProperty24CompleteSections(fetched.body)
+        : { facts: emptyFacts(), evidence: [] as PropertyEvidence[] };
 
     if (source === 'property24' && !jsonLd.facts.city) {
       const property24City = getProperty24City(fetched.finalUrl);
@@ -930,12 +934,12 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
     const facts =
       source === 'private_property'
         ? mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts)
-        : mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts);
+        : mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts, property24Complete.facts);
 
     const evidence =
       source === 'private_property'
         ? mergeEvidence([], fallback.evidence, jsonLd.evidence)
-        : mergeEvidence([], fallback.evidence, jsonLd.evidence);
+        : mergeEvidence([], fallback.evidence, jsonLd.evidence, property24Complete.evidence);
     const factCount = countExtractedFacts(facts);
 
     if (factCount === 0 || !hasMinimumPropertyEvidence(facts)) {
