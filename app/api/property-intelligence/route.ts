@@ -269,7 +269,7 @@ function listingIntelligence(facts: PropertyFacts) {
     );
   }
 
-  if (facts.property24MonthlyRepaymentCents !== null) {
+  if (facts.property24MonthlyRepaymentCents !== undefined && facts.property24MonthlyRepaymentCents !== null) {
     add(
       'Property24 calculator scenario',
       'Monthly repayment R ' + (facts.property24MonthlyRepaymentCents / 100).toLocaleString('en-ZA'),
