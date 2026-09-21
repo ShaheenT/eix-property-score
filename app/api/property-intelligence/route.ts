@@ -314,6 +314,7 @@ export async function POST(request: NextRequest) {
     const extraction = await extractPropertyFromUrl(listingUrl);
 
     if (extraction.status !== 'extracted') {
+      const unavailableMarket = calculateMarketIntelligence(extraction.facts, []);
       return NextResponse.json({
         status: extraction.status,
         source: extraction.source,
@@ -321,8 +322,13 @@ export async function POST(request: NextRequest) {
         errors: extraction.errors,
         facts: extraction.facts,
         evidence: extraction.evidence,
-        sourceHealth: sourceHealth(extraction, calculateMarketIntelligence(extraction.facts, []), false),
-        buyerImplications: buyerImplications(extraction.facts, calculateMarketIntelligence(extraction.facts, [])),
+        market: {
+          ...unavailableMarket,
+          achievedSaleEvidenceStatus: 'insufficient',
+          activeListingEvidenceStatus: 'not_retrieved',
+        },
+        sourceHealth: sourceHealth(extraction, unavailableMarket, false),
+        buyerImplications: buyerImplications(extraction.facts, unavailableMarket),
         limitations: [
           'The supplied listing could not be fully extracted.',
           'No unsupported property facts are inferred to compensate for the extraction failure.',
