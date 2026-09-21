@@ -495,8 +495,8 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <ol className="mt-5 space-y-3">
             {[
               ...(achievedCount < 3 ? [
-                'Can you provide 3–5 actual achieved sale prices (not asking prices) for comparable 5-bedroom freehold properties or similarly large homes sold in Claremont within the last 6–12 months?',
-                'What local market evidence supports the R6,800,000 asking price compared with recent transfers in the immediate Claremont pocket?',
+                `Can you provide 3–5 actual achieved sale prices (not asking prices) for comparable ${facts.bedrooms ?? 'similar'}-bedroom freehold properties or similarly comparable homes sold in ${facts.suburb ?? facts.city ?? 'the immediate area'} within the last 6–12 months?`,
+                `What local market evidence supports the ${price !== null ? money(price) : 'asking price'} asking price compared with recent transfers in the immediate ${facts.suburb ?? facts.city ?? 'area'} pocket?`,
               ] : [
                 'Please identify the achieved-sale comparables used in the EiX market benchmark and explain any material differences from this property.',
               ]),
