@@ -220,6 +220,30 @@ function listingIntelligence(facts: PropertyFacts) {
     );
   }
 
+  if (facts.property24NarrativeClaims?.length) {
+    const claims = facts.property24NarrativeClaims;
+    const incomeClaims = claims.filter((claim) =>
+      ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type),
+    );
+    if (incomeClaims.length) {
+      add(
+        'Income-use configuration',
+        incomeClaims.map((claim) => claim.text).join(' '),
+        'The Property24 listing describes an income-use configuration. This is a listing claim, not verified financial performance.',
+        'Request 6–12 months revenue evidence, occupancy records, operating expenses, approved plans, zoning/use confirmation and applicable compliance documentation.',
+      );
+    }
+  }
+
+  if (facts.property24RecentSales?.length) {
+    add(
+      'Property24 recent-sale records',
+      facts.property24RecentSales.map((sale) => sale.address).join('; '),
+      `Property24 identifies ${facts.property24RecentSales.length} recent-sale records. They are candidate market evidence, not verified achieved-sale comparables until price, date and comparability are established.`,
+      'Retrieve the linked sold-price records and verify sold price, sold date, property characteristics and comparability before using them in the EiX price benchmark.',
+    );
+  }
+
   if (facts.flatlet === true) {
     add(
       'Flatlet',
@@ -481,6 +505,7 @@ export async function POST(request: NextRequest) {
       buyerImplications: implications,
       propertySignals: propertySignals(facts),
       listingIntelligence: listingIntelligence(facts),
+      sourceDocument: extraction.sourceDocument ?? null,
       neighbourhood,
       dueDiligence: dueDiligence(facts),
       nextMove: implications
