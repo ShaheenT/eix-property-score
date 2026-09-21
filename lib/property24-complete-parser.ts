@@ -52,14 +52,18 @@ function firstMoneyAfterLabel(normalized: string, labels: string[]): number | nu
   return null;
 }
 function collapseRepeatedDescription(value: string): string {
-  let result = value.replace(/Read full description[\\s\\S]*$/i, '').replace(/\\s*Features\\s+Bedrooms:.*$/i, '').replace(/\\s+/g, ' ').trim();
+  let result = value
+    .replace(new RegExp('Read full description[\\s\\S]*$', 'i'), '')
+    .replace(new RegExp('\\s*Features\\s+Bedrooms:.*$', 'i'), '')
+    .replace(/\s+/g, ' ')
+    .trim();
   const repeatMarkers = ['This purely preserved', 'This charming', 'Positioned', 'Situated', 'Located'];
   for (const marker of repeatMarkers) {
     const first = result.toLowerCase().indexOf(marker.toLowerCase());
     const second = first >= 0 ? result.toLowerCase().indexOf(marker.toLowerCase(), first + marker.length + 20) : -1;
     if (first >= 0 && second > first + 120) { result = result.slice(0, second).trim(); break; }
   }
-  if (result.length > 1200) result = result.slice(0, 1200).replace(/[\\s,.…-]+$/, '').trim() + '…';
+  if (result.length > 1200) result = result.slice(0, 1200).replace(/[\s,.…-]+$/, '').trim() + '…';
   return result;
 }
 
