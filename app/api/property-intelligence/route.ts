@@ -199,6 +199,88 @@ function propertySignals(facts: PropertyFacts) {
   return signals;
 }
 
+function listingIntelligence(facts: PropertyFacts) {
+  const signals: Array<{
+    feature: string;
+    evidence: string;
+    buyerMeaning: string;
+    verification: string;
+  }> = [];
+
+  const add = (feature: string, evidence: string, buyerMeaning: string, verification: string) =>
+    signals.push({ feature, evidence, buyerMeaning, verification });
+
+  if (facts.floorSizeM2 && facts.askingPriceCents) {
+    const pricePerM2 = Math.round(facts.askingPriceCents / facts.floorSizeM2);
+    add(
+      'Price intensity',
+      'Asking price and advertised floor area are available.',
+      'The asking price implies approximately R ' + pricePerM2.toLocaleString('en-ZA') + ' per m² of advertised floor area. This is a comparison input, not a valuation.',
+      'Confirm the floor-area measurement basis before comparing R/m² with other properties.',
+    );
+  }
+
+  if (facts.flatlet === true) {
+    add(
+      'Flatlet',
+      'The listing advertises a flatlet.',
+      'A flatlet may add accommodation flexibility or income-use potential, but EiX does not assume rental income.',
+      'Confirm approved plans, lawful use, access, utilities and condition before assigning financial value.',
+    );
+  }
+
+  if (facts.parkingDetails?.length) {
+    add(
+      'Parking configuration',
+      facts.parkingDetails.join('; '),
+      'The listing provides more detail than a simple parking count, which helps assess practical usability.',
+      'Confirm dimensions, allocation, exclusivity and whether the advertised arrangement matches the property documents.',
+    );
+  }
+
+  if (facts.backupPower?.length || facts.backupWater?.length) {
+    const resilience = [
+      ...(facts.backupPower ?? []),
+      ...(facts.backupWater ?? []),
+    ].join('; ');
+    add(
+      'Resilience features',
+      resilience,
+      'Backup infrastructure may improve practical resilience, but its value depends on capacity, ownership and condition.',
+      'Verify specification, capacity, ownership, warranties, connections and what the system actually supports.',
+    );
+  }
+
+  if (facts.ratesAndTaxesCents !== null) {
+    add(
+      'Municipal rates',
+      'R ' + (facts.ratesAndTaxesCents / 100).toLocaleString('en-ZA'),
+      'A source-supplied recurring-cost input can be included in preliminary ownership-cost modelling.',
+      'Obtain the latest municipal account and confirm current charges and arrears.',
+    );
+  }
+
+  if (facts.pointsOfInterest?.length) {
+    add(
+      'Nearby points of interest',
+      facts.pointsOfInterest.map(p => p.name + ' (' + p.distanceKm + ' km)').join('; '),
+      'The listing supplies source-reported proximity evidence for nearby amenities and services.',
+      'Treat these as listing-sourced proximity signals; verify actual routes, availability and suitability for the buyer.',
+    );
+  }
+
+  if (facts.property24MonthlyRepaymentCents !== null) {
+    add(
+      'Property24 calculator scenario',
+      'Monthly repayment R ' + (facts.property24MonthlyRepaymentCents / 100).toLocaleString('en-ZA'),
+      'This is a source-provided calculator output and can be used as a reference scenario.',
+      'Do not treat it as a bank offer; confirm the buyer-specific rate, term, deposit and lending decision.',
+    );
+  }
+
+  return signals;
+}
+
 function dueDiligence(facts: PropertyFacts) {
   return [
     {
@@ -398,6 +480,7 @@ export async function POST(request: NextRequest) {
       },
       buyerImplications: implications,
       propertySignals: propertySignals(facts),
+      listingIntelligence: listingIntelligence(facts),
       neighbourhood,
       dueDiligence: dueDiligence(facts),
       nextMove: implications
