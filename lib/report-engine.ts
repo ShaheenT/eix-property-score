@@ -1,4 +1,5 @@
 import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
+import { buildRiskExposures, riskExposuresToLimitations } from '@/lib/risk-exposure';
 import {
   calculateAcquisitionIntelligence,
   type AcquisitionIntelligence,
