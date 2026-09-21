@@ -472,6 +472,9 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['P24 calculator repayment', facts.property24MonthlyRepaymentCents, 'source-provided scenario; not a bank offer'],
               ['P24 calculator once-off costs', facts.property24OnceOffCostsCents, 'source-provided scenario'],
               ['P24 minimum gross income', facts.property24MinimumGrossMonthlyIncomeCents, 'source-provided scenario'],
+              ['Listing description', facts.description, 'Property24 source narrative'],
+              ['Income-use claims', Array.isArray(facts.property24NarrativeClaims) ? facts.property24NarrativeClaims.length : null, 'listing claims; financial performance not verified'],
+              ['Recent-sale records', Array.isArray(facts.property24RecentSales) ? facts.property24RecentSales.length : null, 'Property24 candidate market evidence; not automatically verified comparables'],
               ['Nearby places', Array.isArray(facts.pointsOfInterest) ? facts.pointsOfInterest.length : null, 'Property24-listed proximity evidence'],
               ['Comparable sales', achievedCount, '3+ required for price fairness'],
             ].map(([label, value, basis]) => {
