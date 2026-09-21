@@ -5,7 +5,7 @@ import {
   Home, Info, MapPin, ShieldCheck, TrendingUp, WalletCards, Waves
 } from 'lucide-react';
 import { ReportPrintButton } from '@/components/report-print-button';
-import { getNeighbourhoodIntelligence, neighbourhoodSummary } from '@/lib/neighbourhood-intelligence';
+import { getNeighbourhoodIntelligence, mergeNeighbourhoodSources, neighbourhoodSafetySummary, neighbourhoodSummary } from '@/lib/neighbourhood-intelligence';
 
 type Report = {
   id: string;
@@ -31,7 +31,7 @@ type Report = {
 };
 
 function money(cents: unknown): string {
-  return typeof cents !== 'number' || !Number.isFinite(cents)
+  return typeof cents !== 'number' || !Number.isFinite(cents) || cents <= 0
     ? 'Not verified'
     : `R ${(cents / 100).toLocaleString('en-ZA', { maximumFractionDigits: 0 })}`;
 }
@@ -114,7 +114,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
   const score = report.score_breakdown || {};
   const investor = report.investor_analysis || {};
   const international = report.international_buyer_analysis || null;
-  const neighbourhood = await getNeighbourhoodIntelligence(facts as any);
+  const neighbourhood = mergeNeighbourhoodSources(facts as any, await getNeighbourhoodIntelligence(facts as any));
 
   const price = numberValue(facts.askingPriceCents);
   const achievedCount = numberValue(score.verifiedAchievedSaleCount) ?? 0;
@@ -125,11 +125,16 @@ export default async function CustomerReportPage({ params, searchParams }: { par
   const locationLine = listingArea
     ? (facts.address ? `${listingArea} · ${facts.address}` : `${listingArea} · Exact street address not verified`)
     : 'Location not verified';
+  const recentSaleRecords = Array.isArray(facts.property24RecentSales) ? facts.property24RecentSales.length : 0;
   const marketMomentum = achievedCount >= 3
     ? `${achievedCount} verified achieved sales; ${activeCount} active listings; ${pendingCount} pending sales`
     : (activeCount > 0 || pendingCount > 0
       ? `${activeCount} active listings and ${pendingCount} pending sales identified; achieved-sale evidence remains limited`
-      : 'Market evidence not retrieved');
+      : (recentSaleRecords > 0
+        ? `${recentSaleRecords} recent-sale records identified from the supplied Property24 listing. The underlying sold prices and sold dates are not exposed in the source, so these records are not treated as verified achieved sales.`
+        : (facts.listingDate
+          ? `Current listing activity is evidenced by the supplied Property24 listing dated ${facts.listingDate}; no achieved-sale price conclusion is inferred.`
+          : 'Market activity evidence is limited; no momentum score is inferred')));
   const state = decisionState(report, achievedCount);
 
   const acquisition = (() => {
@@ -142,8 +147,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
     const recurring = (numberValue(facts.ratesAndTaxesCents) !== null || numberValue(facts.leviesCents) !== null) ? rates + levy : null;
     const scenarios = [9.5, 10.5, 11.5, 12.5].map(rate => ({
       rate, payment: calcBond(loan, rate)
-    }));
-    const knownEntry = deposit + duty;
+    }));    const knownEntry = deposit + duty;
     const dutyPct = price > 0 ? (duty / price) * 100 : 0;
     const breakEven = [3, 6, 9].map(rate => ({
       rate,
@@ -243,6 +247,70 @@ export default async function CustomerReportPage({ params, searchParams }: { par
         </section>
 
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Financial & Listing Intelligence</p>
+          <h2 className="mt-1 text-2xl font-bold">EiX Property Score™ — Financial & Listing Intelligence</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#64748B]">EiX separates its own affordability scenario from the source portal's calculator so the buyer can see exactly what each number represents.</p>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#64748B]">EiX Calculator Repayment</p>
+              <p className="mt-2 text-2xl font-bold">{acquisition ? money(acquisition.scenarios[1].payment) : 'Not verified'}<span className="text-sm font-semibold text-[#64748B]"> / month</span></p>
+              <p className="mt-2 text-xs leading-relaxed text-[#64748B]">EiX scenario using a 90% bond, 20-year term and 10.5% annual interest. Not a bank offer.</p>
+            </div>
+            <div className="rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#64748B]">EiX Calculator Once-Off Costs</p>
+              <p className="mt-2 text-2xl font-bold">{acquisition ? money(acquisition.knownEntry) : 'Not verified'}<span className="text-sm font-semibold text-[#64748B]"> total cash</span></p>
+              <p className="mt-2 text-xs leading-relaxed text-[#64748B]">10% deposit plus calculated SARS transfer duty. Conveyancing, bond registration, bank charges, inspection and other costs are excluded unless separately verified.</p>
+            </div>
+            <div className="rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#64748B]">EiX Minimum Gross Income</p>
+              <p className="mt-2 text-2xl font-bold">{acquisition ? money(Math.round(acquisition.scenarios[1].payment / 0.30)) : 'Not verified'}<span className="text-sm font-semibold text-[#64748B]"> / month</span></p>
+              <p className="mt-2 text-xs leading-relaxed text-[#64748B]">Illustrative 30% gross-income affordability rule applied to the EiX reference repayment. This is not a lender decision.</p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Property24 source scenario</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div><p className="text-xs uppercase tracking-wider text-[#94A3B8]">Portal repayment</p><p className="mt-1 font-bold">{money(facts.property24MonthlyRepaymentCents)}</p></div>
+              <div><p className="text-xs uppercase tracking-wider text-[#94A3B8]">Portal once-off costs</p><p className="mt-1 font-bold">{money(facts.property24OnceOffCostsCents)}</p></div>
+              <div><p className="text-xs uppercase tracking-wider text-[#94A3B8]">Portal minimum gross income</p><p className="mt-1 font-bold">{money(facts.property24MinimumGrossMonthlyIncomeCents)}</p></div>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[#64748B]">Property24 calculator figures are source-provided scenario estimates. They are retained as source evidence and are not treated as EiX calculations or bank offers.</p>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-[#E2E8F0] p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Listing Description</p>
+            <p className="mt-2 text-sm font-semibold text-[#0B1220]">{facts.description ? 'AVAILABLE' : 'Not verified'}</p>
+            {facts.description && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-[#475569]">{facts.description}</p>}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-white p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Structured listing claims</p>
+            {Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.length > 0 ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {facts.property24NarrativeClaims.map((claim: any) => {
+                  const signal =
+                    claim.type === 'studio_suites' ? '4 individual studio suites' :
+                    claim.type === 'rental_use' ? '3 suites advertised as Airbnb accommodations' :
+                    claim.type === 'tenant' ? '1 suite advertised with a long-term tenant' :
+                    claim.type === 'income_use' ? 'Income potential is advertised' :
+                    claim.type === 'heritage' ? 'Victorian / period character is advertised' :
+                    claim.type === 'renovation' ? 'Property is advertised as reimagined / renovated' :
+                    claim.text;
+                  return (
+                    <div key={claim.type + claim.text} className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+                      <p className="font-semibold">{signal}</p>
+                      <p className="mt-1 text-xs text-[#64748B]">Listing claim only. Underlying financial, planning, zoning and compliance evidence is not independently verified.</p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : <p className="mt-3 text-sm text-[#64748B]">No structured listing claims were extracted.</p>}
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
           <div className="flex items-center gap-2"><WalletCards className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Real Cost to Own</h2></div>
           {acquisition ? (
             <>
@@ -257,7 +325,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               <div className="mt-4 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-sm text-[#64748B]">*Known cash to close includes the 10% deposit plus scenario transfer duty. Conveyancing, bond registration, bank charges, inspection and other transaction costs are not included unless verified.</div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Bond @ 10.5%</p><p className="mt-2 text-xl font-bold">{money(acquisition.scenarios[1].payment)}</p></div>
-                <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Rates + levy</p><p className="mt-2 text-xl font-bold">{acquisition.recurring === null ? 'Not verified' : money(acquisition.recurring)}</p></div>
+                <div className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase text-[#94A3B8]">Rates</p><p className="mt-2 text-xl font-bold">{facts.ratesAndTaxesCents !== null ? money(facts.ratesAndTaxesCents) : 'Not verified'}</p></div>
                 <div className="rounded-2xl border border-[#DCE6F7] bg-[#F0F6FF] p-4"><p className="text-xs uppercase text-[#0B1220]/60">Known monthly cost</p><p className="mt-2 text-xl font-bold text-[#0B1220]">{acquisition.recurring === null ? 'Not verified' : money(acquisition.scenarios[1].payment + acquisition.recurring)}</p></div>
               </div>
             </>
@@ -293,7 +361,6 @@ export default async function CustomerReportPage({ params, searchParams }: { par
             </div>
           )}
         </section>
-
         {acquisition && (
           <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
             <h2 className="text-xl font-bold">Break-Even Analysis</h2>
@@ -381,7 +448,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Transport', neighbourhoodSummary(neighbourhood.transport)],
               ['Schools / healthcare', neighbourhoodSummary(neighbourhood.schoolsHealthcare)],
               ['Lifestyle / retail', neighbourhoodSummary(neighbourhood.lifestyleRetail)],
-              ['Safety indicators', neighbourhoodSummary(neighbourhood.safetyIndicators, 'No public safety infrastructure evidence found; no safety score inferred')],
+              ['Safety indicators', neighbourhoodSafetySummary(neighbourhood.safetyIndicators, neighbourhood.location.areaLabel)],
               ['Parks / recreation', neighbourhoodSummary(neighbourhood.parksRecreation)],
               ['Market momentum', marketMomentum],
             ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 font-semibold leading-relaxed">{value}</p></div>)}
@@ -400,7 +467,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               <p className="mt-3 text-xs leading-relaxed text-[#94A3B8]">These distances are reported by the supplied Property24 listing. They are proximity evidence, not an EiX assessment of quality, safety or suitability.</p>
             </div>
           )}
-          <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location and nearby-place evidence is sourced from OpenStreetMap data where available. When an exact street address is unavailable, EiX uses the listing's stated area (for example, Camps Bay) as a neighbourhood anchor; nearby-place distances are approximate straight-line distances from that geocoded area. Safety indicators show nearby public-safety infrastructure only; EiX does not convert this into a crime or safety score.</p>
+          <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location intelligence uses the verified listing address when available, with OpenStreetMap/Nominatim as the geographic anchor. Property24-listed nearby places are also used as supporting evidence. When an exact street address cannot be geocoded, EiX uses the listing's stated area as the neighbourhood anchor. Distances are approximate and source-dependent. Safety indicators refer to mapped public-safety infrastructure only; EiX does not convert them into a crime or safety score.</p>
         </section>
 
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
@@ -427,13 +494,37 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <h2 className="mt-1 text-2xl font-bold">Questions for the agent</h2>
           <ol className="mt-5 space-y-3">
             {[
-              'Can you provide 3–6 recent achieved comparable sales for genuinely similar properties nearby?',
-              'What is the measured floor area, and can it be supported by plans or another reliable record?',
-              'Can you provide the approved building plans and confirm they match the current property?',
-              'Are all additions and alterations approved, and are the required compliance certificates current?',
-              'Are there any known structural defects, notices, disputes, servitudes or title restrictions?',
-              'Can you confirm the latest municipal rates account and any outstanding amounts?',
-              'What exactly is included in the sale, and are there any conditions or occupation terms I should know before making an offer?',
+              ...(achievedCount < 3 ? [
+                `Can you provide 3–5 actual achieved sale prices (not asking prices) for comparable ${facts.bedrooms ?? 'similar'}-bedroom freehold properties or similarly comparable homes sold in ${facts.suburb ?? facts.city ?? 'the immediate area'} within the last 6–12 months?`,
+                `What local market evidence supports the ${price !== null ? money(price) : 'asking price'} asking price compared with recent transfers in the immediate ${facts.suburb ?? facts.city ?? 'area'} pocket?`,
+              ] : [
+                'Please identify the achieved-sale comparables used in the EiX market benchmark and explain any material differences from this property.',
+              ]),
+              ...(!facts.floorSizeM2 ? [
+                'What is the exact registered and structural floor area of the main dwelling and any outbuildings, and can this be supported by approved plans or another authoritative record?',
+              ] : [
+                'Please confirm the stated floor area against approved plans or another authoritative property record.',
+              ]),
+              'What is the exact registered erf size?',
+              'Can you provide a room-by-room accommodation breakdown, including ensuite bathrooms, loft/attic areas, outbuildings and any flatlet or separate accommodation?',
+              ...(!facts.ratesAndTaxesCents ? [
+                'What are the current monthly municipal rates and utility charges, and can you provide the latest municipal account?',
+              ] : [
+                'Please provide the latest municipal rates account and confirm whether any amounts are outstanding.',
+              ]),
+              ...(!facts.backupPower?.length && !facts.hasBatteryBackup && !facts.hasSolar ? [
+                'Does the property have any backup power or water infrastructure, including an inverter/UPS, solar, batteries, generator, water tanks, borehole or wellpoint?',
+              ] : []),
+              ...(!facts.hasFibre ? [
+                'Is fibre internet currently installed and active at the premises, or is the property only fibre-ready?',
+              ] : []),
+              ...(!facts.parking && !facts.parkingDetails?.length ? [
+                'Exactly how many secure off-street parking bays, garages or carports are included?',
+              ] : []),
+              'Are all structures and material alterations, including extensions, pools, boundary structures and outbuildings where applicable, reflected on approved municipal building plans?',
+              'Will the seller furnish the applicable statutory compliance certificates, including Electrical, Beetle/Pest, Gas, Plumbing and Electric Fence certificates where relevant?',
+              'Are there any restrictive title-deed conditions, servitudes or HOA rules applicable to the property?',
+              'Before an unconditional offer, can the seller agree to appropriate suspensive conditions for an independent building/structural and pest inspection and verification of approved plans?',
             ].map((q, i) => <li key={q} className="flex gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-300/15 text-xs font-bold text-[#0B1220]">{i + 1}</span><span className="text-sm leading-relaxed text-[#475569]">{q}</span></li>)}
           </ol>
           <div className="mt-6 rounded-2xl border border-[#E2E8F0] bg-black/10 p-5">
@@ -442,7 +533,6 @@ export default async function CustomerReportPage({ params, searchParams }: { par
             <p className="mt-2 text-sm leading-relaxed text-[#64748B]">{state.detail}</p>
           </div>
         </section>
-
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
           <div className="flex items-center justify-between gap-4">
             <div>
