@@ -6,6 +6,32 @@ export interface Property24PointOfInterest {
   distanceKm: number;
 }
 
+export interface Property24RecentSaleRecord {
+  address: string;
+  priceCents: number | null;
+  soldDate: string | null;
+  sourceUrl: string | null;
+}
+
+export interface Property24NarrativeClaim {
+  type: 'income_use' | 'rental_use' | 'tenant' | 'studio_suites' | 'renovation' | 'heritage' | 'security' | 'development' | 'amenity' | 'other';
+  text: string;
+  verification: 'listing_claim';
+}
+
+export interface Property24SourceDocument {
+  source: 'property24';
+  canonicalSource: string;
+  listingNumber: string | null;
+  title: string | null;
+  address: string | null;
+  listingDate: string | null;
+  description: string | null;
+  claims: Property24NarrativeClaim[];
+  recentSales: Property24RecentSaleRecord[];
+  sectionsPresent: string[];
+}
+
 export interface Property24ListingDetails {
   listingNumber: string | null;
   listingDate: string | null;
@@ -90,6 +116,7 @@ export function parseProperty24CompleteSections(
   facts: Partial<PropertyFacts>;
   details: Property24ListingDetails;
   evidence: PropertyEvidence[];
+  sourceDocument: Property24SourceDocument;
 } {
   const facts: Partial<PropertyFacts> = {};
   const evidence: PropertyEvidence[] = [];
@@ -100,6 +127,24 @@ export function parseProperty24CompleteSections(
   const other = sectionText(body, 'Other Features');
   const poiText = sectionText(body, 'Points of Interest');
   const calculator = sectionText(body, 'Bond Calculator');
+  const normalized = decode(body);
+  const descriptionMatch =
+    normalized.match(/(?:4|\d+)\s+(?:individual\s+)?studio\s+suites?[\s\S]*?(?=Read full description|Features\b)/i) ??
+    normalized.match(/(?:Positioned|Situated|Located)\s+[\s\S]*?(?=Read full description|Features\b)/i);
+  const description = descriptionMatch?.[0]?.trim() || null;
+  const claims: Property24NarrativeClaim[] = [];
+  const addClaim = (type: Property24NarrativeClaim['type'], pattern: RegExp) => {
+    const match = description?.match(pattern);
+    if (match?.[0]) claims.push({ type, text: match[0].trim(), verification: 'listing_claim' });
+  };
+  addClaim('studio_suites', /(?:four|4)\s+(?:individual\s+)?studio\s+suites?[\s\S]*?(?=\.|$)/i);
+  addClaim('rental_use', /(?:three|3)\s+of\s+the\s+suites?\s+(?:operate|are)\s+as\s+(?:curated\s+)?Airbnb[\s\S]*?(?=\.|$)/i);
+  addClaim('tenant', /(?:the\s+)?fourth\s+(?:suite|unit)\s+is\s+(?:secured\s+with\s+)?a\s+long-term\s+tenant[\s\S]*?(?=\.|$)/i);
+  addClaim('income_use', /income\s+potential/i);
+  addClaim('heritage', /heritage|Victorian|period\s+character/i);
+  addClaim('renovation', /reimagined|renovat(?:ed|ion)/i);
+  addClaim('security', /security|secure/i);
+  addClaim('development', /development/i);
 
   const listingId = listingNumber(body);
   if (listingId) {
@@ -248,6 +293,20 @@ export function parseProperty24CompleteSections(
   const onceOff = calculator.match(/Total Once-off Costs\s*:?\s*R\s*([\d\s,.]+)/i)?.[1];
   const income = calculator.match(/Min Gross Monthly Income\s*:?\s*R\s*([\d\s,.]+)/i)?.[1];
 
+  const recentSales: Property24RecentSaleRecord[] = [];
+  const recentSalesMatch = body.match(/Recent Sales in and around Woodstock([\s\S]*?)(?:Trends and Statistics|View more Sold Prices|$)/i);
+  if (recentSalesMatch) {
+    const salesBlock = recentSalesMatch[1];
+    const salesRegex = /<a\b[^>]*href=["']([^"']*(?:property-values|property-value)[^"']*)["'][^>]*>[\s\S]*?<strong>\s*([^<]+?)\s*<\/strong>|<a\b[^>]*href=["']([^"']*(?:property-values|property-value)[^"']*)["'][^>]*>\s*([^<]+?)\s*<\/a>/gi;
+    for (const match of salesBlock.matchAll(salesRegex)) {
+      const sourceUrl = match[1] ?? match[3] ?? null;
+      const address = (match[2] ?? match[4] ?? '').replace(/\s+/g, ' ').trim();
+      if (address && !recentSales.some((sale) => sale.address.toLowerCase() === address.toLowerCase())) {
+        recentSales.push({ address, priceCents: null, soldDate: null, sourceUrl });
+      }
+    }
+  }
+
   const calc = {
     monthlyRepaymentCents: monthly ? parseMoneyCents(monthly) : null,
     onceOffCostsCents: onceOff ? parseMoneyCents(onceOff) : null,
@@ -266,6 +325,19 @@ export function parseProperty24CompleteSections(
     addEvidence(evidence, 'property24MinimumGrossMonthlyIncomeCents', income!);
   }
 
+  const sourceDocument: Property24SourceDocument = {
+    source: 'property24',
+    canonicalSource: 'Property24',
+    listingNumber: listingId,
+    title: null,
+    address: facts.address ?? null,
+    listingDate,
+    description,
+    claims,
+    recentSales,
+    sectionsPresent: SECTION_NAMES.filter((name) => normalized.toLowerCase().includes(name.toLowerCase())),
+  };
+
   return {
     facts,
     details: {
@@ -281,7 +353,11 @@ export function parseProperty24CompleteSections(
       flatlet: flatlet ? true : null,
       pointsOfInterest: pois,
       calculator: calc,
+      recentSales,
+      claims,
+      description,
     },
     evidence,
+    sourceDocument,
   };
 }
