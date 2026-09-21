@@ -413,7 +413,14 @@ export function parseProperty24CompleteSections(
     });
   }
 
-  if (facts.floorSizeM2 !== null && facts.landSizeM2 !== null && facts.askingPriceCents !== null) {
+  if (
+    facts.floorSizeM2 !== null &&
+    facts.floorSizeM2 !== undefined &&
+    facts.landSizeM2 !== null &&
+    facts.landSizeM2 !== undefined &&
+    facts.askingPriceCents !== null &&
+    facts.askingPriceCents !== undefined
+  ) {
     evidenceGraph.push({
       evidence: `Property24 reports ${facts.floorSizeM2} m² floor area on a ${facts.landSizeM2} m² erf at the stated asking price.`,
       meaning: `The listing implies approximately R ${Math.round((facts.askingPriceCents / facts.floorSizeM2) / 100).toLocaleString('en-ZA')} per advertised floor m².`,
