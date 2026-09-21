@@ -345,6 +345,23 @@ export function parseProperty24CompleteSections(
     addEvidence(evidence, 'property24MinimumGrossMonthlyIncomeCents', income!);
   }
 
+  if (description) {
+    facts.description = description;
+    addEvidence(evidence, 'description', description);
+  }
+  if (claims.length) {
+    facts.property24NarrativeClaims = claims.map((claim) => ({
+      type: claim.type,
+      text: claim.text,
+      verification: claim.verification,
+    }));
+    addEvidence(evidence, 'property24NarrativeClaims', JSON.stringify(facts.property24NarrativeClaims));
+  }
+  if (recentSales.length) {
+    facts.property24RecentSales = recentSales;
+    addEvidence(evidence, 'property24RecentSales', JSON.stringify(recentSales));
+  }
+
   const sourceDocument: Property24SourceDocument = {
     source: 'property24',
     canonicalSource: 'Property24',
