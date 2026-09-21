@@ -366,6 +366,20 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Market momentum', marketMomentum],
             ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 font-semibold leading-relaxed">{value}</p></div>)}
           </div>
+          {Array.isArray(facts.pointsOfInterest) && facts.pointsOfInterest.length > 0 && (
+            <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Property24-listed nearby places</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {facts.pointsOfInterest.slice(0, 8).map((poi: any) => (
+                  <div key={poi.name + poi.distanceKm} className="rounded-xl border border-[#E2E8F0] bg-white p-3">
+                    <p className="text-sm font-semibold">{poi.name}</p>
+                    <p className="mt-1 text-xs text-[#64748B]">{poi.category || 'Point of interest'} · {poi.distanceKm} km</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-[#94A3B8]">These distances are reported by the supplied Property24 listing. They are proximity evidence, not an EiX assessment of quality, safety or suitability.</p>
+            </div>
+          )}
           <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location and nearby-place evidence is sourced from OpenStreetMap data where available. When an exact street address is unavailable, EiX uses the listing's stated area (for example, Camps Bay) as a neighbourhood anchor; nearby-place distances are approximate straight-line distances from that geocoded area. Safety indicators show nearby public-safety infrastructure only; EiX does not convert this into a crime or safety score.</p>
         </section>
 
@@ -435,6 +449,10 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Backup power', facts.backupPower?.join(' · ') || null, 'listing-supplied resilience feature'],
               ['Listing number', facts.listingNumber, 'source identity'],
               ['Listing date', facts.listingDate, 'source freshness'],
+              ['P24 calculator repayment', facts.property24MonthlyRepaymentCents, 'source-provided scenario; not a bank offer'],
+              ['P24 calculator once-off costs', facts.property24OnceOffCostsCents, 'source-provided scenario'],
+              ['P24 minimum gross income', facts.property24MinimumGrossMonthlyIncomeCents, 'source-provided scenario'],
+              ['Nearby places', Array.isArray(facts.pointsOfInterest) ? facts.pointsOfInterest.length : null, 'Property24-listed proximity evidence'],
               ['Comparable sales', achievedCount, '3+ required for price fairness'],
             ].map(([label, value, basis]) => {
               const present = value !== null && value !== undefined && value !== '' && !(typeof value === 'number' && value === 0 && label !== 'Comparable sales');
