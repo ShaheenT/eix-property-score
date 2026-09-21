@@ -5,7 +5,7 @@ import {
   Home, Info, MapPin, ShieldCheck, TrendingUp, WalletCards, Waves
 } from 'lucide-react';
 import { ReportPrintButton } from '@/components/report-print-button';
-import { getNeighbourhoodIntelligence, neighbourhoodSummary } from '@/lib/neighbourhood-intelligence';
+import { getNeighbourhoodIntelligence, mergeNeighbourhoodSources, neighbourhoodSafetySummary, neighbourhoodSummary } from '@/lib/neighbourhood-intelligence';
 
 type Report = {
   id: string;
@@ -114,7 +114,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
   const score = report.score_breakdown || {};
   const investor = report.investor_analysis || {};
   const international = report.international_buyer_analysis || null;
-  const neighbourhood = await getNeighbourhoodIntelligence(facts as any);
+  const neighbourhood = mergeNeighbourhoodSources(facts as any, await getNeighbourhoodIntelligence(facts as any));
 
   const price = numberValue(facts.askingPriceCents);
   const achievedCount = numberValue(score.verifiedAchievedSaleCount) ?? 0;
@@ -125,11 +125,16 @@ export default async function CustomerReportPage({ params, searchParams }: { par
   const locationLine = listingArea
     ? (facts.address ? `${listingArea} · ${facts.address}` : `${listingArea} · Exact street address not verified`)
     : 'Location not verified';
+  const recentSaleRecords = Array.isArray(facts.property24RecentSales) ? facts.property24RecentSales.length : 0;
   const marketMomentum = achievedCount >= 3
     ? `${achievedCount} verified achieved sales; ${activeCount} active listings; ${pendingCount} pending sales`
     : (activeCount > 0 || pendingCount > 0
       ? `${activeCount} active listings and ${pendingCount} pending sales identified; achieved-sale evidence remains limited`
-      : 'Market evidence not retrieved');
+      : (recentSaleRecords > 0
+        ? `${recentSaleRecords} recent-sale records identified from the Property24 listing; sale prices/dates remain unverified, so no price-momentum conclusion is inferred`
+        : (facts.listingDate
+          ? `Current listing activity is evidenced by the supplied Property24 listing dated ${facts.listingDate}; verified achieved-sale evidence remains unavailable`
+          : 'Market activity evidence is limited; no momentum score is inferred')));
   const state = decisionState(report, achievedCount);
 
   const acquisition = (() => {
@@ -381,7 +386,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Transport', neighbourhoodSummary(neighbourhood.transport)],
               ['Schools / healthcare', neighbourhoodSummary(neighbourhood.schoolsHealthcare)],
               ['Lifestyle / retail', neighbourhoodSummary(neighbourhood.lifestyleRetail)],
-              ['Safety indicators', neighbourhoodSummary(neighbourhood.safetyIndicators, 'No public safety infrastructure evidence found; no safety score inferred')],
+              ['Safety indicators', neighbourhoodSafetySummary(neighbourhood.safetyIndicators, neighbourhood.location.areaLabel)],
               ['Parks / recreation', neighbourhoodSummary(neighbourhood.parksRecreation)],
               ['Market momentum', marketMomentum],
             ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 font-semibold leading-relaxed">{value}</p></div>)}
@@ -400,7 +405,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               <p className="mt-3 text-xs leading-relaxed text-[#94A3B8]">These distances are reported by the supplied Property24 listing. They are proximity evidence, not an EiX assessment of quality, safety or suitability.</p>
             </div>
           )}
-          <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location and nearby-place evidence is sourced from OpenStreetMap data where available. When an exact street address is unavailable, EiX uses the listing's stated area (for example, Camps Bay) as a neighbourhood anchor; nearby-place distances are approximate straight-line distances from that geocoded area. Safety indicators show nearby public-safety infrastructure only; EiX does not convert this into a crime or safety score.</p>
+          <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location intelligence uses the verified listing address when available, with OpenStreetMap/Nominatim as the geographic anchor. Property24-listed nearby places are also used as supporting evidence. When an exact street address cannot be geocoded, EiX uses the listing's stated area as the neighbourhood anchor. Distances are approximate and source-dependent. Safety indicators refer to mapped public-safety infrastructure only; EiX does not convert them into a crime or safety score.</p>
         </section>
 
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
