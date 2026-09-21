@@ -25,6 +25,26 @@ export interface PropertyFacts {
   hasFibre: boolean | null;
   hasSolar: boolean | null;
   hasBatteryBackup: boolean | null;
+  // Complete Property24-native evidence
+  listingNumber?: string | null;
+  listingDate?: string | null;
+  kitchens?: number | null;
+  receptionRooms?: number | null;
+  petsAllowed?: boolean | null;
+  parkingDetails?: string[];
+  flooring?: string[];
+  backupWater?: string[];
+  backupPower?: string[];
+  flatlet?: boolean | null;
+  pointsOfInterest?: Array<{
+    category: string | null;
+    name: string;
+    distanceKm: number;
+  }>;
+  property24MonthlyRepaymentCents?: number | null;
+  property24OnceOffCostsCents?: number | null;
+  property24MinimumGrossMonthlyIncomeCents?: number | null;
+
 }
 
 export interface PropertyEvidence {
