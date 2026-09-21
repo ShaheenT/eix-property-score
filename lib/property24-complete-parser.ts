@@ -112,7 +112,7 @@ export function parseProperty24CompleteSections(body: string): {
   const rooms = sectionText(normalized,'Rooms');
   for (const [field,label] of [['bedrooms','Bedrooms'],['bathrooms','Bathrooms'],['kitchens','Kitchens'],['receptionRooms','Reception Rooms']] as const) {
     const source = rooms || normalized;
-    const m=source.match(new RegExp(label+'\s+(\d+(?:\\.\d+)?)','i'));
+    const m=source.match(new RegExp(label.replace(/[.*+?^${}()|[\\]\\]/g, '\\new RegExp(label+'\s+(\d+(?:\\.\d+)?)','i')') + String.raw`\s+(\d+(?:\.\d+)?)`, 'i'));
     if(m){ const n=Number(m[1]); (facts as any)[field]=n; addEvidence(evidence,field as keyof PropertyFacts,m[1]); }
   }
 
@@ -129,11 +129,11 @@ export function parseProperty24CompleteSections(body: string): {
     }
     return unique(values, v => v);
   };
-  const parking = captureList([/(?:Parking|Parking Spaces?)\s*[:\\-]?\s*(\d+)/gi]);
+  const parking = captureList([/(?:Parking|Parking Spaces?)\s*[:\-]?\s*(\d+)/gi]);
   if (parking.length) { facts.parkingDetails = parking; facts.parking = parking.length; parking.forEach(v => addEvidence(evidence,'parkingDetails',v)); }
   const water = captureList([/(?:Backup Water|Water Backup|Water)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
   if (water.length) { facts.backupWater = water; water.forEach(v => addEvidence(evidence,'backupWater',v)); }
-  const power = captureList([/(?:Backup Power|Power Backup|Solar|Inverter|Generator)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  const power = captureList([/(?:Backup Power|Power Backup|Solar|Inverter|Generator|back-up power supply|backup power supply)\s*[:\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/().\/-]{0,100})/gi]);
   if (power.length) { facts.backupPower = power; power.forEach(v => addEvidence(evidence,'backupPower',v)); }
   const flooring = captureList([/(?:Flooring)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
   if (flooring.length) { facts.flooring = flooring; flooring.forEach(v => addEvidence(evidence,'flooring',v)); }
