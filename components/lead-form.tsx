@@ -19,6 +19,7 @@ const INTERNATIONAL_PRICE = 1495;
 
 function isValidEmail(value: string): boolean { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()); }
 function normaliseWhatsApp(value: string): string | null { const digits = value.replace(/\D/g, ''); if (digits.length < 8 || digits.length > 15) return null; return value.trim().startsWith('+') ? `+${digits}` : `+${digits}`; }
+function isSouthAfricanWhatsApp(value: string): boolean { const digits = value.replace(/\D/g, ''); return digits.startsWith('27') && digits.length === 11; }
 
 export function LeadForm() {
   const { toast } = useToast();
@@ -27,7 +28,7 @@ export function LeadForm() {
   const [detectedSource, setDetectedSource] = useState<PropertySource | null>(null);
   const handleChange = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
   const internationalPage = typeof window !== 'undefined' && window.location.pathname === '/international-buyers';
-  const buyerType = internationalPage ? 'international' : form.buyer_type;
+  const buyerType = internationalPage && !isSouthAfricanWhatsApp(form.whatsapp) ? 'international' : form.buyer_type;
   const price = buyerType === 'international' ? INTERNATIONAL_PRICE : STANDARD_PRICE;
   const priceLabel = buyerType === 'international' ? 'R1,495 equivalent' : 'R149';
 
@@ -48,11 +49,12 @@ export function LeadForm() {
     if (!isValidEmail(email)) { toast({ title: 'Valid email required', description: 'Please enter a valid email address.', variant: 'destructive' }); return; }
     const normalisedWhatsapp = normaliseWhatsApp(whatsapp);
     if (!normalisedWhatsapp) { toast({ title: 'Valid WhatsApp number required', description: 'Use an international format such as +44 7700 900123 or +27 82 123 4567.', variant: 'destructive' }); return; }
+    const effectiveBuyerType = isSouthAfricanWhatsApp(normalisedWhatsapp) ? 'south_african' : buyerType;
     if (!listingUrl || !form.goal) { toast({ title: 'Please complete the required fields', description: 'Property and goal are required.', variant: 'destructive' }); return; }
-    if (buyerType === 'international' && !form.buyer_country) { toast({ title: 'Country required', description: 'Tell us where you are buying from.', variant: 'destructive' }); return; }
+    if (effectiveBuyerType === 'international' && !form.buyer_country) { toast({ title: 'Country required', description: 'Tell us where you are buying from.', variant: 'destructive' }); return; }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, whatsapp: normalisedWhatsapp, listing_url: listingUrl, goal: form.goal, product: 'standard_report', buyer_type: buyerType, buyer_country: form.buyer_country || null, buyer_purpose: form.buyer_purpose || null, buyer_budget: form.buyer_budget || null }) });
+      const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, whatsapp: normalisedWhatsapp, listing_url: listingUrl, goal: form.goal, product: 'standard_report', buyer_type: effectiveBuyerType, buyer_country: form.buyer_country || null, buyer_purpose: form.buyer_purpose || null, buyer_budget: form.buyer_budget || null }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Checkout failed');
       if (!data.checkout_url) throw new Error('Secure checkout could not be started. Please try again.');
