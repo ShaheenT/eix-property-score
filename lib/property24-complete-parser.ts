@@ -35,9 +35,31 @@ function decode(value: string): string {
     .replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
 }
 function moneyCents(value: string): number | null {
-  const n = Number(value.replace(/[^\d.]/g,''));
-  return Number.isFinite(n) ? Math.round(n * 100) : null;
+  const cleaned = value.replace(/[^\d.]/g, '');
+  if (!cleaned) return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
 }
+function firstMoneyAfterLabel(normalized: string, labels: string[]): number | null {
+  for (const label of labels) {
+    const match = normalized.match(new RegExp(label + '\\s*:?\\s*R\\s*([\\d\\s,.]+)', 'i'));
+    if (match?.[1]) {
+      const value = moneyCents(match[1]);
+      if (value !== null) return value;
+    }
+  }
+  return null;
+}
+function collapseRepeatedDescription(value: string): string {
+  let result = value.replace(/Read full description[\\s\\S]*$/i, '').replace(/\\s*Features\\s+Bedrooms:.*$/i, '').replace(/\\s+/g, ' ').trim();
+  if (result.length > 500) {
+    const marker = result.slice(0, 140).trim();
+    const repeatAt = result.indexOf(marker, 140);
+    if (repeatAt > 120) result = result.slice(0, repeatAt).replace(/[\\s,.…-]+$/, '').trim() + '…';
+  }
+  return result;
+}
+
 function sectionText(normalized: string, heading: string): string {
   const start = normalized.toLowerCase().indexOf(heading.toLowerCase());
   if (start < 0) return '';
@@ -89,17 +111,18 @@ export function parseProperty24CompleteSections(body: string): {
 
   const rooms = sectionText(normalized,'Rooms');
   for (const [field,label] of [['bedrooms','Bedrooms'],['bathrooms','Bathrooms'],['kitchens','Kitchens'],['receptionRooms','Reception Rooms']] as const) {
-    const m=rooms.match(new RegExp(label+'\\s+(\\d+(?:\\.\\d+)?)','i'));
+    const source = rooms || normalized;
+    const m=source.match(new RegExp(label+'\\s+(\\d+(?:\\.\\d+)?)','i'));
     if(m){ const n=Number(m[1]); (facts as any)[field]=n; addEvidence(evidence,field as keyof PropertyFacts,m[1]); }
   }
 
   const calculator = sectionText(normalized,'Bond Calculator');
-  const monthly = calculator.match(/Monthly Repayment\s*:?\s*R\s*([\d\s,.]+)/i)?.[1];
-  const onceOff = calculator.match(/Total Once-off Costs\s*:?\s*R\s*([\d\s,.]+)/i)?.[1];
-  const income = calculator.match(/Min Gross Monthly Income\s*:?\s*R\s*([\d\s,.]+)/i)?.[1];
-  if(monthly){const n=moneyCents(monthly);if(n!==null){facts.property24MonthlyRepaymentCents=n;addEvidence(evidence,'property24MonthlyRepaymentCents',monthly);}}
-  if(onceOff){const n=moneyCents(onceOff);if(n!==null){facts.property24OnceOffCostsCents=n;addEvidence(evidence,'property24OnceOffCostsCents',onceOff);}}
-  if(income){const n=moneyCents(income);if(n!==null){facts.property24MinimumGrossMonthlyIncomeCents=n;addEvidence(evidence,'property24MinimumGrossMonthlyIncomeCents',income);}}
+  const monthly = firstMoneyAfterLabel(calculator, ['Monthly Repayment']) ?? firstMoneyAfterLabel(normalized, ['Monthly Repayment']);
+  const onceOff = firstMoneyAfterLabel(calculator, ['Total Once-off Costs','Total Once Off Costs','Once-off Costs']) ?? firstMoneyAfterLabel(normalized, ['Total Once-off Costs','Total Once Off Costs','Once-off Costs']);
+  const income = firstMoneyAfterLabel(calculator, ['Min Gross Monthly Income','Minimum Gross Monthly Income']) ?? firstMoneyAfterLabel(normalized, ['Min Gross Monthly Income','Minimum Gross Monthly Income']);
+  if(monthly !== null){facts.property24MonthlyRepaymentCents=monthly;addEvidence(evidence,'property24MonthlyRepaymentCents',monthly);}
+  if(onceOff !== null){facts.property24OnceOffCostsCents=onceOff;addEvidence(evidence,'property24OnceOffCostsCents',onceOff);}
+  if(income !== null){facts.property24MinimumGrossMonthlyIncomeCents=income;addEvidence(evidence,'property24MinimumGrossMonthlyIncomeCents',income);}
 
   const poiText=sectionText(normalized,'Points of Interest');
   const pois: Property24PointOfInterest[]=[];
@@ -132,8 +155,9 @@ export function parseProperty24CompleteSections(body: string): {
   const uniqueSales=unique(recentSales,s=>s.address);
   if(uniqueSales.length)addEvidence(evidence,'property24RecentSales',JSON.stringify(uniqueSales));
 
-  const description = (normalized.match(/(?:Positioned|Situated|Located)\s+[\s\S]*?(?=\s+Property Overview\b)/i)
-    ?? normalized.match(/(?:4|\d+)\s+(?:individual\s+)?studio\s+suites?[\s\S]*?(?=\s+Property Overview\b)/i))?.[0]?.trim() ?? null;
+  const rawDescription = (normalized.match(/(?:Positioned|Situated|Located)\\s+[\\s\\S]*?(?=\\s+Property Overview\\b)/i)
+    ?? normalized.match(/(?:4|\\d+)\\s+(?:individual\\s+)?studio\\s+suites?[\\s\\S]*?(?=\\s+Property Overview\\b)/i))?.[0]?.trim() ?? '';
+  const description = rawDescription ? collapseRepeatedDescription(rawDescription) : null;
   if(description){facts.description=description;addEvidence(evidence,'description',description);}
 
   const claims: Property24NarrativeClaim[]=[];
