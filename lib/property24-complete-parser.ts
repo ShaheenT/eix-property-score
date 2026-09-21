@@ -197,7 +197,7 @@ export function parseProperty24CompleteSections(body: string): {
   if (overviewStart > 0) {
     const beforeOverview = normalized.slice(0, overviewStart);
     const titleIndex = title ? beforeOverview.lastIndexOf(title) : -1;
-    if (titleIndex >= 0) rawDescription = beforeOverview.slice(titleIndex + title.length).trim();
+    if (titleIndex >= 0 && title) rawDescription = beforeOverview.slice(titleIndex + title.length).trim();
   }
   const descriptionStart = rawDescription.match(/(?:This charming|Positioned|Situated|Located|This [A-Za-z]+(?: Victorian)? home|The property is)/i);
   if (descriptionStart?.index != null) rawDescription = rawDescription.slice(descriptionStart.index);
