@@ -5,6 +5,7 @@ import {
   Home, Info, MapPin, ShieldCheck, TrendingUp, WalletCards, Waves
 } from 'lucide-react';
 import { ReportPrintButton } from '@/components/report-print-button';
+import { getNeighbourhoodIntelligence, neighbourhoodSummary } from '@/lib/neighbourhood-intelligence';
 
 type Report = {
   id: string;
@@ -113,6 +114,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
   const score = report.score_breakdown || {};
   const investor = report.investor_analysis || {};
   const international = report.international_buyer_analysis || null;
+  const neighbourhood = await getNeighbourhoodIntelligence(facts as any);
 
   const price = numberValue(facts.askingPriceCents);
   const achievedCount = numberValue(score.verifiedAchievedSaleCount) ?? 0;
@@ -324,16 +326,17 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <p className="mt-2 text-sm text-[#64748B]">Location intelligence is shown only where the report contains supporting evidence. EiX does not manufacture neighbourhood scores from missing data.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ['Location', text(facts.suburb || facts.city)],
+              ['Location', neighbourhood.location.verified ? (facts.suburb || facts.city || neighbourhood.location.label || 'Verified location') : text(facts.suburb || facts.city)],
               ['Province', text(facts.province)],
-              ['Transport', 'Evidence required'],
-              ['Schools / healthcare', 'Evidence required'],
-              ['Lifestyle / retail', 'Evidence required'],
-              ['Safety indicators', 'Evidence required'],
-              ['Parks / recreation', 'Evidence required'],
-              ['Market momentum', achievedCount >= 3 ? 'Market evidence available' : 'Evidence limited'],
-            ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 font-semibold">{value}</p></div>)}
+              ['Transport', neighbourhoodSummary(neighbourhood.transport)],
+              ['Schools / healthcare', neighbourhoodSummary(neighbourhood.schoolsHealthcare)],
+              ['Lifestyle / retail', neighbourhoodSummary(neighbourhood.lifestyleRetail)],
+              ['Safety indicators', neighbourhoodSummary(neighbourhood.safetyIndicators, 'No public safety infrastructure evidence found; no safety score inferred')],
+              ['Parks / recreation', neighbourhoodSummary(neighbourhood.parksRecreation)],
+              ['Market momentum', achievedCount >= 3 ? `${achievedCount} verified achieved sales; ${activeCount} active listings; ${pendingCount} pending sales` : `${activeCount} active listings and ${pendingCount} pending sales identified; achieved-sale evidence remains limited`],
+            ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 font-semibold leading-relaxed">{value}</p></div>)}
           </div>
+          <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location and nearby-place evidence is sourced from OpenStreetMap data where available. Distances are approximate straight-line distances from the geocoded property location. Safety indicators show nearby public-safety infrastructure only; EiX does not convert this into a crime or safety score.</p>
         </section>
 
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
