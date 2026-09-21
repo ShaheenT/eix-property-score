@@ -158,21 +158,17 @@ export function parseProperty24CompleteSections(body: string): {
     { label: 'Health', aliases: ['Health','Healthcare'] },
     { label: 'Parks and Recreation', aliases: ['Parks and Recreation','Parks/Recreation','Parks & Recreation'] },
   ];
-  for (const category of poiCategories) {
-    const positions = category.aliases
-      .map(alias => ({ alias, start: poiText.toLowerCase().indexOf(alias.toLowerCase()) }))
-      .filter(x => x.start >= 0)
-      .sort((a, b) => a.start - b.start);
-    if (!positions.length) continue;
-    for (let index = 0; index < positions.length; index++) {
-      const current = positions[index];
-      const start = current.start + current.alias.length;
-      const end = positions[index + 1]?.start ?? poiText.length;
-      const block = poiText.slice(start, end);
-      for (const m of block.matchAll(/([A-Za-z0-9][A-Za-z0-9'&()./ -]{2,80}?)\s+(\d+(?:\.\d+)?)\s*km\b/gi)) {
-        const name = m[1].trim();
-        if (name) pois.push({ category: category.label, name, distanceKm: Number(m[2]) });
-      }
+  const allHeadings = poiCategories.flatMap(category =>
+    category.aliases.map(alias => ({ category, alias, start: poiText.toLowerCase().indexOf(alias.toLowerCase()) }))
+  ).filter(item => item.start >= 0).sort((a, b) => a.start - b.start);
+  for (let index = 0; index < allHeadings.length; index++) {
+    const current = allHeadings[index];
+    const start = current.start + current.alias.length;
+    const end = allHeadings[index + 1]?.start ?? poiText.length;
+    const block = poiText.slice(start, end);
+    for (const m of block.matchAll(/([A-Za-z0-9][A-Za-z0-9'&()./ -]{2,80}?)\s+(\d+(?:\.\d+)?)\s*km\b/gi)) {
+      const name = m[1].trim();
+      if (name) pois.push({ category: current.category.label, name, distanceKm: Number(m[2]) });
     }
   }
   const uniquePois=unique(pois,p=>p.category+'|'+p.name+'|'+p.distanceKm);
