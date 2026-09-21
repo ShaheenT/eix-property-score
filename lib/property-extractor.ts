@@ -20,6 +20,7 @@ export interface PropertyExtractionResult {
   source: string;
   sourceUrl: string;
   errors: string[];
+  sourceDocument?: import('@/lib/property24-complete-parser').Property24SourceDocument;
 }
 
 export const DEFAULT_EXTRACTION_TIMEOUT_MS = 10_000;
