@@ -39,7 +39,7 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): num
   return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-async function fetchJson<T>(url: string, init: RequestInit = {}): Promise<T | null> {
+async function fetchJson<T>(url: string, init: RequestInit & { next?: { revalidate: number } } = {}): Promise<T | null> {
   try {
     const response = await fetch(url, {
       ...init,
