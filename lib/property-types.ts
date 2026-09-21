@@ -44,6 +44,17 @@ export interface PropertyFacts {
   property24MonthlyRepaymentCents?: number | null;
   property24OnceOffCostsCents?: number | null;
   property24MinimumGrossMonthlyIncomeCents?: number | null;
+  property24NarrativeClaims?: Array<{
+    type: string;
+    text: string;
+    verification: 'listing_claim';
+  }>;
+  property24RecentSales?: Array<{
+    address: string;
+    priceCents: number | null;
+    soldDate: string | null;
+    sourceUrl: string | null;
+  }>;
 
 }
 
