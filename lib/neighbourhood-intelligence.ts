@@ -312,7 +312,7 @@ function classifyProperty24Places(facts: PropertyFacts) {
     const category = place.category.toLowerCase();
     if (/transport|public service|rail|station|bus|taxi/.test(category)) transport.push(place);
     else if (/education|school|health|hospital|clinic|medical|pharmacy/.test(category)) schoolsHealthcare.push(place);
-    else if (/shopping|retail|food|entertainment|restaurant|cafe|mall/.test(category)) lifestyleRetail.push(place);
+    else if (/shopping|retail|food|entertainment|restaurant|cafe|mall|bank/.test(category)) lifestyleRetail.push(place);
     else if (/park|recreation|sport|leisure/.test(category)) parksRecreation.push(place);
   }
   return { transport, schoolsHealthcare, lifestyleRetail, parksRecreation };
