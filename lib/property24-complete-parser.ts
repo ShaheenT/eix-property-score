@@ -49,6 +49,9 @@ export interface Property24ListingDetails {
     onceOffCostsCents: number | null;
     minimumGrossMonthlyIncomeCents: number | null;
   };
+  recentSales: Property24RecentSaleRecord[];
+  claims: Property24NarrativeClaim[];
+  description: string | null;
 }
 
 const SECTION_NAMES = [
@@ -147,6 +150,23 @@ export function parseProperty24CompleteSections(
   addClaim('development', /development/i);
 
   const listingId = listingNumber(body);
+
+  const addressMatch =
+    normalized.match(/Street Address\s+(.+?)(?=\s+Listing Date\b)/i) ??
+    normalized.match(/\b(\d+\s+[A-Za-z0-9' .-]+,\s*Woodstock(?:,\s*Cape Town)?)/i);
+  if (addressMatch?.[1]) {
+    facts.address = addressMatch[1].trim();
+    addEvidence(evidence, 'address', facts.address);
+  }
+
+  const titleMatch = body.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
+  if (titleMatch?.[1]) {
+    const title = decode(titleMatch[1]);
+    if (title) {
+      facts.title = title;
+      addEvidence(evidence, 'title', title);
+    }
+  }
   if (listingId) {
     facts.listingNumber = listingId;
     addEvidence(evidence, 'listingNumber', listingId);
@@ -329,7 +349,7 @@ export function parseProperty24CompleteSections(
     source: 'property24',
     canonicalSource: 'Property24',
     listingNumber: listingId,
-    title: null,
+    title: facts.title ?? null,
     address: facts.address ?? null,
     listingDate,
     description,
