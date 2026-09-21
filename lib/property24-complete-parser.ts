@@ -199,7 +199,9 @@ export function parseProperty24CompleteSections(body: string): {
     const titleIndex = title ? beforeOverview.lastIndexOf(title) : -1;
     if (titleIndex >= 0) rawDescription = beforeOverview.slice(titleIndex + title.length).trim();
   }
-  rawDescription = rawDescription.replace(/^\\s*(?:Victorian Delight|Victorian|Charming)\\s*/i, '').replace(/^\\s*(?:Please contact .*?)(?=This|Enjoy|The|The property)/i, '').trim();
+  const descriptionStart = rawDescription.match(/(?:This charming|Positioned|Situated|Located|This [A-Za-z]+(?: Victorian)? home|The property is)/i);
+  if (descriptionStart?.index != null) rawDescription = rawDescription.slice(descriptionStart.index);
+  rawDescription = rawDescription.replace(/\s*Features\s+Bedrooms:.*$/i, '').trim();
   const description = rawDescription ? collapseRepeatedDescription(rawDescription) : null;
   if(description){facts.description=description;addEvidence(evidence,'description',description);}
 
