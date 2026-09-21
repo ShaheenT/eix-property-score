@@ -98,10 +98,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ status: 'queued', reportType, submissionId });
     }
 
+    const { data: paymentMeta } = await supabaseAdmin
+      .from('payments')
+      .select('amount_cents, product')
+      .eq('submission_id', submissionId)
+      .eq('status', 'completed')
+      .eq('product', reportType)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: buyerMeta } = await supabaseAdmin
+      .from('property_submissions')
+      .select('buyer_type')
+      .eq('id', submissionId)
+      .single();
+
     if (report.status === 'completed' || report.status === 'sent') {
       const reportUrl =
         `${BASE_URL}/report/${report.id}?token=${encodeURIComponent(report.access_token || '')}`;
-      return NextResponse.json({ status: 'completed', reportType, submissionId, reportUrl });
+      return NextResponse.json({ status: 'completed', reportType, submissionId, reportUrl, amountZar: paymentMeta?.amount_cents ? paymentMeta.amount_cents / 100 : null, buyerType: buyerMeta?.buyer_type || null });
     }
 
     if (report.status === 'failed' || report.status === 'queued') {
