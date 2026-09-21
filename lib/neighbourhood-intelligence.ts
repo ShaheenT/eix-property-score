@@ -293,7 +293,50 @@ out center tags; `;
   };
 }
 
+function property24Places(facts: PropertyFacts): NeighbourhoodPlace[] {
+  return (facts.pointsOfInterest || []).map((item) => ({
+    name: item.name,
+    category: item.category || 'Property24 nearby place',
+    distanceKm: item.distanceKm,
+    sourceUrl: 'Property24 listing',
+  }));
+}
+
+function classifyProperty24Places(facts: PropertyFacts) {
+  const places = property24Places(facts);
+  const transport: NeighbourhoodPlace[] = [];
+  const schoolsHealthcare: NeighbourhoodPlace[] = [];
+  const lifestyleRetail: NeighbourhoodPlace[] = [];
+  const parksRecreation: NeighbourhoodPlace[] = [];
+  for (const place of places) {
+    const category = place.category.toLowerCase();
+    if (/transport|public service|rail|station|bus|taxi/.test(category)) transport.push(place);
+    else if (/education|school|health|hospital|clinic|medical|pharmacy/.test(category)) schoolsHealthcare.push(place);
+    else if (/shopping|retail|food|entertainment|restaurant|cafe|mall/.test(category)) lifestyleRetail.push(place);
+    else if (/park|recreation|sport|leisure/.test(category)) parksRecreation.push(place);
+  }
+  return { transport, schoolsHealthcare, lifestyleRetail, parksRecreation };
+}
+
 export function neighbourhoodSummary(items: NeighbourhoodPlace[], empty = 'No supporting evidence found'): string {
   if (!items.length) return empty;
-  return items.slice(0, 3).map((item) => `${item.name} · ${item.distanceKm.toFixed(1)} km`).join(' · ');
+  return items.slice(0, 4).map((item) => `${item.name} · ${item.distanceKm.toFixed(1)} km`).join(' · ');
+}
+
+export function neighbourhoodSafetySummary(items: NeighbourhoodPlace[], areaLabel: string | null): string {
+  if (items.length) return items.slice(0, 4).map((item) => `${item.name} · ${item.distanceKm.toFixed(1)} km`).join(' · ');
+  return areaLabel
+    ? `Area-level safety infrastructure was not mapped in the available location data for ${areaLabel}; no safety score is inferred.`
+    : 'Area-level safety infrastructure was not mapped in the available location data; no safety score is inferred.';
+}
+
+export function mergeNeighbourhoodSources(facts: PropertyFacts, intelligence: NeighbourhoodIntelligence): NeighbourhoodIntelligence {
+  const p24 = classifyProperty24Places(facts);
+  return {
+    ...intelligence,
+    transport: dedupe([...intelligence.transport, ...p24.transport]),
+    schoolsHealthcare: dedupe([...intelligence.schoolsHealthcare, ...p24.schoolsHealthcare]),
+    lifestyleRetail: dedupe([...intelligence.lifestyleRetail, ...p24.lifestyleRetail]),
+    parksRecreation: dedupe([...intelligence.parksRecreation, ...p24.parksRecreation]),
+  };
 }
