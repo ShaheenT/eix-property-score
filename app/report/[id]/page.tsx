@@ -131,9 +131,9 @@ export default async function CustomerReportPage({ params, searchParams }: { par
     : (activeCount > 0 || pendingCount > 0
       ? `${activeCount} active listings and ${pendingCount} pending sales identified; achieved-sale evidence remains limited`
       : (recentSaleRecords > 0
-        ? `${recentSaleRecords} recent-sale records identified from the Property24 listing; sale prices/dates remain unverified, so no price-momentum conclusion is inferred`
+        ? `${recentSaleRecords} recent-sale records identified from the supplied Property24 listing. The underlying sold prices and sold dates are not exposed in the source, so these records are not treated as verified achieved sales.`
         : (facts.listingDate
-          ? `Current listing activity is evidenced by the supplied Property24 listing dated ${facts.listingDate}; verified achieved-sale evidence remains unavailable`
+          ? `Current listing activity is evidenced by the supplied Property24 listing dated ${facts.listingDate}; no achieved-sale price conclusion is inferred.`
           : 'Market activity evidence is limited; no momentum score is inferred')));
   const state = decisionState(report, achievedCount);
 
@@ -286,18 +286,27 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
 
           <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-white p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">EiX Property Score™ Narrative & Investment Profile</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Structured listing claims</p>
             {Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.length > 0 ? (
-              <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#475569]">
-                {facts.property24NarrativeClaims.map((claim: any) => (
-                  <div key={claim.type + claim.text} className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                    <span className="font-semibold">{claim.type.replace(/_/g, ' ')}</span>
-                    <span className="ml-2">{claim.text}</span>
-                    <p className="mt-1 text-xs text-[#64748B]">Property24 listing claim only; independently verified financial, planning, zoning and compliance evidence is not established.</p>
-                  </div>
-                ))}
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {facts.property24NarrativeClaims.map((claim: any) => {
+                  const signal =
+                    claim.type === 'studio_suites' ? '4 individual studio suites' :
+                    claim.type === 'rental_use' ? '3 suites advertised as Airbnb accommodations' :
+                    claim.type === 'tenant' ? '1 suite advertised with a long-term tenant' :
+                    claim.type === 'income_use' ? 'Income potential is advertised' :
+                    claim.type === 'heritage' ? 'Victorian / period character is advertised' :
+                    claim.type === 'renovation' ? 'Property is advertised as reimagined / renovated' :
+                    claim.text;
+                  return (
+                    <div key={claim.type + claim.text} className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+                      <p className="font-semibold">{signal}</p>
+                      <p className="mt-1 text-xs text-[#64748B]">Listing claim only. Underlying financial, planning, zoning and compliance evidence is not independently verified.</p>
+                    </div>
+                  );
+                })}
               </div>
-            ) : <p className="mt-3 text-sm text-[#64748B]">No listing narrative claims were extracted.</p>}
+            ) : <p className="mt-3 text-sm text-[#64748B]">No structured listing claims were extracted.</p>}
           </div>
         </section>
 
