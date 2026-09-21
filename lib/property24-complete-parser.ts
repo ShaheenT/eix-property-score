@@ -42,7 +42,7 @@ function moneyCents(value: string): number | null {
 }
 function firstMoneyAfterLabel(normalized: string, labels: string[]): number | null {
   for (const label of labels) {
-    const match = normalized.match(new RegExp(label + '\\s*:?\\s*R\\s*([\\d\\s,.]+)', 'i'));
+    const match = normalized.match(new RegExp(label + '\s*:?\s*R\s*([\\d\s,.]+)', 'i'));
     if (match?.[1]) {
       const value = moneyCents(match[1]);
       if (value !== null) return value;
@@ -121,21 +121,21 @@ export function parseProperty24CompleteSections(body: string): {
     const values: string[] = [];
     for (const pattern of patterns) {
       for (const m of featureText.matchAll(pattern)) {
-        const value = (m[1] ?? m[0]).replace(/\\s+/g, ' ').trim();
+        const value = (m[1] ?? m[0]).replace(/\s+/g, ' ').trim();
         if (value) values.push(value);
       }
     }
     return unique(values, v => v);
   };
-  const parking = captureList([/(?:Parking|Parking Spaces?)\\s*[:\\-]?\\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  const parking = captureList([/(?:Parking|Parking Spaces?)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
   if (parking.length) { facts.parkingDetails = parking; facts.parking = parking.length; parking.forEach(v => addEvidence(evidence,'parkingDetails',v)); }
-  const water = captureList([/(?:Backup Water|Water Backup|Water)\\s*[:\\-]?\\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  const water = captureList([/(?:Backup Water|Water Backup|Water)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
   if (water.length) { facts.backupWater = water; water.forEach(v => addEvidence(evidence,'backupWater',v)); }
-  const power = captureList([/(?:Backup Power|Power Backup|Solar|Inverter|Generator)\\s*[:\\-]?\\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  const power = captureList([/(?:Backup Power|Power Backup|Solar|Inverter|Generator)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
   if (power.length) { facts.backupPower = power; power.forEach(v => addEvidence(evidence,'backupPower',v)); }
-  const flooring = captureList([/(?:Flooring)\\s*[:\\-]?\\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  const flooring = captureList([/(?:Flooring)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
   if (flooring.length) { facts.flooring = flooring; flooring.forEach(v => addEvidence(evidence,'flooring',v)); }
-  const flatletMatch = featureText.match(/\\bflatlet\\b|\\bgranny flat\\b|\\bseparate cottage\\b/i);
+  const flatletMatch = featureText.match(/\bflatlet\b|\bgranny flat\b|\bseparate cottage\b/i);
   if (flatletMatch) { facts.flatlet = true; addEvidence(evidence,'flatlet',true); }
 
   const calculator = sectionText(normalized,'Bond Calculator');
@@ -177,8 +177,8 @@ export function parseProperty24CompleteSections(body: string): {
   const uniqueSales=unique(recentSales,s=>s.address);
   if(uniqueSales.length)addEvidence(evidence,'property24RecentSales',JSON.stringify(uniqueSales));
 
-  const rawDescription = (normalized.match(/(?:Positioned|Situated|Located)\s+[\s\S]*?(?=\s+Property Overview\\b)/i)
-    ?? normalized.match(/(?:4|\d+)\s+(?:individual\s+)?studio\s+suites?[\s\S]*?(?=\s+Property Overview\\b)/i))?.[0]?.trim() ?? '';
+  const rawDescription = (normalized.match(/(?:Positioned|Situated|Located)\s+[\s\S]*?(?=\s+Property Overview\b)/i)
+    ?? normalized.match(/(?:4|\d+)\s+(?:individual\s+)?studio\s+suites?[\s\S]*?(?=\s+Property Overview\b)/i))?.[0]?.trim() ?? '';
   const description = rawDescription ? collapseRepeatedDescription(rawDescription) : null;
   if(description){facts.description=description;addEvidence(evidence,'description',description);}
 
