@@ -147,8 +147,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
     const recurring = (numberValue(facts.ratesAndTaxesCents) !== null || numberValue(facts.leviesCents) !== null) ? rates + levy : null;
     const scenarios = [9.5, 10.5, 11.5, 12.5].map(rate => ({
       rate, payment: calcBond(loan, rate)
-    }));
-    const knownEntry = deposit + duty;
+    }));    const knownEntry = deposit + duty;
     const dutyPct = price > 0 ? (duty / price) * 100 : 0;
     const breakEven = [3, 6, 9].map(rate => ({
       rate,
@@ -248,6 +247,61 @@ export default async function CustomerReportPage({ params, searchParams }: { par
         </section>
 
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Financial & Listing Intelligence</p>
+          <h2 className="mt-1 text-2xl font-bold">EiX Property Score™ — Financial & Listing Intelligence</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#64748B]">EiX separates its own affordability scenario from the source portal's calculator so the buyer can see exactly what each number represents.</p>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#64748B]">EiX Calculator Repayment</p>
+              <p className="mt-2 text-2xl font-bold">{acquisition ? money(acquisition.scenarios[1].payment) : 'Not verified'}<span className="text-sm font-semibold text-[#64748B]"> / month</span></p>
+              <p className="mt-2 text-xs leading-relaxed text-[#64748B]">EiX scenario using a 90% bond, 20-year term and 10.5% annual interest. Not a bank offer.</p>
+            </div>
+            <div className="rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#64748B]">EiX Calculator Once-Off Costs</p>
+              <p className="mt-2 text-2xl font-bold">{acquisition ? money(acquisition.knownEntry) : 'Not verified'}<span className="text-sm font-semibold text-[#64748B]"> total cash</span></p>
+              <p className="mt-2 text-xs leading-relaxed text-[#64748B]">10% deposit plus calculated SARS transfer duty. Conveyancing, bond registration, bank charges, inspection and other costs are excluded unless separately verified.</p>
+            </div>
+            <div className="rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#64748B]">EiX Minimum Gross Income</p>
+              <p className="mt-2 text-2xl font-bold">{acquisition ? money(Math.round(acquisition.scenarios[1].payment / 0.30)) : 'Not verified'}<span className="text-sm font-semibold text-[#64748B]"> / month</span></p>
+              <p className="mt-2 text-xs leading-relaxed text-[#64748B]">Illustrative 30% gross-income affordability rule applied to the EiX reference repayment. This is not a lender decision.</p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Property24 source scenario</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div><p className="text-xs uppercase tracking-wider text-[#94A3B8]">Portal repayment</p><p className="mt-1 font-bold">{money(facts.property24MonthlyRepaymentCents)}</p></div>
+              <div><p className="text-xs uppercase tracking-wider text-[#94A3B8]">Portal once-off costs</p><p className="mt-1 font-bold">{money(facts.property24OnceOffCostsCents)}</p></div>
+              <div><p className="text-xs uppercase tracking-wider text-[#94A3B8]">Portal minimum gross income</p><p className="mt-1 font-bold">{money(facts.property24MinimumGrossMonthlyIncomeCents)}</p></div>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[#64748B]">Property24 calculator figures are source-provided scenario estimates. They are retained as source evidence and are not treated as EiX calculations or bank offers.</p>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-[#E2E8F0] p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Listing Description</p>
+            <p className="mt-2 text-sm font-semibold text-[#0B1220]">{facts.description ? 'AVAILABLE' : 'Not verified'}</p>
+            {facts.description && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-[#475569]">{facts.description}</p>}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-white p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">EiX Property Score™ Narrative & Investment Profile</p>
+            {Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.length > 0 ? (
+              <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#475569]">
+                {facts.property24NarrativeClaims.map((claim: any) => (
+                  <div key={claim.type + claim.text} className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+                    <span className="font-semibold">{claim.type.replace(/_/g, ' ')}</span>
+                    <span className="ml-2">{claim.text}</span>
+                    <p className="mt-1 text-xs text-[#64748B]">Property24 listing claim only; independently verified financial, planning, zoning and compliance evidence is not established.</p>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="mt-3 text-sm text-[#64748B]">No listing narrative claims were extracted.</p>}
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
           <div className="flex items-center gap-2"><WalletCards className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Real Cost to Own</h2></div>
           {acquisition ? (
             <>
@@ -298,7 +352,6 @@ export default async function CustomerReportPage({ params, searchParams }: { par
             </div>
           )}
         </section>
-
         {acquisition && (
           <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
             <h2 className="text-xl font-bold">Break-Even Analysis</h2>
@@ -447,7 +500,6 @@ export default async function CustomerReportPage({ params, searchParams }: { par
             <p className="mt-2 text-sm leading-relaxed text-[#64748B]">{state.detail}</p>
           </div>
         </section>
-
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
           <div className="flex items-center justify-between gap-4">
             <div>
