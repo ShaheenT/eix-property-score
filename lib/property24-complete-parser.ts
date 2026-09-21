@@ -73,8 +73,15 @@ const SECTION_NAMES = [
   'Bond Calculator',
 ];
 
-function decode(value: string): string {
+function stripNonContent(value: string): string {
   return value
+    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, ' ')
+    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, ' ')
+    .replace(/<noscript\\b[^>]*>[\\s\\S]*?<\\/noscript>/gi, ' ');
+}
+
+function decode(value: string): string {
+  return stripNonContent(value)
     .replace(/&nbsp;/gi, ' ')
     .replace(/&#160;/gi, ' ')
     .replace(/&#xB2;/gi, '²')
