@@ -12,6 +12,18 @@ test('property intelligence API rejects requests without a listing URL', async (
   assert.equal(response.status, 400);
 });
 
+test('property intelligence API rejects malformed listing URLs before any upstream call', async () => {
+  const request = new Request('https://example.test/api/property-intelligence', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ listingUrl: 'not-a-url' }),
+  });
+  const response = await POST(request as never);
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.equal(payload.status, 'invalid_request');
+});
+
 test('property intelligence API does not invent market evidence for unsupported sources', async () => {
   const request = new Request('https://example.test/api/property-intelligence', {
     method: 'POST',
@@ -22,4 +34,6 @@ test('property intelligence API does not invent market evidence for unsupported 
   assert.equal(response.status, 422);
   const payload = await response.json();
   assert.equal(payload.status, 'unsupported_source');
+  assert.equal(payload.market.verifiedAchievedSaleCount, 0);
+  assert.equal(payload.buyerImplications.some((item: { field: string }) => item.field === 'price fairness'), true);
 });
