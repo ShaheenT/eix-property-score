@@ -116,7 +116,9 @@ export function parseProperty24CompleteSections(body: string): {
     if(m){ const n=Number(m[1]); (facts as any)[field]=n; addEvidence(evidence,field as keyof PropertyFacts,m[1]); }
   }
 
-  const featureText = [sectionText(normalized,'External Features'), sectionText(normalized,'Building'), sectionText(normalized,'Other Features')].filter(Boolean).join(' ');
+  const externalFeatures = sectionText(normalized,'External Features');
+  const otherFeatures = sectionText(normalized,'Other Features');
+  const featureText = [externalFeatures, sectionText(normalized,'Building'), otherFeatures].filter(Boolean).join(' ');
   const captureList = (patterns: RegExp[]): string[] => {
     const values: string[] = [];
     for (const pattern of patterns) {
@@ -127,7 +129,7 @@ export function parseProperty24CompleteSections(body: string): {
     }
     return unique(values, v => v);
   };
-  const parking = captureList([/(?:Parking|Parking Spaces?)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
+  const parking = captureList([/(?:Parking|Parking Spaces?)\s*[:\\-]?\s*(\d+)/gi]);
   if (parking.length) { facts.parkingDetails = parking; facts.parking = parking.length; parking.forEach(v => addEvidence(evidence,'parkingDetails',v)); }
   const water = captureList([/(?:Backup Water|Water Backup|Water)\s*[:\\-]?\s*([A-Za-z0-9][A-Za-z0-9 ,+&/()-]{0,100})/gi]);
   if (water.length) { facts.backupWater = water; water.forEach(v => addEvidence(evidence,'backupWater',v)); }
@@ -190,8 +192,14 @@ export function parseProperty24CompleteSections(body: string): {
   const uniqueSales=unique(recentSales,s=>s.address);
   if(uniqueSales.length)addEvidence(evidence,'property24RecentSales',JSON.stringify(uniqueSales));
 
-  const rawDescription = (normalized.match(/(?:Positioned|Situated|Located)\s+[\s\S]*?(?=\s+Property Overview\b)/i)
-    ?? normalized.match(/(?:4|\d+)\s+(?:individual\s+)?studio\s+suites?[\s\S]*?(?=\s+Property Overview\b)/i))?.[0]?.trim() ?? '';
+  const overviewStart = normalized.toLowerCase().indexOf('property overview');
+  let rawDescription = '';
+  if (overviewStart > 0) {
+    const beforeOverview = normalized.slice(0, overviewStart);
+    const titleIndex = title ? beforeOverview.lastIndexOf(title) : -1;
+    if (titleIndex >= 0) rawDescription = beforeOverview.slice(titleIndex + title.length).trim();
+  }
+  rawDescription = rawDescription.replace(/^\\s*(?:Victorian Delight|Victorian|Charming)\\s*/i, '').replace(/^\\s*(?:Please contact .*?)(?=This|Enjoy|The|The property)/i, '').trim();
   const description = rawDescription ? collapseRepeatedDescription(rawDescription) : null;
   if(description){facts.description=description;addEvidence(evidence,'description',description);}
 
