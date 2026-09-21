@@ -310,12 +310,33 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatusRow label="Bedrooms" state={facts.bedrooms !== null ? 'verified' : 'unknown'} detail={text(facts.bedrooms)} />
             <StatusRow label="Bathrooms" state={facts.bathrooms !== null ? 'verified' : 'unknown'} detail={text(facts.bathrooms)} />
+            <StatusRow label="Kitchens" state={facts.kitchens !== undefined && facts.kitchens !== null ? 'verified' : 'unknown'} detail={text(facts.kitchens)} />
+            <StatusRow label="Reception rooms" state={facts.receptionRooms !== undefined && facts.receptionRooms !== null ? 'verified' : 'unknown'} detail={text(facts.receptionRooms)} />
             <StatusRow label="Floor area" state={facts.floorSizeM2 !== null ? 'verified' : 'missing'} detail={facts.floorSizeM2 ? String(facts.floorSizeM2) + ' m²' : 'Required for R/m² analysis'} />
             <StatusRow label="Land area" state={facts.landSizeM2 !== null ? 'verified' : 'missing'} detail={facts.landSizeM2 ? String(facts.landSizeM2) + ' m²' : 'Property evidence required'} />
-            <StatusRow label="Parking" state={facts.parking !== null ? 'verified' : 'unknown'} detail={text(facts.parking)} />
+            <StatusRow label="Parking" state={facts.parking !== null ? 'verified' : 'unknown'} detail={facts.parkingDetails?.length ? facts.parkingDetails.join(' · ') : text(facts.parking)} />
+            <StatusRow label="Pets" state={facts.petsAllowed !== undefined && facts.petsAllowed !== null ? 'verified' : 'unknown'} detail={yesNo(facts.petsAllowed)} />
+            <StatusRow label="Flatlet" state={facts.flatlet !== undefined && facts.flatlet !== null ? 'verified' : 'unknown'} detail={facts.flatlet === true ? 'Advertised' : 'Not advertised'} />
+            <StatusRow label="Flooring" state={facts.flooring?.length ? 'verified' : 'unknown'} detail={facts.flooring?.length ? facts.flooring.join(' · ') : 'Not verified'} />
+            <StatusRow label="Backup water" state={facts.backupWater?.length ? 'verified' : 'unknown'} detail={facts.backupWater?.length ? facts.backupWater.join(' · ') : 'Not verified'} />
+            <StatusRow label="Backup power" state={facts.backupPower?.length ? 'verified' : 'unknown'} detail={facts.backupPower?.length ? facts.backupPower.join(' · ') : 'Not verified'} />
             <StatusRow label="Garden" state={facts.hasGarden !== null ? 'verified' : 'unknown'} detail={yesNo(facts.hasGarden)} />
             <StatusRow label="Fibre" state={facts.hasFibre !== null ? 'verified' : 'unknown'} detail={yesNo(facts.hasFibre)} />
             <StatusRow label="Solar / backup" state={facts.hasSolar !== null || facts.hasBatteryBackup !== null ? 'verified' : 'unknown'} detail={facts.hasSolar === true || facts.hasBatteryBackup === true ? 'Indicated' : 'Not verified'} />
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <StatusRow label="Listing identity" state={facts.listingNumber ? 'verified' : 'unknown'} detail={facts.listingNumber ? 'Property24 #' + facts.listingNumber : 'Not verified'} />
+            <StatusRow label="Listing date" state={facts.listingDate ? 'verified' : 'unknown'} detail={text(facts.listingDate)} />
+          </div>
+          <div className="mt-5 rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">What these listing facts mean</p>
+            <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#475569]">
+              {facts.flatlet === true && <p><strong>Flatlet:</strong> The listing advertises a flatlet. EiX does not assign rental income to it. Confirm approval, access, utilities and condition before treating it as financial value.</p>}
+              {(facts.backupPower?.length || facts.backupWater?.length) && <p><strong>Resilience:</strong> The listing advertises {facts.backupPower?.join(' and ') || 'backup power'}{facts.backupWater?.length ? ' and ' + facts.backupWater.join(' and ') : ''}. Confirm capacity, ownership, installation, condition and what is actually supported.</p>}
+              {facts.parkingDetails?.length && <p><strong>Parking:</strong> {facts.parkingDetails.join(' and ')} are advertised. Confirm allocation, dimensions and whether each space is exclusive, shared or merely practical parking.</p>}
+              {facts.floorSizeM2 && price ? <p><strong>Price intensity:</strong> The asking price implies approximately {money(Math.round(price / facts.floorSizeM2))} per m² of advertised floor area. This is a comparison input, not a price-fairness conclusion.</p> : null}
+              {facts.ratesAndTaxesCents !== null && <p><strong>Known recurring cost:</strong> Property24 supplies rates of {money(facts.ratesAndTaxesCents)}. Confirm the latest municipal account, arrears and current charges before relying on it.</p>}
+            </div>
           </div>
         </section>
 
@@ -406,6 +427,14 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Erf / land area', facts.landSizeM2, 'property evidence'],
               ['Rates', facts.ratesAndTaxesCents, 'municipal cost input'],
               ['Levy', facts.leviesCents, 'body corporate cost input'],
+              ['Kitchens', facts.kitchens, 'listing-supplied room count'],
+              ['Reception rooms', facts.receptionRooms, 'listing-supplied room count'],
+              ['Parking details', facts.parkingDetails?.join(' · ') || null, 'listing-supplied parking configuration'],
+              ['Flatlet', facts.flatlet, 'listing-supplied feature; approval not verified'],
+              ['Backup water', facts.backupWater?.join(' · ') || null, 'listing-supplied resilience feature'],
+              ['Backup power', facts.backupPower?.join(' · ') || null, 'listing-supplied resilience feature'],
+              ['Listing number', facts.listingNumber, 'source identity'],
+              ['Listing date', facts.listingDate, 'source freshness'],
               ['Comparable sales', achievedCount, '3+ required for price fairness'],
             ].map(([label, value, basis]) => {
               const present = value !== null && value !== undefined && value !== '' && !(typeof value === 'number' && value === 0 && label !== 'Comparable sales');
