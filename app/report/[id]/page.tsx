@@ -456,7 +456,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Comparable sales', achievedCount, '3+ required for price fairness'],
             ].map(([label, value, basis]) => {
               const present = value !== null && value !== undefined && value !== '' && !(typeof value === 'number' && value === 0 && label !== 'Comparable sales');
-              const display = label === 'Asking price' || label === 'Rates' || label === 'Levy'
+              const display = ['Asking price', 'Rates', 'Levy', 'P24 calculator repayment', 'P24 calculator once-off costs', 'P24 minimum gross income'].includes(label as string)
                 ? (present ? money(value) : 'Not verified')
                 : (present ? String(value) : 'Not verified');
               return (
