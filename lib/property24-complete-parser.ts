@@ -42,7 +42,7 @@ function moneyCents(value: string): number | null {
 }
 function firstMoneyAfterLabel(normalized: string, labels: string[]): number | null {
   for (const label of labels) {
-    const match = normalized.match(new RegExp(label + '\s*:?\s*R\s*([\d\s,.]+)', 'i'));
+    const match = normalized.match(new RegExp(label + '\\s*:?\\s*R\\s*([\\d\\s,.]+)', 'i'));
     if (match?.[1]) {
       const value = moneyCents(match[1]);
       if (value !== null) return value;
