@@ -75,9 +75,9 @@ const SECTION_NAMES = [
 
 function stripNonContent(value: string): string {
   return value
-    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, ' ')
-    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, ' ')
-    .replace(/<noscript\\b[^>]*>[\\s\\S]*?<\\/noscript>/gi, ' ');
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, ' ');
 }
 
 function decode(value: string): string {
@@ -311,8 +311,8 @@ export function parseProperty24CompleteSections(
     const category = categories[i];
     const nextCategories = categories.slice(i + 1).join('|');
     const pattern = nextCategories
-      ? new RegExp(category + '\\s+([\\s\\S]*?)(?=\\s+(?:' + nextCategories + '|Bond Calculator)\\b)', 'i')
-      : new RegExp(category + '\\s+([\\s\\S]*?)(?=\\s+Bond Calculator\\b|$)', 'i');
+      ? new RegExp(category + '\\s+([\s\S]*?)(?=\\s+(?:' + nextCategories + '|Bond Calculator)\\b)', 'i')
+      : new RegExp(category + '\\s+([\s\S]*?)(?=\\s+Bond Calculator\\b|$)', 'i');
     const block = poiText.match(pattern)?.[1] ?? '';
     for (const item of block.matchAll(/([A-Za-z0-9][A-Za-z0-9'&()./ -]{2,80}?)\s+(\d+(?:\.\d+)?)\s*km\b/gi)) {
       pois.push({ category, name: item[1].trim(), distanceKm: Number(item[2]) });
