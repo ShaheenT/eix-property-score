@@ -5,6 +5,7 @@ import {
   mergeEvidence,
 } from '@/lib/property-parser';
 import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
+import { parseProperty24CompleteSections } from '@/lib/property24-complete-parser';
 
 export type PropertyExtractionStatus =
   | 'extracted'
@@ -19,6 +20,7 @@ export interface PropertyExtractionResult {
   source: string;
   sourceUrl: string;
   errors: string[];
+  sourceDocument?: import('@/lib/property24-complete-parser').Property24SourceDocument;
 }
 
 export const DEFAULT_EXTRACTION_TIMEOUT_MS = 10_000;
@@ -555,6 +557,7 @@ function parseProperty24Facts(
   const labeledOverview = parseProperty24LabeledOverview(body);
   const keyFeatures = parseProperty24KeyFeatures(body);
   const heading = parseProperty24Heading(body);
+  const complete = parseProperty24CompleteSections(body);
 
   return {
     facts: mergeFacts(
@@ -563,6 +566,7 @@ function parseProperty24Facts(
       labeledOverview.facts,
       keyFeatures.facts,
       heading.facts,
+      complete.facts,
     ),
     evidence: mergeEvidence(
       [],
@@ -570,6 +574,7 @@ function parseProperty24Facts(
       labeledOverview.evidence,
       keyFeatures.evidence,
       heading.evidence,
+      complete.evidence,
     ),
   };
 }
@@ -907,6 +912,10 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
     }
 
     const fallback = parseFallbackFacts(fetched.body, fetched.finalUrl);
+    const property24Complete =
+      source === 'property24'
+        ? parseProperty24CompleteSections(fetched.body)
+        : { facts: emptyFacts(), evidence: [] as PropertyEvidence[] };
 
     if (source === 'property24' && !jsonLd.facts.city) {
       const property24City = getProperty24City(fetched.finalUrl);
@@ -926,12 +935,12 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
     const facts =
       source === 'private_property'
         ? mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts)
-        : mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts);
+        : mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts, property24Complete.facts);
 
     const evidence =
       source === 'private_property'
         ? mergeEvidence([], fallback.evidence, jsonLd.evidence)
-        : mergeEvidence([], fallback.evidence, jsonLd.evidence);
+        : mergeEvidence([], fallback.evidence, jsonLd.evidence, property24Complete.evidence);
     const factCount = countExtractedFacts(facts);
 
     if (factCount === 0 || !hasMinimumPropertyEvidence(facts)) {

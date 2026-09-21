@@ -246,7 +246,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <div className="flex items-center gap-2"><WalletCards className="h-5 w-5 text-[#2563EB]" /><h2 className="text-xl font-bold">Real Cost to Own</h2></div>
           {acquisition ? (
             <>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+<div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
                   ['Deposit (10%)', money(acquisition.deposit)],
                   ['Transfer duty', money(acquisition.duty)],
@@ -310,21 +310,62 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatusRow label="Bedrooms" state={facts.bedrooms !== null ? 'verified' : 'unknown'} detail={text(facts.bedrooms)} />
             <StatusRow label="Bathrooms" state={facts.bathrooms !== null ? 'verified' : 'unknown'} detail={text(facts.bathrooms)} />
+            <StatusRow label="Kitchens" state={facts.kitchens !== undefined && facts.kitchens !== null ? 'verified' : 'unknown'} detail={text(facts.kitchens)} />
+            <StatusRow label="Reception rooms" state={facts.receptionRooms !== undefined && facts.receptionRooms !== null ? 'verified' : 'unknown'} detail={text(facts.receptionRooms)} />
             <StatusRow label="Floor area" state={facts.floorSizeM2 !== null ? 'verified' : 'missing'} detail={facts.floorSizeM2 ? String(facts.floorSizeM2) + ' m²' : 'Required for R/m² analysis'} />
             <StatusRow label="Land area" state={facts.landSizeM2 !== null ? 'verified' : 'missing'} detail={facts.landSizeM2 ? String(facts.landSizeM2) + ' m²' : 'Property evidence required'} />
-            <StatusRow label="Parking" state={facts.parking !== null ? 'verified' : 'unknown'} detail={text(facts.parking)} />
+            <StatusRow label="Parking" state={facts.parking !== null ? 'verified' : 'unknown'} detail={facts.parkingDetails?.length ? facts.parkingDetails.join(' · ') : text(facts.parking)} />
+            <StatusRow label="Pets" state={facts.petsAllowed !== undefined && facts.petsAllowed !== null ? 'verified' : 'unknown'} detail={yesNo(facts.petsAllowed)} />
+            <StatusRow label="Flatlet" state={facts.flatlet !== undefined && facts.flatlet !== null ? 'verified' : 'unknown'} detail={facts.flatlet === true ? 'Advertised' : 'Not advertised'} />
+            <StatusRow label="Flooring" state={facts.flooring?.length ? 'verified' : 'unknown'} detail={facts.flooring?.length ? facts.flooring.join(' · ') : 'Not verified'} />
+            <StatusRow label="Backup water" state={facts.backupWater?.length ? 'verified' : 'unknown'} detail={facts.backupWater?.length ? facts.backupWater.join(' · ') : 'Not verified'} />
+            <StatusRow label="Backup power" state={facts.backupPower?.length ? 'verified' : 'unknown'} detail={facts.backupPower?.length ? facts.backupPower.join(' · ') : 'Not verified'} />
             <StatusRow label="Garden" state={facts.hasGarden !== null ? 'verified' : 'unknown'} detail={yesNo(facts.hasGarden)} />
             <StatusRow label="Fibre" state={facts.hasFibre !== null ? 'verified' : 'unknown'} detail={yesNo(facts.hasFibre)} />
             <StatusRow label="Solar / backup" state={facts.hasSolar !== null || facts.hasBatteryBackup !== null ? 'verified' : 'unknown'} detail={facts.hasSolar === true || facts.hasBatteryBackup === true ? 'Indicated' : 'Not verified'} />
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <StatusRow label="Listing identity" state={facts.listingNumber ? 'verified' : 'unknown'} detail={facts.listingNumber ? 'Property24 #' + facts.listingNumber : 'Not verified'} />
+            <StatusRow label="Listing date" state={facts.listingDate ? 'verified' : 'unknown'} detail={text(facts.listingDate)} />
+          </div>
+          <div className="mt-5 rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">What these listing facts mean</p>
+            <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#475569]">
+              {facts.flatlet === true && <p><strong>Flatlet:</strong> The listing advertises a flatlet. EiX does not assign rental income to it. Confirm approval, access, utilities and condition before treating it as financial value.</p>}
+              {(facts.backupPower?.length || facts.backupWater?.length) && <p><strong>Resilience:</strong> The listing advertises {facts.backupPower?.join(' and ') || 'backup power'}{facts.backupWater?.length ? ' and ' + facts.backupWater.join(' and ') : ''}. Confirm capacity, ownership, installation, condition and what is actually supported.</p>}
+              {facts.parkingDetails?.length && <p><strong>Parking:</strong> {facts.parkingDetails.join(' and ')} are advertised. Confirm allocation, dimensions and whether each space is exclusive, shared or merely practical parking.</p>}
+              {facts.floorSizeM2 && price ? <p><strong>Price intensity:</strong> The asking price implies approximately {money(Math.round(price / facts.floorSizeM2))} per m² of advertised floor area. This is a comparison input, not a price-fairness conclusion.</p> : null}
+              {facts.ratesAndTaxesCents !== null && <p><strong>Known recurring cost:</strong> Property24 supplies rates of {money(facts.ratesAndTaxesCents)}. Confirm the latest municipal account, arrears and current charges before relying on it.</p>}
+            </div>
           </div>
         </section>
 
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Property DNA™</p>
           <h2 className="mt-1 text-xl font-bold">Buyer signals from the available property evidence</h2>
+          {Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.some((claim: any) => ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type)) && (
+            <div className="mt-5 rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5">
+              <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Listing-derived income evidence</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#475569]">
+                {facts.property24NarrativeClaims
+                  .filter((claim: any) => ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type))
+                  .map((claim: any) => claim.text)
+                  .join(' ')}
+              </p>
+              <p className="mt-2 text-xs text-[#64748B]">Property24 listing claim only. Revenue, occupancy, expenses, permissions, zoning, plans and compliance are not independently verified.</p>
+            </div>
+          )}
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatusRow label="Owner-occupier fit" state={facts.bedrooms !== null && facts.bathrooms !== null ? 'verified' : 'unknown'} detail="Profile established only from supplied property facts." />
-            <StatusRow label="Investment" state={report.rental_yield_percent !== null ? 'verified' : 'unknown'} detail={report.rental_yield_percent !== null ? String(report.rental_yield_percent) + '% rental yield input' : 'Rental evidence required'} />
+            <StatusRow
+              label="Investment"
+              state={report.rental_yield_percent !== null || (Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.some((claim: any) => ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type))) ? 'verified' : 'unknown'}
+              detail={report.rental_yield_percent !== null
+                ? String(report.rental_yield_percent) + '% rental yield input'
+                : (Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.some((claim: any) => ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type))
+                  ? 'Income-use configuration identified from the Property24 listing; financial performance remains unverified.'
+                  : 'Rental evidence required')}
+            />
             <StatusRow label="Outdoor living" state={facts.hasGarden === true ? 'verified' : 'unknown'} detail={facts.hasGarden === true ? 'Garden indicated' : 'Evidence required'} />
             <StatusRow label="Market certainty" state={achievedCount >= 3 ? 'verified' : 'missing'} detail={achievedCount >= 3 ? 'Comparable evidence available' : 'Achieved-sale evidence limited'} />
           </div>
@@ -345,6 +386,20 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Market momentum', marketMomentum],
             ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 font-semibold leading-relaxed">{value}</p></div>)}
           </div>
+          {Array.isArray(facts.pointsOfInterest) && facts.pointsOfInterest.length > 0 && (
+            <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Property24-listed nearby places</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {facts.pointsOfInterest.slice(0, 8).map((poi: any) => (
+                  <div key={poi.name + poi.distanceKm} className="rounded-xl border border-[#E2E8F0] bg-white p-3">
+                    <p className="text-sm font-semibold">{poi.name}</p>
+                    <p className="mt-1 text-xs text-[#64748B]">{poi.category || 'Point of interest'} · {poi.distanceKm} km</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-[#94A3B8]">These distances are reported by the supplied Property24 listing. They are proximity evidence, not an EiX assessment of quality, safety or suitability.</p>
+            </div>
+          )}
           <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location and nearby-place evidence is sourced from OpenStreetMap data where available. When an exact street address is unavailable, EiX uses the listing's stated area (for example, Camps Bay) as a neighbourhood anchor; nearby-place distances are approximate straight-line distances from that geocoded area. Safety indicators show nearby public-safety infrastructure only; EiX does not convert this into a crime or safety score.</p>
         </section>
 
@@ -399,6 +454,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {[
+              ['Address', facts.address, 'Property24 source address; independent title verification not performed'],
               ['Asking price', facts.askingPriceCents, 'supplied / extracted'],
               ['Bedrooms', facts.bedrooms, 'supplied / extracted'],
               ['Bathrooms', facts.bathrooms, 'supplied / extracted'],
@@ -406,10 +462,25 @@ export default async function CustomerReportPage({ params, searchParams }: { par
               ['Erf / land area', facts.landSizeM2, 'property evidence'],
               ['Rates', facts.ratesAndTaxesCents, 'municipal cost input'],
               ['Levy', facts.leviesCents, 'body corporate cost input'],
+              ['Kitchens', facts.kitchens, 'listing-supplied room count'],
+              ['Reception rooms', facts.receptionRooms, 'listing-supplied room count'],
+              ['Parking details', facts.parkingDetails?.join(' · ') || null, 'listing-supplied parking configuration'],
+              ['Flatlet', facts.flatlet, 'listing-supplied feature; approval not verified'],
+              ['Backup water', facts.backupWater?.join(' · ') || null, 'listing-supplied resilience feature'],
+              ['Backup power', facts.backupPower?.join(' · ') || null, 'listing-supplied resilience feature'],
+              ['Listing number', facts.listingNumber, 'source identity'],
+              ['Listing date', facts.listingDate, 'source freshness'],
+              ['P24 calculator repayment', facts.property24MonthlyRepaymentCents, 'source-provided scenario; not a bank offer'],
+              ['P24 calculator once-off costs', facts.property24OnceOffCostsCents, 'source-provided scenario'],
+              ['P24 minimum gross income', facts.property24MinimumGrossMonthlyIncomeCents, 'source-provided scenario'],
+              ['Listing description', facts.description, 'Property24 source narrative'],
+              ['Income-use claims', Array.isArray(facts.property24NarrativeClaims) ? facts.property24NarrativeClaims.length : null, 'listing claims; financial performance not verified'],
+              ['Recent-sale records', Array.isArray(facts.property24RecentSales) ? facts.property24RecentSales.length : null, 'Property24 candidate market evidence; not automatically verified comparables'],
+              ['Nearby places', Array.isArray(facts.pointsOfInterest) ? facts.pointsOfInterest.length : null, 'Property24-listed proximity evidence'],
               ['Comparable sales', achievedCount, '3+ required for price fairness'],
             ].map(([label, value, basis]) => {
               const present = value !== null && value !== undefined && value !== '' && !(typeof value === 'number' && value === 0 && label !== 'Comparable sales');
-              const display = label === 'Asking price' || label === 'Rates' || label === 'Levy'
+              const display = ['Asking price', 'Rates', 'Levy', 'P24 calculator repayment', 'P24 calculator once-off costs', 'P24 minimum gross income'].includes(label as string)
                 ? (present ? money(value) : 'Not verified')
                 : (present ? String(value) : 'Not verified');
               return (
