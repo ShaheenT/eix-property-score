@@ -23,7 +23,7 @@ export interface AcquisitionIntelligence {
 }
 
 const DEFAULT_DEPOSIT_PERCENT = 10;
-const DEFAULT_BOND_INTEREST_PERCENT = 11.5;
+const DEFAULT_BOND_INTEREST_PERCENT = 10.5;
 const DEFAULT_BOND_TERM_YEARS = 20;
 
 function calculateTransferDutyCents(purchasePriceCents: number): number {
@@ -114,7 +114,7 @@ export function calculateAcquisitionIntelligence(
 
   const assumptions = [
     'Deposit scenario assumes 10% of asking price.',
-    'Bond scenario assumes 90% loan-to-value, 11.5% annual interest and a 20-year term.',
+    'Bond scenario assumes 90% loan-to-value, 10.5% annual interest and a 20-year term.',
     'Transfer duty uses the SARS 2026/2027 schedule effective from 1 April 2026.',
     'Transfer duty is calculated on asking price for scenario planning; the final duty basis must be confirmed for the transaction.',
     'Transfer duty is included only where the transaction is not subject to VAT.',

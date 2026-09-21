@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { createPayFastPaymentLink } from '@/lib/payfast';
+import { initializePaystackTransaction } from '@/lib/paystack';
 import { validatePropertyInput } from '@/lib/property-input';
 
 const ALLOWED_GOALS = new Set(['Buy to Live', 'Rental', 'Flip']);
@@ -42,6 +42,15 @@ export async function POST(req: NextRequest) {
     if (product === 'standard_report' && !normalisedWhatsapp) return NextResponse.json({ error: 'Please enter a valid international WhatsApp number.' }, { status: 400 });
     if (whatsapp.length > 40) return NextResponse.json({ error: 'WhatsApp number is too long.' }, { status: 400 });
 
+    const normalisedBuyerCountry = buyerCountry?.trim().toLowerCase() || null;
+    const effectiveBuyerType =
+      normalisedBuyerCountry && !['south africa', 'za', 'zaf'].includes(normalisedBuyerCountry)
+        ? 'international'
+        : buyerType;
+    if (effectiveBuyerType === 'international' && !buyerCountry) {
+      return NextResponse.json({ error: 'Buyer country is required for international pricing.' }, { status: 400 });
+    }
+
     const prod = product as 'standard_report' | 'investor_report_pro';
     let customer: { id: string; name: string; email: string };
     let submission: { id: string; listing_url: string; source_platform: string | null; goal: string; status: string };
@@ -61,7 +70,7 @@ export async function POST(req: NextRequest) {
         source_platform: propertyInput.source,
         goal,
         status: 'awaiting_payment',
-        buyer_type: buyerType,
+        buyer_type: effectiveBuyerType,
         buyer_country: buyerCountry,
         buyer_purpose: buyerPurpose,
         buyer_budget: buyerBudget,
@@ -90,12 +99,12 @@ export async function POST(req: NextRequest) {
 
     const amount = prod === 'investor_report_pro'
       ? INVESTOR_REPORT_PRO_PRICE_ZAR
-      : buyerType === 'international'
+      : effectiveBuyerType === 'international'
         ? INTERNATIONAL_BUYER_PRICE_ZAR
         : STANDARD_REPORT_PRICE_ZAR;
     const itemName = prod === 'investor_report_pro'
       ? 'EiXPropScore™ Investor Report Pro'
-      : buyerType === 'international'
+      : effectiveBuyerType === 'international'
         ? 'EiXPropScore™ International Buyer Intelligence'
         : 'EiXPropScore™ Founding Beta';
     const { data: payment, error: paymentError } = await supabaseAdmin.from('payments').insert({ submission_id: submission.id, customer_id: customer.id, amount_cents: amount * 100, product: prod, status: 'pending' }).select('id').single();
@@ -103,8 +112,11 @@ export async function POST(req: NextRequest) {
     const { error: paymentReferenceError } = await supabaseAdmin.from('payments').update({ payment_reference: payment.id }).eq('id', payment.id);
     if (paymentReferenceError) throw paymentReferenceError;
 
-    const { url } = createPayFastPaymentLink({ amount, itemName, submissionId: submission.id, paymentId: payment.id, customerEmail: customer.email, customerName: customer.name, product: prod });
-    return NextResponse.json({ checkout_url: url, submission_id: submission.id, payment_id: payment.id, amount_zar: amount, buyer_type: buyerType, property: { kind: propertyInput?.kind ?? 'listing', source: propertyInput?.source ?? submission.source_platform, source_label: propertyInput?.sourceLabel ?? submission.source_platform } });
+    const requestOrigin = req.nextUrl.origin;
+    const { url, reference } = await initializePaystackTransaction({ amount, itemName, submissionId: submission.id, paymentId: payment.id, customerEmail: customer.email, customerName: customer.name, product: prod, baseUrl: requestOrigin });
+    const { error: referenceError } = await supabaseAdmin.from('payments').update({ payment_reference: reference }).eq('id', payment.id);
+    if (referenceError) throw referenceError;
+    return NextResponse.json({ checkout_url: url, submission_id: submission.id, payment_id: payment.id, amount_zar: amount, buyer_type: effectiveBuyerType, property: { kind: propertyInput?.kind ?? 'listing', source: propertyInput?.source ?? submission.source_platform, source_label: propertyInput?.sourceLabel ?? submission.source_platform } });
   } catch (err) {
     console.error('[Checkout] Unexpected error', err);
     const message = err instanceof Error ? `${err.name}: ${err.message}` : 'Unknown error';

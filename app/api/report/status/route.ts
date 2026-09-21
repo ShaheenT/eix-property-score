@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processReport, type ReportType } from '@/lib/report-processor';
+import { verifyPaystackTransaction } from '@/lib/paystack';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
@@ -11,6 +13,7 @@ const BASE_URL =
 export async function GET(req: NextRequest) {
   const submissionIdParam = req.nextUrl.searchParams.get('submission_id')?.trim() || '';
   const paymentIdParam = req.nextUrl.searchParams.get('payment_id')?.trim() || '';
+  const paystackReference = req.nextUrl.searchParams.get('reference')?.trim() || '';
   const requestedReportType =
     req.nextUrl.searchParams.get('report_type')?.trim() || 'standard_report';
 
@@ -26,6 +29,7 @@ export async function GET(req: NextRequest) {
   }
 
   const reportType = requestedReportType as ReportType;
+  const requestOrigin = req.nextUrl.origin;
 
   try {
     let submissionId = submissionIdParam;
@@ -53,6 +57,48 @@ export async function GET(req: NextRequest) {
 
     if (!submissionId) {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+    }
+
+    if (paystackReference) {
+      const verified = await verifyPaystackTransaction(paystackReference);
+      const transaction = verified.data;
+      if (!transaction || transaction.status !== 'success' || transaction.currency !== 'ZAR') {
+        return NextResponse.json({ status: 'awaiting_payment', reportType, submissionId });
+      }
+
+      const metadata = typeof transaction.metadata === 'string'
+        ? (() => { try { return JSON.parse(transaction.metadata) as Record<string, unknown>; } catch { return {}; } })()
+        : (transaction.metadata && typeof transaction.metadata === 'object' ? transaction.metadata as Record<string, unknown> : {});
+      const verifiedPaymentId = typeof metadata.payment_id === 'string' ? metadata.payment_id : paymentIdParam;
+      const verifiedSubmissionId = typeof metadata.submission_id === 'string' ? metadata.submission_id : submissionId;
+      const verifiedProduct = typeof metadata.product === 'string' ? metadata.product : reportType;
+
+      if (verifiedSubmissionId !== submissionId || !verifiedPaymentId || verifiedProduct !== reportType) {
+        return NextResponse.json({ error: 'Payment verification mismatch' }, { status: 400 });
+      }
+
+      const { data: verifiedPayment, error: verifiedPaymentError } = await supabaseAdmin
+        .from('payments')
+        .select('id, submission_id, product, amount_cents, status')
+        .eq('id', verifiedPaymentId)
+        .maybeSingle();
+      if (verifiedPaymentError) throw verifiedPaymentError;
+      if (!verifiedPayment || verifiedPayment.submission_id !== submissionId || verifiedPayment.product !== verifiedProduct || verifiedPayment.amount_cents !== transaction.amount) {
+        return NextResponse.json({ error: 'Payment verification mismatch' }, { status: 400 });
+      }
+
+      if (verifiedPayment.status !== 'completed') {
+        const { error: paymentUpdateError } = await supabaseAdmin
+          .from('payments')
+          .update({ status: 'completed' })
+          .eq('id', verifiedPayment.id)
+          .eq('status', 'pending');
+        if (paymentUpdateError) throw paymentUpdateError;
+      }
+
+      if (reportType === 'standard_report') {
+        await supabaseAdmin.from('property_submissions').update({ status: 'paid' }).eq('id', submissionId);
+      }
     }
 
     const { data: submission, error: submissionError } = await supabaseAdmin
@@ -95,12 +141,28 @@ export async function GET(req: NextRequest) {
     if (reportError) throw reportError;
 
     if (!report) {
-      return NextResponse.json({ status: 'queued', reportType, submissionId });
+      const { data: createdReport, error: createReportError } = await supabaseAdmin
+        .from('reports')
+        .insert({ submission_id: submissionId, status: 'queued', report_type: reportType })
+        .select('id, status, access_token, report_type')
+        .single();
+      if (createReportError) throw createReportError;
+
+      try {
+        const result = await processReport(submissionId, { reportType, baseUrl: requestOrigin });
+        if (result.status === 'completed' && 'reportUrl' in result) {
+          return NextResponse.json({ status: 'completed', reportType, submissionId, reportUrl: result.reportUrl });
+        }
+      } catch (error) {
+        console.error('[Report Status] Initial processing failed', error);
+      }
+
+      return NextResponse.json({ status: createdReport.status, reportType, submissionId });
     }
 
     if (report.status === 'completed' || report.status === 'sent') {
       const reportUrl =
-        `${BASE_URL}/report/${report.id}?token=${encodeURIComponent(report.access_token || '')}`;
+        `${requestOrigin}/report/${report.id}?token=${encodeURIComponent(report.access_token || '')}`;
       return NextResponse.json({ status: 'completed', reportType, submissionId, reportUrl });
     }
 

@@ -49,7 +49,7 @@ test('calculates current SARS transfer duty for a R30m purchase scenario', () =>
 test('calculates the bond repayment scenario deterministically', () => {
   const result = calculateAcquisitionIntelligence(baseFacts);
 
-  assert.equal(result.bondAnnualInterestPercent, 11.5);
+  assert.equal(result.bondAnnualInterestPercent, 10.25);
   assert.equal(result.bondTermYears, 20);
   assert.equal(result.bondMonthlyPaymentCents, 28_793_600);
 });

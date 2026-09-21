@@ -37,7 +37,7 @@ export default function ProSuccessPage() {
           setStatus('Your Investor Report Pro is ready.');
           return;
         }
-        if (data.status === 'awaiting_payment') setStatus('Confirming your R349 payment with PayFast…');
+        if (data.status === 'awaiting_payment') setStatus('Confirming your R349 payment with Paystack…');
         else if (data.status === 'processing' || data.status === 'queued') setStatus('Your Investor Report Pro is being prepared…');
         else if (data.status === 'failed') setStatus('We are retrying your Pro report preparation…');
       } catch {
@@ -65,7 +65,7 @@ export default function ProSuccessPage() {
           title="Investor Report Pro Purchased"
           message="Your R349 upgrade is attached to the same property submission as your standard report."
           steps={[
-            'PayFast payment confirmation is checked securely.',
+            'Paystack payment confirmation is checked securely.',
             'The Investor Report Pro analysis is generated from verified property evidence.',
             reportUrl ? 'Your Investor Report Pro is ready.' : status,
           ]}
