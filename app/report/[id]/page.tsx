@@ -121,6 +121,15 @@ export default async function CustomerReportPage({ params, searchParams }: { par
   const activeCount = numberValue(score.activeListingCount) ?? 0;
   const pendingCount = numberValue(score.pendingSaleCount) ?? 0;
   const confidence = numberValue(report.ai_confidence) ?? 0;
+  const listingArea = neighbourhood.location.areaLabel || facts.suburb || facts.city || null;
+  const locationLine = listingArea
+    ? (facts.address ? `${listingArea} · ${facts.address}` : `${listingArea} · Exact street address not verified`)
+    : 'Location not verified';
+  const marketMomentum = achievedCount >= 3
+    ? `${achievedCount} verified achieved sales; ${activeCount} active listings; ${pendingCount} pending sales`
+    : (activeCount > 0 || pendingCount > 0
+      ? `${activeCount} active listings and ${pendingCount} pending sales identified; achieved-sale evidence remains limited`
+      : 'Market evidence not retrieved');
   const state = decisionState(report, achievedCount);
 
   const acquisition = (() => {
@@ -178,7 +187,7 @@ export default async function CustomerReportPage({ params, searchParams }: { par
             <div>
               <p className="text-sm font-medium text-[#64748B]">{text(facts.propertyType, 'Property')}</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-[-.035em] text-[#0B1220] sm:text-5xl">{text(facts.title, 'Property analysis')}</h1>
-              <p className="mt-2 flex items-center gap-1.5 text-sm text-[#64748B]"><MapPin className="h-4 w-4" />{text(facts.address)}</p>
+              <p className="mt-2 flex items-center gap-1.5 text-sm text-[#64748B]"><MapPin className="h-4 w-4" />{locationLine}</p>
               <div className="mt-5 flex flex-wrap gap-2 text-sm text-[#475569]">
                 <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">{text(facts.bedrooms, '—')} Bed</span>
                 <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">{text(facts.bathrooms, '—')} Bath</span>
@@ -326,17 +335,17 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <p className="mt-2 text-sm text-[#64748B]">Location intelligence is shown only where the report contains supporting evidence. EiX does not manufacture neighbourhood scores from missing data.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ['Location', neighbourhood.location.verified ? (facts.suburb || facts.city || neighbourhood.location.label || 'Verified location') : text(facts.suburb || facts.city)],
-              ['Province', text(facts.province)],
+              ['Location', listingArea || 'Location not verified'],
+              ['Province', neighbourhood.location.province || facts.province || 'Not verified'],
               ['Transport', neighbourhoodSummary(neighbourhood.transport)],
               ['Schools / healthcare', neighbourhoodSummary(neighbourhood.schoolsHealthcare)],
               ['Lifestyle / retail', neighbourhoodSummary(neighbourhood.lifestyleRetail)],
               ['Safety indicators', neighbourhoodSummary(neighbourhood.safetyIndicators, 'No public safety infrastructure evidence found; no safety score inferred')],
               ['Parks / recreation', neighbourhoodSummary(neighbourhood.parksRecreation)],
-              ['Market momentum', achievedCount >= 3 ? `${achievedCount} verified achieved sales; ${activeCount} active listings; ${pendingCount} pending sales` : `${activeCount} active listings and ${pendingCount} pending sales identified; achieved-sale evidence remains limited`],
+              ['Market momentum', marketMomentum],
             ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E2E8F0] p-4"><p className="text-xs uppercase tracking-wider text-[#94A3B8]">{label}</p><p className="mt-2 font-semibold leading-relaxed">{value}</p></div>)}
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location and nearby-place evidence is sourced from OpenStreetMap data where available. Distances are approximate straight-line distances from the geocoded property location. Safety indicators show nearby public-safety infrastructure only; EiX does not convert this into a crime or safety score.</p>
+          <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">Location and nearby-place evidence is sourced from OpenStreetMap data where available. When an exact street address is unavailable, EiX uses the listing's stated area (for example, Camps Bay) as a neighbourhood anchor; nearby-place distances are approximate straight-line distances from that geocoded area. Safety indicators show nearby public-safety infrastructure only; EiX does not convert this into a crime or safety score.</p>
         </section>
 
         <section className="mt-5 rounded-[24px] border border-[#E2E8F0] bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.05)] sm:p-7">

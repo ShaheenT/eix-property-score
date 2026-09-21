@@ -10,9 +10,13 @@ export interface NeighbourhoodPlace {
 export interface NeighbourhoodIntelligence {
   location: {
     label: string | null;
+    areaLabel: string | null;
+    city: string | null;
+    province: string | null;
     latitude: number | null;
     longitude: number | null;
     verified: boolean;
+    source: 'address' | 'listing_title' | 'property_fields' | 'none';
     sourceUrl: string | null;
   };
   transport: NeighbourhoodPlace[];
@@ -28,6 +32,21 @@ const OSM = 'https://www.openstreetmap.org';
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+export function listingLocationFromTitle(title: string | null): string | null {
+  const value = clean(title);
+  if (!value) return null;
+
+  const match = value.match(/\bfor\s+sale\s+in\s+(.+)$/i);
+  if (!match?.[1]) return null;
+
+  const location = match[1]
+    .replace(/\s*[|,].*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return location || null;
 }
 
 function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -58,26 +77,117 @@ async function fetchJson<T>(url: string, init: RequestInit & { next?: { revalida
   }
 }
 
+interface NominatimAddress {
+  suburb?: string;
+  neighbourhood?: string;
+  city?: string;
+  town?: string;
+  municipality?: string;
+  state?: string;
+  county?: string;
+}
+
+interface NominatimItem {
+  lat: string;
+  lon: string;
+  display_name: string;
+  osm_id?: number;
+  osm_type?: string;
+  type?: string;
+  address?: NominatimAddress;
+}
+
+function locationFromFields(facts: PropertyFacts, fallbackArea: string | null): {
+  areaLabel: string | null;
+  city: string | null;
+  province: string | null;
+} {
+  return {
+    areaLabel: clean(facts.suburb) || fallbackArea || clean(facts.city),
+    city: clean(facts.city),
+    province: clean(facts.province),
+  };
+}
+
 async function geocode(facts: PropertyFacts): Promise<NeighbourhoodIntelligence['location']> {
-  const query = [facts.address, facts.suburb, facts.city, facts.province, 'South Africa']
-    .map(clean).filter(Boolean).join(', ');
-  if (!query) {
-    return { label: null, latitude: null, longitude: null, verified: false, sourceUrl: null };
+  const derivedArea = listingLocationFromTitle(facts.title);
+  const fieldLocation = locationFromFields(facts, derivedArea);
+  const exactAddress = clean(facts.address);
+
+  const query = exactAddress
+    ? [exactAddress, facts.suburb, facts.city, facts.province, 'South Africa']
+    : [fieldLocation.areaLabel, facts.city, facts.province, 'South Africa'];
+
+  const queryText = query.map(clean).filter(Boolean).join(', ');
+  if (!queryText) {
+    return {
+      label: null,
+      areaLabel: null,
+      city: null,
+      province: null,
+      latitude: null,
+      longitude: null,
+      verified: false,
+      source: 'none',
+      sourceUrl: null,
+    };
   }
 
-  const url = `${NOMINATIM}?format=jsonv2&limit=1&countrycodes=za&q=${encodeURIComponent(query)}`;
-  const result = await fetchJson<Array<{ lat: string; lon: string; display_name: string; osm_id?: number; osm_type?: string }>>(url);
+  const url = `${NOMINATIM}?format=jsonv2&limit=1&addressdetails=1&countrycodes=za&q=${encodeURIComponent(queryText)}`;
+  const result = await fetchJson<NominatimItem[]>(url);
   const item = result?.[0];
-  if (!item) return { label: facts.suburb || facts.city || null, latitude: null, longitude: null, verified: false, sourceUrl: null };
+
+  if (!item) {
+    return {
+      label: fieldLocation.areaLabel,
+      areaLabel: fieldLocation.areaLabel,
+      city: fieldLocation.city,
+      province: fieldLocation.province,
+      latitude: null,
+      longitude: null,
+      verified: false,
+      source: exactAddress ? 'address' : (derivedArea ? 'listing_title' : 'property_fields'),
+      sourceUrl: null,
+    };
+  }
 
   const lat = Number(item.lat);
   const lon = Number(item.lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return { label: item.display_name || facts.suburb || facts.city || null, latitude: null, longitude: null, verified: false, sourceUrl: null };
+    return {
+      label: fieldLocation.areaLabel,
+      areaLabel: fieldLocation.areaLabel,
+      city: fieldLocation.city,
+      province: fieldLocation.province,
+      latitude: null,
+      longitude: null,
+      verified: false,
+      source: exactAddress ? 'address' : (derivedArea ? 'listing_title' : 'property_fields'),
+      sourceUrl: null,
+    };
   }
 
-  const sourceUrl = item.osm_type && item.osm_id ? `${OSM}/${item.osm_type}/${item.osm_id}` : `${OSM}/#map=16/${lat}/${lon}`;
-  return { label: item.display_name || facts.suburb || facts.city || null, latitude: lat, longitude: lon, verified: true, sourceUrl };
+  const address = item.address || {};
+  const areaLabel = clean(address.suburb) || clean(address.neighbourhood) || fieldLocation.areaLabel;
+  const city = clean(address.city) || clean(address.town) || clean(address.municipality) || fieldLocation.city;
+  const province = clean(address.state) || fieldLocation.province;
+  const source = exactAddress ? 'address' : (derivedArea ? 'listing_title' : 'property_fields');
+  const sourceUrl = item.osm_type && item.osm_id
+    ? `${OSM}/${item.osm_type}/${item.osm_id}`
+    : `${OSM}/#map=15/${lat}/${lon}`;
+
+  return {
+    label: areaLabel || fieldLocation.areaLabel || item.display_name || null,
+    areaLabel: areaLabel || fieldLocation.areaLabel || null,
+    city,
+    province,
+    latitude: lat,
+    longitude: lon,
+    // A suburb centroid/geocode is location context, not verification of the exact property address.
+    verified: source === 'address',
+    source,
+    sourceUrl,
+  };
 }
 
 interface OverpassElement {
@@ -126,7 +236,9 @@ export async function getNeighbourhoodIntelligence(facts: PropertyFacts): Promis
     parksRecreation: [],
   };
 
-  if (!location.verified || location.latitude == null || location.longitude == null) {
+  // We can use a geocoded listing area for neighbourhood context even when
+  // the exact street address is not verified.
+  if (location.latitude == null || location.longitude == null) {
     return { location, ...empty };
   }
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { neighbourhoodSummary } from '@/lib/neighbourhood-intelligence';
+import { listingLocationFromTitle, neighbourhoodSummary } from '@/lib/neighbourhood-intelligence';
 
 test('neighbourhood summary reports real nearby evidence instead of a generic evidence-required placeholder', () => {
   const result = neighbourhoodSummary([
@@ -16,4 +16,15 @@ test('neighbourhood summary reports real nearby evidence instead of a generic ev
 
 test('neighbourhood summary is explicit when evidence is unavailable', () => {
   assert.equal(neighbourhoodSummary([], 'No supporting evidence found'), 'No supporting evidence found');
+});
+
+test('listing title provides a usable neighbourhood anchor when address fields are missing', () => {
+  assert.equal(
+    listingLocationFromTitle('5 Bedroom House for Sale in Camps Bay'),
+    'Camps Bay',
+  );
+});
+
+test('listing title parser does not invent a location when the title has no sale location', () => {
+  assert.equal(listingLocationFromTitle('5 Bedroom House'), null);
 });
