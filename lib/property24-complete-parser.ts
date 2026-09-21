@@ -32,6 +32,7 @@ function stripNonContent(value: string): string {
 function decode(value: string): string {
   return stripNonContent(value).replace(/&nbsp;|&#160;/gi,' ').replace(/&#xB2;|&#178;/gi,'²')
     .replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&#x27;/gi,"'")
+    .replace(/&#x2014;|&#8212;/gi,'—').replace(/&#x2013;|&#8211;/gi,'–')
     .replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
 }
 function moneyCents(value: string): number | null {
@@ -160,7 +161,9 @@ export function parseProperty24CompleteSections(body: string): {
   ];
   const allHeadings = poiCategories.flatMap(category =>
     category.aliases.map(alias => ({ category, alias, start: poiText.toLowerCase().indexOf(alias.toLowerCase()) }))
-  ).filter(item => item.start >= 0).sort((a, b) => a.start - b.start);
+  ).filter(item => item.start >= 0)
+    .sort((a, b) => a.start - b.start || b.alias.length - a.alias.length)
+    .filter((item, index, items) => index === 0 || !(item.start === items[index - 1].start));
   for (let index = 0; index < allHeadings.length; index++) {
     const current = allHeadings[index];
     const start = current.start + current.alias.length;
