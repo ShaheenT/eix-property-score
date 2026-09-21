@@ -247,6 +247,21 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           {acquisition ? (
             <>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.length > 0 && (
+              <div className="rounded-2xl border border-[#DCE6F7] bg-[#F7FAFF] p-5 sm:col-span-2 lg:col-span-4">
+                <p className="text-xs font-bold uppercase tracking-[.18em] text-[#2563EB]">Listing-derived income evidence</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#475569]">
+                  {facts.property24NarrativeClaims
+                    .filter((claim: any) => ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type))
+                    .map((claim: any) => claim.text)
+                    .join(' ')}
+                </p>
+                <p className="mt-2 text-xs text-[#64748B]">Property24 listing claim only. Revenue, occupancy, expenses, permissions, zoning, plans and compliance are not independently verified.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
                   ['Deposit (10%)', money(acquisition.deposit)],
                   ['Transfer duty', money(acquisition.duty)],
@@ -345,7 +360,15 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <h2 className="mt-1 text-xl font-bold">Buyer signals from the available property evidence</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatusRow label="Owner-occupier fit" state={facts.bedrooms !== null && facts.bathrooms !== null ? 'verified' : 'unknown'} detail="Profile established only from supplied property facts." />
-            <StatusRow label="Investment" state={report.rental_yield_percent !== null ? 'verified' : 'unknown'} detail={report.rental_yield_percent !== null ? String(report.rental_yield_percent) + '% rental yield input' : 'Rental evidence required'} />
+            <StatusRow
+              label="Investment"
+              state={report.rental_yield_percent !== null || (Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.some((claim: any) => ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type))) ? 'verified' : 'unknown'}
+              detail={report.rental_yield_percent !== null
+                ? String(report.rental_yield_percent) + '% rental yield input'
+                : (Array.isArray(facts.property24NarrativeClaims) && facts.property24NarrativeClaims.some((claim: any) => ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type))
+                  ? 'Income-use configuration identified from the Property24 listing; financial performance remains unverified.'
+                  : 'Rental evidence required')}
+            />
             <StatusRow label="Outdoor living" state={facts.hasGarden === true ? 'verified' : 'unknown'} detail={facts.hasGarden === true ? 'Garden indicated' : 'Evidence required'} />
             <StatusRow label="Market certainty" state={achievedCount >= 3 ? 'verified' : 'missing'} detail={achievedCount >= 3 ? 'Comparable evidence available' : 'Achieved-sale evidence limited'} />
           </div>
