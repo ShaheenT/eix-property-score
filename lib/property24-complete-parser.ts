@@ -148,16 +148,29 @@ export function parseProperty24CompleteSections(body: string): {
 
   const poiText=sectionText(normalized,'Points of Interest');
   const pois: Property24PointOfInterest[]=[];
-  for(const category of ['Shopping','Education','Transport and Public Services','Food and Entertainment']){
-    const start=poiText.toLowerCase().indexOf(category.toLowerCase());
-    if(start<0) continue;
-    let block=poiText.slice(start+category.length);
-    for(const other of ['Shopping','Education','Transport and Public Services','Food and Entertainment']) {
-      if(other===category) continue;
-      const i=block.toLowerCase().indexOf(other.toLowerCase()); if(i>=0) block=block.slice(0,i);
-    }
-    for(const m of block.matchAll(/([A-Za-z0-9][A-Za-z0-9'&()./ -]{2,80}?)\s+(\d+(?:\.\d+)?)\s*km\b/gi)){
-      const name=m[1].trim(); if(name) pois.push({category,name,distanceKm:Number(m[2])});
+  const poiCategories = [
+    { label: 'Shopping', aliases: ['Shopping','Retail'] },
+    { label: 'Education', aliases: ['Education','Schools'] },
+    { label: 'Transport and Public Services', aliases: ['Transport and Public Services','Transport/Public Services','Transport & Public Services','Transport'] },
+    { label: 'Food and Entertainment', aliases: ['Food and Entertainment','Food/Entertainment','Food & Entertainment'] },
+    { label: 'Health', aliases: ['Health','Healthcare'] },
+    { label: 'Parks and Recreation', aliases: ['Parks and Recreation','Parks/Recreation','Parks & Recreation'] },
+  ];
+  for (const category of poiCategories) {
+    const positions = category.aliases
+      .map(alias => ({ alias, start: poiText.toLowerCase().indexOf(alias.toLowerCase()) }))
+      .filter(x => x.start >= 0)
+      .sort((a, b) => a.start - b.start);
+    if (!positions.length) continue;
+    for (let index = 0; index < positions.length; index++) {
+      const current = positions[index];
+      const start = current.start + current.alias.length;
+      const end = positions[index + 1]?.start ?? poiText.length;
+      const block = poiText.slice(start, end);
+      for (const m of block.matchAll(/([A-Za-z0-9][A-Za-z0-9'&()./ -]{2,80}?)\s+(\d+(?:\.\d+)?)\s*km\b/gi)) {
+        const name = m[1].trim();
+        if (name) pois.push({ category: category.label, name, distanceKm: Number(m[2]) });
+      }
     }
   }
   const uniquePois=unique(pois,p=>p.category+'|'+p.name+'|'+p.distanceKm);
