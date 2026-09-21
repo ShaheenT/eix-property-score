@@ -11,6 +11,8 @@ export default function SuccessPage() {
   const [status, setStatus] = useState('Checking payment and preparing your report…');
   const [failed, setFailed] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [amountZar, setAmountZar] = useState<number | null>(null);
+  const [buyerType, setBuyerType] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -54,6 +56,8 @@ export default function SuccessPage() {
 
         if (data.status === 'completed' && typeof data.reportUrl === 'string') {
           setPaymentConfirmed(true);
+          setAmountZar(typeof data.amountZar === 'number' ? data.amountZar : null);
+          setBuyerType(typeof data.buyerType === 'string' ? data.buyerType : null);
           setReportUrl(data.reportUrl);
           setStatus('Your report is ready.');
           return;
@@ -104,7 +108,7 @@ export default function SuccessPage() {
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
           {reportUrl ? <>
             <CheckCircle2 className="mx-auto h-8 w-8 text-teal-400" />
-            <p className="mt-3 text-lg font-semibold">Your R149 report is ready</p>
+            <p className="mt-3 text-lg font-semibold">{buyerType === 'international' && amountZar === 1495 ? 'Your R1,495 International Buyer Intelligence report is ready' : `Your R${amountZar?.toLocaleString('en-ZA') || '149'} report is ready`}</p>
             <a href={reportUrl} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-teal-400 px-8 py-4 text-sm font-bold text-midnight-900 transition-all hover:brightness-110">View My Report<ArrowRight className="h-4 w-4" /></a>
           </> : <>
             <Loader2 className={`mx-auto h-8 w-8 text-teal-400 ${failed ? '' : 'animate-spin'}`} />
