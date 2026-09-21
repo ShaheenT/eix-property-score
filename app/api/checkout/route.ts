@@ -42,6 +42,15 @@ export async function POST(req: NextRequest) {
     if (product === 'standard_report' && !normalisedWhatsapp) return NextResponse.json({ error: 'Please enter a valid international WhatsApp number.' }, { status: 400 });
     if (whatsapp.length > 40) return NextResponse.json({ error: 'WhatsApp number is too long.' }, { status: 400 });
 
+    const normalisedBuyerCountry = buyerCountry?.trim().toLowerCase() || null;
+    const effectiveBuyerType =
+      normalisedBuyerCountry && !['south africa', 'za', 'zaf'].includes(normalisedBuyerCountry)
+        ? 'international'
+        : buyerType;
+    if (effectiveBuyerType === 'international' && !buyerCountry) {
+      return NextResponse.json({ error: 'Buyer country is required for international pricing.' }, { status: 400 });
+    }
+
     const prod = product as 'standard_report' | 'investor_report_pro';
     let customer: { id: string; name: string; email: string };
     let submission: { id: string; listing_url: string; source_platform: string | null; goal: string; status: string };
@@ -86,15 +95,6 @@ export async function POST(req: NextRequest) {
       const { data: existingProPayment, error: proPaymentLookupError } = await supabaseAdmin.from('payments').select('id, status').eq('submission_id', submission.id).eq('product', 'investor_report_pro').in('status', ['pending', 'completed']).maybeSingle();
       if (proPaymentLookupError) throw proPaymentLookupError;
       if (existingProPayment) return NextResponse.json({ error: existingProPayment.status === 'completed' ? 'Investor Report Pro has already been purchased for this property.' : 'Investor Report Pro checkout is already pending for this property.' }, { status: 409 });
-    }
-
-    const normalisedBuyerCountry = buyerCountry?.trim().toLowerCase() || null;
-    const effectiveBuyerType =
-      normalisedBuyerCountry && !['south africa', 'za', 'zaf'].includes(normalisedBuyerCountry)
-        ? 'international'
-        : buyerType;
-    if (effectiveBuyerType === 'international' && !buyerCountry) {
-      return NextResponse.json({ error: 'Buyer country is required for international pricing.' }, { status: 400 });
     }
 
     const amount = prod === 'investor_report_pro'
