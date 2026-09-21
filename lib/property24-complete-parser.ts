@@ -19,6 +19,14 @@ export interface Property24NarrativeClaim {
   verification: 'listing_claim';
 }
 
+export interface Property24EvidenceGraphNode {
+  evidence: string;
+  meaning: string;
+  unknowns: string[];
+  action: string;
+  protection: string;
+}
+
 export interface Property24SourceDocument {
   source: 'property24';
   canonicalSource: string;
@@ -30,6 +38,7 @@ export interface Property24SourceDocument {
   claims: Property24NarrativeClaim[];
   recentSales: Property24RecentSaleRecord[];
   sectionsPresent: string[];
+  evidenceGraph: Property24EvidenceGraphNode[];
 }
 
 export interface Property24ListingDetails {
@@ -372,6 +381,48 @@ export function parseProperty24CompleteSections(
     addEvidence(evidence, 'property24RecentSales', JSON.stringify(recentSales));
   }
 
+  const evidenceGraph: Property24EvidenceGraphNode[] = [];
+  const incomeClaimText = claims
+    .filter((claim) => ['income_use', 'rental_use', 'tenant', 'studio_suites'].includes(claim.type))
+    .map((claim) => claim.text)
+    .join(' ');
+  if (incomeClaimText) {
+    evidenceGraph.push({
+      evidence: incomeClaimText,
+      meaning: 'The Property24 listing describes an income-use configuration.',
+      unknowns: [
+        'Actual gross rental/Airbnb revenue',
+        'Occupancy history',
+        'Operating expenses',
+        'Planning/zoning permission',
+        'Approved plans',
+        'Applicable compliance certificates',
+      ],
+      action: 'Request 6–12 months revenue and occupancy evidence, operating expenses, approved plans and confirmation of lawful use.',
+      protection: 'Do not price the income proposition into an offer until the underlying financial and legal evidence is reviewed.',
+    });
+  }
+
+  if (recentSales.length) {
+    evidenceGraph.push({
+      evidence: `Property24 identifies ${recentSales.length} recent-sale records.`,
+      meaning: 'The source page provides candidate market evidence that may be useful for comparable research.',
+      unknowns: ['Sold prices', 'Sold dates', 'Comparable property characteristics', 'Similarity to the subject property'],
+      action: 'Retrieve and verify each linked sold-price record before using it in the achieved-sale benchmark.',
+      protection: 'Do not count a source-listed recent-sale record as a verified achieved-sale comparable until its underlying evidence is established.',
+    });
+  }
+
+  if (facts.floorSizeM2 !== null && facts.landSizeM2 !== null && facts.askingPriceCents !== null) {
+    evidenceGraph.push({
+      evidence: `Property24 reports ${facts.floorSizeM2} m² floor area on a ${facts.landSizeM2} m² erf at the stated asking price.`,
+      meaning: `The listing implies approximately R ${Math.round((facts.askingPriceCents / facts.floorSizeM2) / 100).toLocaleString('en-ZA')} per advertised floor m².`,
+      unknowns: ['Measurement basis', 'Approved floor area', 'Comparable measurement consistency'],
+      action: 'Reconcile floor and erf measurements against reliable property records before using R/m² for market comparison.',
+      protection: 'Treat listing dimensions as source evidence, not independently verified measurements.',
+    });
+  }
+
   const sourceDocument: Property24SourceDocument = {
     source: 'property24',
     canonicalSource: 'Property24',
@@ -383,6 +434,7 @@ export function parseProperty24CompleteSections(
     claims,
     recentSales,
     sectionsPresent: SECTION_NAMES.filter((name) => normalized.toLowerCase().includes(name.toLowerCase())),
+    evidenceGraph,
   };
 
   return {
