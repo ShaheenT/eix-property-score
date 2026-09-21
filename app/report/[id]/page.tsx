@@ -494,13 +494,37 @@ export default async function CustomerReportPage({ params, searchParams }: { par
           <h2 className="mt-1 text-2xl font-bold">Questions for the agent</h2>
           <ol className="mt-5 space-y-3">
             {[
-              'Can you provide 3–6 recent achieved comparable sales for genuinely similar properties nearby?',
-              'What is the measured floor area, and can it be supported by plans or another reliable record?',
-              'Can you provide the approved building plans and confirm they match the current property?',
-              'Are all additions and alterations approved, and are the required compliance certificates current?',
-              'Are there any known structural defects, notices, disputes, servitudes or title restrictions?',
-              'Can you confirm the latest municipal rates account and any outstanding amounts?',
-              'What exactly is included in the sale, and are there any conditions or occupation terms I should know before making an offer?',
+              ...(achievedCount < 3 ? [
+                'Can you provide 3–5 actual achieved sale prices (not asking prices) for comparable 5-bedroom freehold properties or similarly large homes sold in Claremont within the last 6–12 months?',
+                'What local market evidence supports the R6,800,000 asking price compared with recent transfers in the immediate Claremont pocket?',
+              ] : [
+                'Please identify the achieved-sale comparables used in the EiX market benchmark and explain any material differences from this property.',
+              ]),
+              ...(!facts.floorSizeM2 ? [
+                'What is the exact registered and structural floor area of the main dwelling and any outbuildings, and can this be supported by approved plans or another authoritative record?',
+              ] : [
+                'Please confirm the stated floor area against approved plans or another authoritative property record.',
+              ]),
+              'What is the exact registered erf size?',
+              'Can you provide a room-by-room accommodation breakdown, including ensuite bathrooms, loft/attic areas, outbuildings and any flatlet or separate accommodation?',
+              ...(!facts.ratesAndTaxesCents ? [
+                'What are the current monthly municipal rates and utility charges, and can you provide the latest municipal account?',
+              ] : [
+                'Please provide the latest municipal rates account and confirm whether any amounts are outstanding.',
+              ]),
+              ...(!facts.backupPower?.length && !facts.hasBatteryBackup && !facts.hasSolar ? [
+                'Does the property have any backup power or water infrastructure, including an inverter/UPS, solar, batteries, generator, water tanks, borehole or wellpoint?',
+              ] : []),
+              ...(!facts.hasFibre ? [
+                'Is fibre internet currently installed and active at the premises, or is the property only fibre-ready?',
+              ] : []),
+              ...(!facts.parking && !facts.parkingDetails?.length ? [
+                'Exactly how many secure off-street parking bays, garages or carports are included?',
+              ] : []),
+              'Are all structures and material alterations, including extensions, pools, boundary structures and outbuildings where applicable, reflected on approved municipal building plans?',
+              'Will the seller furnish the applicable statutory compliance certificates, including Electrical, Beetle/Pest, Gas, Plumbing and Electric Fence certificates where relevant?',
+              'Are there any restrictive title-deed conditions, servitudes or HOA rules applicable to the property?',
+              'Before an unconditional offer, can the seller agree to appropriate suspensive conditions for an independent building/structural and pest inspection and verification of approved plans?',
             ].map((q, i) => <li key={q} className="flex gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-300/15 text-xs font-bold text-[#0B1220]">{i + 1}</span><span className="text-sm leading-relaxed text-[#475569]">{q}</span></li>)}
           </ol>
           <div className="mt-6 rounded-2xl border border-[#E2E8F0] bg-black/10 p-5">
