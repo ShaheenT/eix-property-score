@@ -5,10 +5,13 @@ on:
     branches:
       - main
       - release/r149
+      - work/r149-property24-complete-intelligence-v2
+      - fix/r149-property24-investigator-integration
   pull_request:
     branches:
       - main
       - release/r149
+      - work/r149-property24-complete-intelligence-v2
 
 jobs:
   quality:
