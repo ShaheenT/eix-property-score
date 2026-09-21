@@ -5,6 +5,7 @@ import {
   mergeEvidence,
 } from '@/lib/property-parser';
 import type { PropertyEvidence, PropertyFacts } from '@/lib/property-types';
+import { parseProperty24CompleteSections } from '@/lib/property24-complete-parser';
 
 export type PropertyExtractionStatus =
   | 'extracted'
@@ -555,6 +556,7 @@ function parseProperty24Facts(
   const labeledOverview = parseProperty24LabeledOverview(body);
   const keyFeatures = parseProperty24KeyFeatures(body);
   const heading = parseProperty24Heading(body);
+  const complete = parseProperty24CompleteSections(body);
 
   return {
     facts: mergeFacts(
@@ -563,6 +565,7 @@ function parseProperty24Facts(
       labeledOverview.facts,
       keyFeatures.facts,
       heading.facts,
+      complete.facts,
     ),
     evidence: mergeEvidence(
       [],
@@ -570,6 +573,7 @@ function parseProperty24Facts(
       labeledOverview.evidence,
       keyFeatures.evidence,
       heading.evidence,
+      complete.evidence,
     ),
   };
 }
@@ -898,55 +902,3 @@ export async function extractPropertyFromUrl(input: string, options: FetchOption
   try {
     const fetched = await fetchPage(sourceUrl, options);
     const jsonLdBlocks = extractJsonLdBlocks(fetched.body);
-    const jsonLd = { facts: emptyFacts(), evidence: [] as PropertyEvidence[] };
-
-    for (const block of jsonLdBlocks) {
-      const parsed = extractJsonLdFacts(block);
-      mergeFacts(jsonLd.facts, parsed.facts);
-      mergeEvidence(jsonLd.evidence, parsed.evidence);
-    }
-
-    const fallback = parseFallbackFacts(fetched.body, fetched.finalUrl);
-
-    if (source === 'property24' && !jsonLd.facts.city) {
-      const property24City = getProperty24City(fetched.finalUrl);
-
-      if (property24City) {
-        jsonLd.facts.city = property24City;
-        jsonLd.evidence.push({
-          field: 'city',
-          value: property24City,
-          source: 'html',
-        });
-      }
-    }
-    // Property24's visible listing summary / overview is the bounded source evidence
-    // for listing-specific physical facts. Structured metadata can conflict with it
-    // (e.g. bathrooms), so do not let JSON-LD silently override the listing page.
-    const facts =
-      source === 'private_property'
-        ? mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts)
-        : mergeFacts(emptyFacts(), fallback.facts, jsonLd.facts);
-
-    const evidence =
-      source === 'private_property'
-        ? mergeEvidence([], fallback.evidence, jsonLd.evidence)
-        : mergeEvidence([], fallback.evidence, jsonLd.evidence);
-    const factCount = countExtractedFacts(facts);
-
-    if (factCount === 0 || !hasMinimumPropertyEvidence(facts)) {
-      return {
-        status: 'insufficient_data', facts, evidence, source,
-        sourceUrl: fetched.finalUrl,
-        errors: ['The page was fetched successfully, but insufficient property facts were found to safely generate a score.'],
-      };
-    }
-
-    return { status: 'extracted', facts, evidence, source, sourceUrl: fetched.finalUrl, errors: [] };
-  } catch (error) {
-    return {
-      status: 'extraction_failed', facts: emptyFacts(), evidence: [], source, sourceUrl,
-      errors: [error instanceof Error ? error.message : 'Property extraction failed.'],
-    };
-  }
-}
