@@ -1,0 +1,37 @@
+name: EiX Property Score Production Playwright
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  production-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BASE_URL: https://eix-property-score-beta.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run production Playwright suite
+        continue-on-error: true
+        run: npx playwright test
+      - name: Generate launch certificate
+        if: always()
+        run: node scripts/generate-launch-certificate.mjs
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eix-property-score-playwright-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+      - name: Fail workflow when tests fail
+        if: always()
+        run: node scripts/assert-launch-ready.mjs
