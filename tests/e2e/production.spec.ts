@@ -73,7 +73,21 @@ test.describe('EiX Property Score — production launch verification',()=>{
     test('international purpose control',async({page})=>{await page.goto('/international-buyers');await expect(page.getByText('Primary purpose')).toBeVisible()});
     test('international budget control',async({page})=>{await page.goto('/international-buyers');await expect(page.getByText('Budget')).toBeVisible()});
     test('main page buyer selector',async({page})=>{await home(page);await expect(page.getByText('Who are you buying as?')).toBeVisible()});
-    test('main page international option',async({page})=>{await home(page);await p.getByText('South African buyer').click();await expect(page.getByText('International buyer')).toBeVisible()});
+    test('main page international option',async({page})=>{await home(page);await page.getByText('South African buyer').click();await expect(page.getByText('International buyer')).toBeVisible()});
+    test('server forces +27 international request to R149',async({request})=>{
+      const r=await request.post(base()+'/api/checkout',{data:{name:'QA Pricing '+Date.now(),email:'qa-pricing@example.com',whatsapp:'+27821234567',listing_url:ADDRESS,goal:'Buy to Live',product:'standard_report',buyer_type:'international'}});
+      expect(r.status()).toBe(200);
+      const body=await r.json();
+      expect(body.amount_zar).toBe(149);
+      expect(body.buyer_type).toBe('south_african');
+    });
+    test('server prices non-SA international request at R1495',async({request})=>{
+      const r=await request.post(base()+'/api/checkout',{data:{name:'QA International '+Date.now(),email:'qa-intl@example.com',whatsapp:'+447700900123',listing_url:ADDRESS,goal:'Buy to Live',product:'standard_report',buyer_type:'international',buyer_country:'United Kingdom'}});
+      expect(r.status()).toBe(200);
+      const body=await r.json();
+      expect(body.amount_zar).toBe(1495);
+      expect(body.buyer_type).toBe('international');
+    });
   });
 
   test.describe('API negative and security contract',()=>{
